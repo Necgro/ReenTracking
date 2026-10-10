@@ -29,9 +29,9 @@
 
 const CUADRE_TOLERANCIA = 0.01;
 // Lo mínimo entre el principio de dos llamadas a Etherscan: su plan gratis
-// admite unas 3 por segundo y, si se pasa, hace esperar 6 s (con 250 ms,
-// la lectura de una veintena de tokens tarda 100 s; con 400, unos 20).
-const CUADRE_PAUSA_MS = 400;
+// admite unas 3 por segundo y, si se pasa, hace esperar 6 s (con 400 ms
+// aún se pasaba: una veintena de tokens con vault tardaba 80 s).
+const CUADRE_PAUSA_MS = 600;
 // {activo: contrato}, en el orden del cuadre.
 const CUADRE_ACTIVOS_BASE = [USDT, USDC, RNT, "pol"].map(c => [nombreActivoFifo(c), c]);
 const CUADRE_ORDEN_BASE = CUADRE_ACTIVOS_BASE.map(([a]) => a);
