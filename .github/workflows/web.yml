@@ -1,0 +1,37 @@
+# Publica la app en GitHub Pages con cada cambio en main, y a su lado el
+# archivo único para descargar (ReenTrack.html y ReenTrack.zip).
+name: Web
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Montar la web y el archivo único
+        run: |
+          mkdir -p _site
+          cp -r Reental-SPA/. _site/
+          node .github/archivo-unico.js _site/ReenTrack.html
+          (cd _site && zip -q ReenTrack.zip ReenTrack.html)
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: despliegue
+        uses: actions/deploy-pages@v4

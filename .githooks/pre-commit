@@ -1,0 +1,11 @@
+#!/bin/sh
+# Antes de cada commit: la prueba de orden (datos de privado/datos_reales/ en lo
+# que iría a Git, enlaces rotos, tamaños…). Se activa una vez por copia del repo:
+#   git config core.hooksPath .githooks
+PY=$(command -v python3 || command -v python)
+"$PY" -m pytest tests/test_orden_paso_orden.py -q -p no:cacheprovider || {
+  echo "Commit parado por la prueba de orden: arregla lo de arriba y vuelve a intentarlo."
+  exit 1
+}
+# Comprobaciones propias, si las tienes (privado/ no va a Git).
+if [ -f privado/pre-commit ]; then sh privado/pre-commit || exit 1; fi

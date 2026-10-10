@@ -1,0 +1,3 @@
+# El guardián y los guiones de shell, siempre con saltos de línea de Unix
+.githooks/* text eol=lf
+*.sh text eol=lf

@@ -1,0 +1,36 @@
+# ============================================================
+#  Nunca a Git: datos personales
+# ============================================================
+# Tus datos de prueba, planes, notas y evidencias
+privado/
+
+# Por si quedan sueltos fuera de privado/: tu config, tu archivo de la app,
+# el archivo de rendimientos de Reental (nombre nuevo y antiguo) y tus copias
+config.json
+reental_cache*.json
+reental_rendimientos.csv
+reental_dividendos.csv
+copia-de-seguridad_*.json
+evidencias*/
+
+# El Excel y el informe para la Renta llevan nombre, NIF e importes:
+# ninguno, con cualquier nombre y en cualquier carpeta
+*.pdf
+*.xlsx
+
+# Cifras de referencia por confirmar (tests/regrabar_cifras.js)
+*.gz.nuevo
+# Capturas de los arneses de navegador (las *_real llevan importes reales)
+tests/navegador/*.png
+
+# ============================================================
+#  Sistema
+# ============================================================
+Thumbs.db
+Desktop.ini
+.DS_Store
+__pycache__/
+*.pyc
+.pytest_cache/
+.claude/worktrees/
+.claude/settings.local.json
