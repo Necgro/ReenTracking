@@ -2,7 +2,7 @@
 
 Lo más reciente, arriba. Una fila por versión o paso.
 
-## 1.0 — primera versión pública
+## 1.0 — primera versión pública (10/10/2026)
 
 - La app completa: descarga de Etherscan, BCE y CoinGecko; archivo de
   rendimientos de Reental; clasificación y 🔍 Revisión; 📒 Transacciones,

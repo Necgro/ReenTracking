@@ -20,13 +20,15 @@
   app está abierta en otra pestaña; igual abierta con doble clic como archivo
   único (comprobado en Chrome, Edge y Firefox).
 - **Comprobación antes de cada commit** de que nada de `privado/` va a Git.
+- **Publicada** (1.0, 10/10/2026): web en GitHub Pages y archivo único para
+  descargar, puestos al día solos con cada cambio en main.
 - **Pruebas:** puras, paridades con cifras de referencia y arneses de navegador.
 
 ## Siguiente
 
 | Paso | Qué |
 |---|---|
-| ➡️ **Publicar** | Repo público y la app en GitHub Pages, con el archivo único para descargar (`ReenTrack.html`, en `.zip`), montados solos con cada cambio (`.github/`) |
+| ➡️ **Arreglos y mejoras** | Los fallos menores apuntados y lo que vaya saliendo al usarla |
 
 ## Solo si hace falta
 
