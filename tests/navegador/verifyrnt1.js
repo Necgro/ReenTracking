@@ -204,6 +204,28 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   await esperar(600);
   assert("R5 -> «Solo este»: recompensa en el segundo y el regalo del primero no se toca",
     !(await dialogo()) && (await reg(2)).sub === "RCM_REWARD" && (await reg(1)).sub === "GPP_REGALO", [await reg(1), await reg(2)]);
+  /* ============ R6) auditoría: un diálogo a la vez y sin decidir sobre lo cambiado (A3) ============ */
+  await page.evaluate(() => { document.getElementById("ccResueltos").open = true; });
+  await page.click('#ccListaResueltos [data-accion="deshacer-decision"][data-clave="' + (await clave(2)) + '"]');
+  await esperar(600);
+  await pulsar(2, "regalo");
+  const dos = await page.evaluate(async c => {
+    ccPulsarDecision(c, "compra-rnt", null); // como un Intro en otro botón con el diálogo abierto
+    await new Promise(r => setTimeout(r, 100));
+    return document.querySelectorAll(".cc-dlg-overlay").length;
+  }, await clave(2));
+  assert("R6 -> A3: con un diálogo abierto no se abre otro", dos === 1, dos);
+  await page.evaluate(async c => { await ccDeshacerDecision(c); }, await clave(1)); // cambia algo por debajo
+  await esperar(400);
+  const w6 = await escrituras();
+  await page.click(".cc-rnt-todos");
+  await esperar(300);
+  const d6 = await dialogo();
+  assert("R6 -> A3: si la lista cambió, no guarda y lo dice", d6 && d6.error === "Ha cambiado algo: ciérralo y vuelve a abrirlo." &&
+    (await escrituras()) === w6, d6);
+  await page.keyboard.press("Escape");
+  await esperar(100);
+
   await page.evaluate(() => document.body.classList.add("dark"));
   await page.evaluate(() => { const r = state.registros.find(x => x.clave === window.__clave(5)); ccAbrirDialogoRnt(r, "compra-rnt", null, ccContextoSesion(state.registros)); });
   await esperar(200);

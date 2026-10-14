@@ -2865,10 +2865,15 @@ function ccPulsarDecision(clave, id, trigger) {
 
 /* «Regalo (airdrop)» y «Recompensa DeFi» sin más RNT desde esa dirección
    se guardan al momento; si hay más, el diálogo pregunta. «Compra
-   bancaria…» de RNT siempre lo abre (pide lo pagado y el total). */
+   bancaria…» de RNT siempre lo abre (pide lo pagado y el total). Uno solo
+   a la vez, y al guardar la lista tiene que seguir como al abrirlo (si no,
+   decidiría sobre lo que ya cambiaste en otro sitio). */
 function ccAbrirDialogoRnt(reg, id, trigger, ctx) {
   if (!state.cache) return toast(CC_SIN_CACHE, "warn");
+  if (document.querySelector(".cc-dlg-overlay")) return; // ya hay uno abierto
   const lista = ccRntDesde(ccRegistrosSesion(), reg, state.cache.ajustes_usuario || {}, ctx);
+  const huella = l => l.map(x => x.reg.clave + ":" + x.estado).join("|");
+  const alAbrir = huella(lista);
   const otros = lista.filter(x => x.reg.clave !== reg.clave && CC_RNT_CUENTA.includes(x.estado));
   if (id !== "compra-rnt" && !otros.length) return ccDecidir(reg.clave, id, null);
   const propuesta = id === "compra-rnt" ? ccPropuestaCompraRnt(lista, state.cache, ctx.propias) : null;
@@ -2879,6 +2884,10 @@ function ccAbrirDialogoRnt(reg, id, trigger, ctx) {
   const caja = modal.overlay;
   const error = caja.querySelector(".cc-rnt-error");
   const guardar = async (decisiones, mensaje) => {
+    if (huella(ccRntDesde(ccRegistrosSesion(), reg, state.cache.ajustes_usuario || {}, ctx)) !== alAbrir) {
+      error.textContent = "Ha cambiado algo: ciérralo y vuelve a abrirlo.";
+      return;
+    }
     let nuevos;
     try { nuevos = ccAjustesConDecisiones(state.cache.ajustes_usuario, decisiones, ahoraLocalISO()); }
     catch (e) { error.textContent = e.message; return; }
