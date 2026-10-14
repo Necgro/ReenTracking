@@ -1537,7 +1537,7 @@ function ccHtmlTarjeta(reg, opts = {}) {
      símbolo una sola vez y sin la etiqueta «a revisar» / «clasificado»
      (todo lo de la lista está por decidir). */
   let top = '<div class="cc-item-top">';
-  top += '<span class="cc-sym">' + (Number.isFinite(reg.cantidad) ? ccEsc(cant) + " " : "") + ccEsc(sim) + "</span>";
+  top += '<span class="cc-sym">' + (Number.isFinite(reg.cantidad) ? ccEsc(cant) + " " : "") + '<span class="cc-tok">' + ccEsc(sim) + "</span></span>";
   if (cand === "salida") {
     top += '<span class="cc-cand salida" title="Venta sin su cobro vinculado.">🔗 Por vincular</span>';
   }
@@ -2670,7 +2670,8 @@ function ccInyectarEstilos() {
     "@media(max-width:800px){.cc-par{grid-template-columns:1fr;gap:12px}.cc-par-con{justify-self:start}}",
     "#ccLista .cc-item{border-left-color:var(--border2)}",
     "#ccLista .cc-item.pend{border-left-color:var(--warn)}",
-    "#ccLista .cc-sym{font-weight:800;font-size:14.5px}",
+    "#ccLista .cc-sym{font-weight:600;font-size:19px;line-height:1.1}",
+    "#ccLista .cc-tok{font-weight:400;font-size:13.5px;color:var(--muted);margin-left:2px}",
     "#ccLista .cc-cand{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:700;padding:2px 9px;border-radius:999px;border:1px solid var(--accent);color:var(--accent)}",
     "#ccLista .cc-cand.cobro{border-color:var(--info);color:var(--info)}",
     /* Marca «🔗 vinculada» con el id de la venta. */

@@ -207,7 +207,7 @@ assert("marca de salida pendiente con su burbuja corta", /cc-cand salida" title=
 assert("nota del motor en la ⓘ de la categoría", !card1.includes("cc-motivo") && (!r1.nota || /<span class="cc-cat">[^<]*<span class="cc-info"/.test(card1)), (card1.match(/cc-cat.{0,120}/) || [""])[0]);
 assert("hash corto + enlace Polygonscan con noopener",
   card1.includes("https://polygonscan.com/tx/" + r1.hash) && /target="_blank" rel="noopener"/.test(card1));
-assert("cantidad y símbolo visibles, el símbolo una vez", /cc-sym">250 [^<]+</.test(card1), (card1.match(/cc-sym">[^<]*/) || [""])[0]);
+assert("cantidad y símbolo visibles, el símbolo una vez", /cc-sym">250 <span class="cc-tok">[^<]+<\/span><\/span>/.test(card1), (card1.match(/cc-sym">.{0,60}/) || [""])[0]);
 const cardSel = ccHtmlTarjeta(rCobro1, { seleccionada: true, candidatura: "cobro" });
 // Los cobros no llevan marca «por vincular» en Revisión.
 assert("sin selección: ni clase sel ni casilla", !/cc-item sel/.test(cardSel) && !cardSel.includes("checkbox"));
@@ -222,7 +222,7 @@ assert("con nota: la ⓘ de la categoría la lleva, escapada", /<span class="cc-
 const cardSinHash = ccHtmlTarjeta(registro("", P1, W, T, null, "COMPRA", { nota: "" }), {});
 assert("sin hash -> estado honesto, sin enlace", cardSinHash.includes("sin hash") && !cardSinHash.includes("polygonscan"));
 assert("sin nota -> sin ⓘ", !cardSinHash.includes("cc-info"));
-assert("cantidad null -> solo el símbolo, sin «?»", /cc-sym">[^<?]+</.test(cardSinHash), (cardSinHash.match(/cc-sym">[^<]*/) || [""])[0]);
+assert("cantidad null -> solo el símbolo, sin «?»", /cc-sym"><span class="cc-tok">[^<?]+</.test(cardSinHash), (cardSinHash.match(/cc-sym">[^<]*/) || [""])[0]);
 const cardSinCand = ccHtmlTarjeta(registro(H(31), USDT, W, T, 5, "RETIRADA"), {});
 assert("no candidata -> sin badge", !cardSinCand.includes("cc-cand"));
 
