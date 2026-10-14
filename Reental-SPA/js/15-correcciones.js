@@ -924,9 +924,10 @@ function ccRntLlegado(lista) {
   return lista.filter(x => CC_RNT_CUENTA.includes(x.estado) || x.estado === "compra")
     .reduce((s, x) => s + Number(x.reg.cantidad), 0);
 }
-/* ¿Cabe lo llegado en ese total? (con margen para la suma de decimales) */
+/* ¿Cabe lo llegado en ese total? Con margen para la suma de decimales y
+   para el total escrito con 6 decimales (las cantidades traen 18). */
 function ccRntCabe(total, llegado) {
-  return total >= llegado - 1e-9 * Math.max(1, total);
+  return total >= llegado - Math.max(1e-9 * total, 1e-6);
 }
 /* Ajustes NUEVOS con varias decisiones [[reg, id, valor]]: una decisión
    de 🔍 que ya tenía se deshace antes (vuelve lo que sustituyó). */

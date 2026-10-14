@@ -206,5 +206,19 @@ console.log("== 5. Auditoría (A2…A12) ==");
   assert("A2: lo llegado no cuenta lo de la app", S.ccRntLlegado(l) === 7);
 }
 
+// A5: el total que trae la casilla (6 decimales) se puede guardar tal cual, y cuenta como «ha llegado todo».
+{
+  for (const n of [15.0000004, 15.1234564, 300.0000004]) {
+    const l = [{ reg: ent("q", "2024-01-01 10:00:00", n), estado: "libre", ajuste: null }];
+    const total = S.ccLeerImporte(S.cantidadEs(n));
+    let c = null, err = "";
+    try { c = S.ccRepartoCompraRnt(l, 10, total); } catch (e) { err = e.message; }
+    assert("A5: " + n + " RNT con el total de la casilla («" + S.cantidadEs(n) + "»): se guarda con todo lo pagado", c && c[0][1] === 10, err || c);
+  }
+  let err = "";
+  try { S.ccRepartoCompraRnt([{ reg: ent("q", "2024-01-01 10:00:00", 15), estado: "libre", ajuste: null }], 10, 14.99); } catch (e) { err = e.message; }
+  assert("A5: un total de verdad menor sigue sin valer", err.startsWith("Ya te han llegado 15 RNT"), err);
+}
+
 console.log("\n" + ok + " OK, " + fallos + " FALLOS");
 process.exit(fallos ? 1 : 0);
