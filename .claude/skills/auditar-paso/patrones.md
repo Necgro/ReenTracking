@@ -143,6 +143,10 @@ como antes? Hacer → editar → ¿se conservan los campos que no se editaron?
   la fila con el ratón, el mismo gris; no se distinguían.
 - Mover la página antes de cambiar de pestaña: el navegador guardaba esa
   posición y «Atrás» volvía arriba.
+- Una espera nueva al final de un flujo (preguntar a internet tras
+  clasificar): lo que llegó mientras tanto («ya clasificará al terminar»)
+  se quedó sin hacer, y una ventana que se abre sola al acabar lo propuso
+  aunque el usuario ya lo había escrito.
 
 **Mirar:** ¿qué pasa si se repinta, se reclasifica o se cambia de pestaña a
 mitad de la acción? ¿Y si se pulsa dos veces? ¿Y en el papel?
@@ -332,6 +336,10 @@ textos que el usuario o un ajuste pueden cambiar.
   `privado/evidencias/` dejan de llevar a nada sin que ninguna comprobación
   lo vea; y al vaciar `privado/evidencias/` se van los guiones de fallos
   que siguen apuntados.
+- Datos reales camuflados en un test público: un instante (10 cifras)
+  copiado de la cache propia para que «pareciera real»; con una dirección
+  pública al lado llevaba a la wallet. La prueba de orden solo miraba
+  direcciones, hashes e importes.
 
 ## 11. Tests demasiado optimistas
 
