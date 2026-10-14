@@ -150,7 +150,9 @@ function dashSerieMensual(movimientos) {
    repartir), una compra en € sin tipo del BCE o una fecha que no existe o
    es imposible no se inventa: queda fuera y se cuenta. Devuelve
    { movimientos: [{ fecha, delta, invertido }] (con fecha, en orden),
-   compras, ventas, sinImporte, sinCambio, sinFecha }. */
+   compras, ventas, sinImporte, sinCambio, sinFecha } y lo comprado en su
+   moneda: eurBanco (por transferencia, en €) y usdStable (en USDT o USDC,
+   también desde el vault). */
 const DASH_VIAS_COMPRA = ["BANCARIA", "ONCHAIN", "VAULT"];
 /* Antes de esto o más de un año en el futuro, la fecha es una
    errata (un ajuste a mano, un timeStamp 0) y alargaría el gráfico sin fin. */
@@ -177,7 +179,7 @@ function dashDineroInvertido(registros, tiposBce) {
      suya); otra venta sin importe del mismo hash sí se cuenta. */
   const canjes = new Map();
   for (const r of lista) if (r.categoria === "COMPRA" && r.via_compra === "CANJE") canjes.set(r.hash, (canjes.get(r.hash) || 0) + 1);
-  const res = { movimientos: [], compras: 0, ventas: 0, sinImporte: 0, sinCambio: 0, sinFecha: 0 };
+  const res = { movimientos: [], compras: 0, ventas: 0, sinImporte: 0, sinCambio: 0, sinFecha: 0, eurBanco: 0, usdStable: 0 };
   for (const r of lista) {
     const compra = r.categoria === "COMPRA" && DASH_VIAS_COMPRA.includes(r.via_compra) &&
       !!String(r.inmueble || "").trim() && !STABLECOINS.has(normalizarDireccion(r.contrato || ""));
@@ -195,6 +197,8 @@ function dashDineroInvertido(registros, tiposBce) {
     } else if (positivo(r.importe_usdt)) importe = r.importe_usdt;
     if (importe === null) { res.sinImporte++; continue; }
     res[compra ? "compras" : "ventas"]++;
+    if (compra && r.via_compra === "BANCARIA") res.eurBanco += r.coste_eur;
+    else if (compra) res.usdStable += importe;
     res.movimientos.push({ fecha: r.fecha, instante: r.instante, delta: compra ? importe : -importe });
   }
   ordenarPorFecha(res.movimientos);  // por el instante real
@@ -364,26 +368,36 @@ function dashColumnasRendimientos(rendimientos, vista) {
    vault, según las transferencias descargadas: lo que entra menos lo que
    sale (entre tu wallet y tu vault no cambia nada). Un saldo negativo (falta
    historia en la descarga) no se dibuja: se cuenta aparte. */
-function dashCarteraTokens(cache) {
-  if (!cache || !cache.transacciones) return null;
+/* Los tokens que tienes de cada token del catálogo (confirmado o con
+   dudas) en tu wallet y tu vault: { saldos: Map contrato → saldo (sin
+   redondear), ignorados, ilegibles (Set de los contratos con algún
+   movimiento que no se pudo leer: su saldo no es seguro), inmuebles }. También lo usa el catálogo de 🔍
+   (js/11, «Ver todos»). */
+function dashSaldosCatalogo(cache) {
   const inmuebles = inmueblesConfirmadosCache(cache);
-  // Los «con dudas» no cuentan (solo los confirmados), pero se dice
-  // cuántos tienen tokens, para que no desaparezcan sin aviso. Los que
-  // mandaste enteros al spam no (como el catálogo de 🔍 Revisión).
+  // Los que mandaste enteros al spam no (como el catálogo de 🔍 Revisión).
   const dudas = dudasCatalogoCache(cache); // js/14
   const wallet = walletConfig();
   const tuya = a => { const d = normalizarDireccion(a || ""); return (!!wallet && d === wallet) || esDelVault(d); };
   const saldos = new Map();
   let ignorados = 0;
+  const ilegibles = new Set();
   for (const tx of transfersUnificadosClasificacion(cache)) {
     const contrato = normalizarDireccion(tx.contractAddress || "");
     // Solo las del catálogo (con `in`, «constructor» o «__proto__» de
     // una cache escrita a mano pasarían por inmuebles).
     if (!Object.prototype.hasOwnProperty.call(inmuebles, contrato) && !dudas.has(contrato)) continue;
     const q = cantidadTx(tx);
-    if (q === null || !Number.isFinite(q)) { ignorados++; continue; }
+    if (q === null || !Number.isFinite(q)) { ignorados++; ilegibles.add(contrato); continue; }
     saldos.set(contrato, (saldos.get(contrato) || 0) + (tuya(tx.to) ? q : 0) - (tuya(tx.from) ? q : 0));
   }
+  return { saldos, ignorados, ilegibles, inmuebles };
+}
+function dashCarteraTokens(cache) {
+  if (!cache || !cache.transacciones) return null;
+  // Los «con dudas» no cuentan (solo los confirmados), pero se dice
+  // cuántos tienen tokens, para que no desaparezcan sin aviso.
+  const { saldos, ignorados, inmuebles } = dashSaldosCatalogo(cache);
   const items = [];
   let negativos = 0, conDudas = 0;
   for (const [contrato, n] of saldos) {
@@ -698,12 +712,24 @@ function dashTarjetaInvertido(invertido, mensual) {
     const aria = "Gráfico de línea: dinero invertido de " + dashNombrePeriodo(s[0].etiqueta) + " (" + dashNum(s[0].valor, 2) +
       " USD) a " + dashNombrePeriodo(s[s.length - 1].etiqueta) + " (" + dashNum(ultimo, 2) + " USD).";
     cuerpo = '<div class="dash-value-lg">' + dashEsc(dashNum(ultimo, 2)) + "&nbsp;USD</div>" +
+      dashDesgloseInvertido(invertido) +
       '<div class="dash-hint">' + hint + "</div>" +
       '<div class="dash-chart dash-tipcaja dash-invertido" role="img" tabindex="0" aria-label="' + dashEsc(aria) + '">' +
       dashSvgLinea(s) + '<div class="dash-tip" hidden></div></div><div class="solo-lector" aria-live="polite"></div>' +
       dashAvisosInvertido(invertido);
   }
   return dashTarjeta(titulo, "", cuerpo, true);
+}
+
+/* Debajo de la cifra, como lo pone Reental: lo comprado en € (por
+   transferencia) y en $ (USDT o USDC), «€ 2.450,80  /  $ 1.012,25»; lo que
+   es 0 no sale. */
+function dashDesgloseInvertido(inv) {
+  const partes = [];
+  const hay = x => Math.round(x * 100) > 0; // «0,00» no sale
+  if (hay(inv.eurBanco)) partes.push("€ " + dashNum(inv.eurBanco, 2));
+  if (hay(inv.usdStable)) partes.push("$ " + dashNum(inv.usdStable, 2));
+  return partes.length ? '<div class="dash-desglose">' + partes.map(dashEsc).join('<span class="dash-desglose-sep">/</span>') + "</div>" : "";
 }
 
 /* Lo que quedó fuera del dinero invertido, una línea por motivo. */
@@ -1083,6 +1109,8 @@ function dashInyectarEstilos() {
     "#tarjetaMetricas .dash-head h3{font-size:14px;font-weight:700;color:var(--text)}",
     "#tarjetaMetricas .dash-hint{font-size:13px;color:var(--muted);margin-top:3px}",
     "#tarjetaMetricas .dash-value-lg{font-size:24px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--text)}",
+    "#tarjetaMetricas .dash-desglose{font-size:16px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}",
+    "#tarjetaMetricas .dash-desglose-sep{margin:0 10px}",
     "#tarjetaMetricas .dash-subhead{font-size:13px;font-weight:700;color:var(--muted);margin:14px 0 2px;text-transform:uppercase;letter-spacing:.05em}",
     "#tarjetaMetricas .dash-value-k{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}",
     "#tarjetaMetricas .dash-aparte{display:flex;flex-wrap:wrap;align-items:center;gap:0 10px;font-size:13px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--border2)}",

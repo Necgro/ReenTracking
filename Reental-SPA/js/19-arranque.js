@@ -447,6 +447,14 @@ function arrPintar() {
 
   const abrir = $("btnAbrirArchivo");
   if (abrir) abrir.disabled = arr.preparando;
+  const buscar = $("arrBuscarVaultCaja");
+  if (buscar) {
+    buscar.hidden = !arrPuedeBuscarVault(state.config, ev.nTx, arr.preparando, state.cache);
+    $("btnBuscarVault").disabled = !!arr.buscandoVault;
+    // La nota, solo para la wallet y la key con que se buscó, y con el botón a la vista.
+    const n = arr.notaVault;
+    $("arrBuscarVaultNota").textContent = !buscar.hidden && n && n.huella === arrHuellaVault(state.config) ? n.texto : "";
+  }
 
   // Lo que falta + botón «🔄 Actualizar»
   const faltan = $("arrFaltan");
@@ -665,24 +673,56 @@ async function arrFlujo(opciones) {
 /* Con el vault vacío, el que creó tu wallet: una ayuda, no una certeza. Se
    pregunta a Etherscan una vez por wallet y sesión (cada «🔄 Actualizar»
    vuelve a enseñar lo hallado). Un fallo deja una línea en el registro y
-   nada más. */
-async function arrBuscarVault() {
+   nada más. `pedido` (el botón «🔍 Buscar mi vault»): pregunta otra vez y
+   enseña también los que dijiste «No es» (lo pides tú). Devuelve cuántos
+   enseña, o null si no se pudo buscar. */
+async function arrBuscarVault(pedido = false) {
+  if (arr.buscandoVault) return null; // ya hay una en marcha (el botón está apagado mientras)
+  arr.buscandoVault = true;
+  arrPintarSeguro();
   try {
     const cfg = state.config, wallet = normalizarDireccion(cfg.wallet);
-    if (!arr.vaultsHallados || arr.vaultsHallados.wallet !== wallet) {
-      const candidatos = vaultCandidatos(state.cache, wallet);
+    if (pedido || !arr.vaultsHallados || arr.vaultsHallados.wallet !== wallet) {
+      const candidatos = vaultCandidatos(state.cache, wallet, pedido);
       const r = candidatos.length ? await vaultsCreadosPor(candidatos, wallet, String(cfg.etherscan_api_key || "").trim()) : [];
-      if (r === null) { log("No se pudo buscar tu vault en Etherscan.", "warn"); return; }
+      if (r === null) { log("No se pudo buscar tu vault en Etherscan.", "warn"); return null; }
       arr.vaultsHallados = { wallet, lista: r };
     }
     // Mientras buscaba pudiste escribir tu vault, cambiar la wallet o decir «No es».
     leerConfigDesdeFormulario();
-    const rechazados = vaultsRechazados(state.cache);
+    const rechazados = pedido ? new Set() : vaultsRechazados(state.cache);
     const lista = arr.vaultsHallados.lista.filter(v => !rechazados.has(v.direccion));
-    if (lista.length && normalizarDireccion(state.config.wallet) === wallet && !normalizarDireccion(state.config.vault)) {
-      arrProponerVault(lista);
-    }
-  } catch (e) { log("No se pudo buscar tu vault: " + e.message, "warn"); }
+    if (normalizarDireccion(state.config.wallet) !== wallet || normalizarDireccion(state.config.vault)) return undefined;
+    if (lista.length) arrProponerVault(lista);
+    return lista.length;
+  } catch (e) { log("No se pudo buscar tu vault: " + e.message, "warn"); return null; }
+  finally { arr.buscandoVault = false; arrPintarSeguro(); }
+}
+/* «🔍 Buscar mi vault», junto al campo: con el vault vacío, la wallet y la
+   API key escritas y algo ya descargado de esa wallet (busca entre sus
+   transacciones; con la de otra wallet, no hasta descargar); no mientras
+   se descarga. */
+function arrPuedeBuscarVault(cfg, nTx, preparando, cache) {
+  return !preparando && nTx > 0 && direccionValida(normalizarDireccion((cfg && cfg.wallet) || "")) &&
+    !!String((cfg && cfg.etherscan_api_key) || "").trim() && !String((cfg && cfg.vault) || "").trim() &&
+    !direccionesCambiadas(cache, cfg.wallet, "").includes("wallet");
+}
+/* La huella de lo que se buscó: la nota del botón solo vale para ella. */
+function arrHuellaVault(cfg) {
+  return normalizarDireccion((cfg && cfg.wallet) || "") + "|" + String((cfg && cfg.etherscan_api_key) || "").trim();
+}
+async function arrPulsarBuscarVault() {
+  if (arr.buscandoVault) return;
+  const btn = $("btnBuscarVault");
+  leerConfigDesdeFormulario();
+  const huella = arrHuellaVault(state.config);
+  arr.notaVault = null;
+  btn.textContent = "⏳ Buscando…";
+  const n = await arrBuscarVault(true);
+  btn.textContent = "🔍 Buscar mi vault";
+  const texto = n === null ? "No se pudo buscar en Etherscan." : n === 0 ? "Ningún vault creado por tu wallet." : "";
+  arr.notaVault = texto ? { texto, huella } : null;
+  arrPintarSeguro();
 }
 // La mini ventana: «Ponerlo» lo escribe en tus datos y descarga; «No es» no vuelve a salir.
 function arrProponerVault(lista) {
@@ -1181,6 +1221,8 @@ function arrMontarEventos() {
   if (btn && !btn.__arrEvento) { btn.__arrEvento = true; btn.addEventListener("click", arrActualizar); }
   const abrir = $("btnAbrirArchivo");
   if (abrir && !abrir.__arrEvento) { abrir.__arrEvento = true; abrir.addEventListener("click", arrAbrirArchivo); }
+  const buscar = $("btnBuscarVault");
+  if (buscar && !buscar.__arrEvento) { buscar.__arrEvento = true; buscar.addEventListener("click", arrPulsarBuscarVault); }
   const vista = $("view-inicio");
   if (vista && !vista.__arrEvento) {
     vista.__arrEvento = true;

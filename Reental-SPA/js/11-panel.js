@@ -54,14 +54,14 @@ function pnEnlaceContrato(addr) {
     '" target="_blank" rel="noopener" title="' + ccEsc(a) + ' · ver en Polygonscan">' + ccEsc(txHashCorto(a)) + " ↗</a>";
 }
 
-function pnHtmlFilaCatalogo(f) {
+function pnHtmlFilaCatalogo(f, sinTokens) {
   const e = f.entrada;
   const nombre = e.nombre_reental || e.nombre_etherscan || "(sin nombre)";
   const botones = PN_BOTONES_CATALOGO[f.estado].map(([nuevo, texto, ayuda]) =>
     '<button type="button" class="rv-boton" data-addr="' + ccEsc(f.addr) + '" data-estado="' + nuevo +
     '" aria-label="' + ccEsc(texto.replace(/^\S+ /, "") + ": " + ayuda) + '">' + texto +
     '<span class="rv-burbuja" aria-hidden="true">' + ccEsc(ayuda) + "</span></button>").join("");
-  return '<tr data-addr="' + ccEsc(f.addr) + '">' +
+  return '<tr data-addr="' + ccEsc(f.addr) + '"' + (sinTokens ? ' class="rv-sin-tokens"' : "") + ">" +
     "<td>" + ccEsc(nombre) + "</td>" +
     "<td>" + ccEsc(e.simbolo || "") + "</td>" +
     "<td>" + ccEsc(e.primera_aparicion ? fechaEs(e.primera_aparicion) : "—") + "</td>" +
@@ -70,14 +70,30 @@ function pnHtmlFilaCatalogo(f) {
     '<td class="rv-acciones">' + botones + "</td></tr>";
 }
 
+/* «Ver todos» del catálogo: apagado, solo los inmuebles que tienes. Se
+   esconden los confirmados sin ningún token en tu wallet ni en tu vault
+   (vendidos, canjeados o pasados a otra wallet); nunca uno con dudas ni uno
+   con saldo negativo (falta historia en la descarga: en la duda, se ve),
+   ni uno con un movimiento que no se pudo leer, ni uno que acabas de
+   confirmar (se iría al pulsar). Sin vault en tus datos no se esconde nada:
+   lo que pasaste al vault parecería vendido. s = dashSaldosCatalogo (js/16).
+   No se recuerda al abrir. */
+let pnVerTodos = false;
+const pnConfirmadosAhora = new Set();
+function pnSinTokens(f, s) {
+  const a = normalizarDireccion(f.addr);
+  return f.estado === "CONFIRMADA" && red6(s.saldos.get(a) || 0) === 0 && !(s.ilegibles && s.ilegibles.has(a)) &&
+    !pnConfirmadosAhora.has(a);
+}
+
 /* Lo que sale en el catálogo: inmuebles y con dudas (sin lo mandado al spam). */
 function pnFilasVisibles(filas) {
   return filas.filter(f => f.estado in PN_BOTONES_CATALOGO);
 }
 
-function pnHtmlCatalogo(filas) {
+function pnHtmlCatalogo(filas, sinTokens = new Set()) {
   return filas.length
-    ? filas.map(pnHtmlFilaCatalogo).join("")
+    ? filas.map(f => pnHtmlFilaCatalogo(f, sinTokens.has(f.addr))).join("")
     : '<tr><td colspan="6" class="rv-vacio">Sin inmuebles todavía.</td></tr>';
 }
 
@@ -227,6 +243,7 @@ async function pnCambiarEstadoCatalogo(addr, nuevo) {
   const e = state.cache && state.cache.catalogo_propiedades && state.cache.catalogo_propiedades[addr];
   if (!e) return;
   if (nuevo === "DESCARTADA") return pnDescartarToken(addr, e);
+  if (nuevo === "CONFIRMADA") pnConfirmadosAhora.add(normalizarDireccion(addr));
   e.estado = nuevo;
   await pnGuardarYClasificar();
   // El estado final: el descubrimiento vuelve a confirmar una «con dudas»
@@ -529,9 +546,18 @@ function renderPanel() {
   $("rvSemillasQuitadas").hidden = !quitadas.length;
 
   // Catálogo de inmuebles
-  const lista = pnFilasVisibles(pnFilasCatalogo(cache));
-  $("tablaCatalogo").innerHTML = pnHtmlCatalogo(lista);
+  const todas = pnFilasVisibles(pnFilasCatalogo(cache));
+  const conVault = !!normalizarDireccion((state.config && state.config.vault) || "");
+  const saldos = conVault && cache && cache.transacciones && typeof dashSaldosCatalogo === "function" ? dashSaldosCatalogo(cache) : null;
+  const sinTokens = new Set(saldos ? todas.filter(f => pnSinTokens(f, saldos)).map(f => f.addr) : []);
+  if (!sinTokens.size) pnVerTodos = false; // al volver a haber alguno, sale apagado
+  const lista = pnVerTodos ? todas : todas.filter(f => !sinTokens.has(f.addr));
+  $("tablaCatalogo").innerHTML = lista.length || !todas.length ? pnHtmlCatalogo(lista, sinTokens)
+    : '<tr><td colspan="6" class="rv-vacio">Ninguno con tokens.</td></tr>';
   $("nCatalogo").textContent = lista.length;
+  $("rvCatalogoTodosCaja").hidden = !sinTokens.size;
+  $("rvCatalogoTodos").checked = pnVerTodos;
+  $("rvCatalogoTodosN").textContent = todas.length;
   const dudas = lista.filter(f => f.estado === "CANDIDATA").length;
   $("rvCatalogoAviso").textContent = dudas ? "⚠ " + dudas + " con dudas" : "";
   pnAbrirSiHace("rvCatalogo", dudas > 0);
@@ -582,6 +608,7 @@ function pnMontarEventos() {
     const b = ev.target.closest("button[data-estado]");
     if (b) pnCambiarEstadoCatalogo(b.dataset.addr, b.dataset.estado);
   });
+  $("rvCatalogoTodos").addEventListener("change", ev => { pnVerTodos = ev.target.checked; renderPanel(); });
   $("tablaContratos").addEventListener("click", ev => {
     const b = ev.target.closest("button[data-rol]");
     if (b) pnQuitarContrato(b.dataset.rol, b.dataset.addr);

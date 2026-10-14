@@ -26,6 +26,10 @@
      revisar por ti.
    - Un ajuste de otro origen (p. ej. uno escrito a mano) nunca
      se pisa: su coste se enseña sin «Editar», con una ⓘ.
+   - «En USDT…» (P15), con la casilla abierta: lo pagado en USD y el día
+     del pago (una compra pagada en USDT a Reental y entregada después);
+     al escribir, la casilla de € se rellena con el BCE de ese día y se
+     guarda como siempre.
 
    Reglas:
    - Guardado con ccGuardarAjustesDecision de js/15 (marcarCacheDirty +
@@ -162,6 +166,25 @@ function cbAjustesConCostes(ajustes, cambios, registros, precio, fechaISO) {
   return copia;
 }
 
+/* «En USDT…»: lo pagado en USD el día del pago, en € con el tipo del BCE
+   de ese día (o el último anterior, como el motor): { eur, fecha } (la del
+   tipo usado) o { error } (vacío mientras no hay nada escrito). */
+function cbEurDeUsd(texto, fecha, tiposBce, cache) {
+  const t = String(texto || "").trim();
+  if (!t) return { error: "" };
+  const usd = ccLeerImporte(t);
+  if (!ccEsNumeroPositivo(usd)) return { error: ccAvisoImporte(t) };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(fecha || ""))) return { error: "Pon el día del pago." };
+  const r = ccEurOrientativo(usd, fecha, tiposBce, cache);
+  if (!r) return { error: "Sin tipo del BCE para ese día." };
+  const eur = cbRedondearCentimos(r.eur);
+  return eur > 0 ? { eur, fecha: r.fecha } : { error: "Escribe un importe mayor que 0." };
+}
+/* Lo que dice al lado: «= 909,09 € (BCE del 01/03/2024)» o el error. */
+function cbTextoEurDeUsd(calc) {
+  return calc && ccEsNumeroPositivo(calc.eur) ? "= " + numEs(calc.eur, 2) + " € (BCE del " + fechaEs(calc.fecha) + ")" : (calc && calc.error) || "";
+}
+
 /* € por token de un coste y unos tokens («50,00 €»; por debajo de 1 €,
    con 4 decimales, como el RNT: «0,0300 €»), o «—». */
 function cbTextoPorToken(coste, tokens) {
@@ -195,7 +218,8 @@ function cbHtmlFila(f, borrador) {
     const cambia = !cbMismoImporte(valor, coste);
     pagado = '<input type="text" inputmode="decimal" class="cb-valor" data-clave="' + ccEsc(r.clave) + '" value="' +
       ccEsc(texto) + '" aria-label="' + ccEsc("Pagado en € · " + nombre + " · " + (fecha || "")) + '"> €';
-    acciones = cbBoton("guardar", r.clave, "Guardar", !cambia && !f.supuesto) + cbBoton("cancelar", r.clave, "Cancelar");
+    acciones = cbBoton("guardar", r.clave, "Guardar", !cambia && !f.supuesto) + cbBoton("cancelar", r.clave, "Cancelar") +
+      cbBoton("usdt", r.clave, "En USDT…");
   } else {
     // El de por defecto lo dice (en el informe lleva «**»).
     pagado = '<span class="cb-fijo">' + ccEsc(guardado) + " €</span>" +
@@ -209,7 +233,18 @@ function cbHtmlFila(f, borrador) {
     '<td class="num">' + ccEsc(ccCantidad(Number(r.cantidad))) + "</td>" +
     '<td class="num">' + pagado + "</td>" +
     '<td class="num cb-por-token">' + ccEsc(cbTextoPorToken(valor, r.cantidad)) + "</td>" +
-    '<td class="cb-acciones">' + acciones + "</td></tr>";
+    '<td class="cb-acciones">' + acciones + "</td></tr>" +
+    (abierta && f.usdt ? cbHtmlUsdt(r, f.usdt) : "");
+}
+/* Debajo de la fila abierta: «Pagado [ ] USD el [día]  = … € (BCE del …)».
+   u = { usd, fecha, calc }. */
+function cbHtmlUsdt(r, u) {
+  const c = ccEsc(r.clave);
+  return '<tr class="cb-usdt" data-clave="' + c + '"><td colspan="7">' +
+    '<label>Pagado <input type="text" inputmode="decimal" class="cb-usd" data-clave="' + c + '" value="' + ccEsc(u.usd || "") +
+    '" aria-label="Pagado en USD"> USD</label> <label>el <input type="date" class="cb-usd-fecha" data-clave="' + c + '" value="' +
+    ccEsc(u.fecha || "") + '" aria-label="Día del pago"></label> <span class="cb-usd-eur" aria-live="polite">' +
+    ccEsc(cbTextoEurDeUsd(u.calc)) + "</span></td></tr>";
 }
 
 /* El contenido del plegable. Lo de «100 €/token por defecto» lo dice la
@@ -226,6 +261,9 @@ function cbHtmlEditor(filas, borrador) {
 
 /* Lo escrito y sin guardar: { clave: texto }. */
 let cbBorrador = {};
+/* «En USDT…» abierto: { clave: { usd, fecha, antes } } (antes = la
+   casilla de € al abrirlo). */
+let cbUsdt = {};
 
 function cbAjustesSesion() {
   return (state.cache && state.cache.ajustes_usuario) || {};
@@ -248,6 +286,11 @@ function renderCosteCompras() {
   /* Lo escrito de una compra que ya no está (otra cache) se olvida. */
   const vivas = new Set(filas.map(f => f.reg.clave));
   for (const c of Object.keys(cbBorrador)) if (!vivas.has(c)) delete cbBorrador[c];
+  for (const c of Object.keys(cbUsdt)) if (!cbEscrito(cbBorrador, c)) delete cbUsdt[c];
+  for (const f of filas) {
+    const u = cbUsdt[f.reg.clave];
+    if (u) f.usdt = Object.assign({ calc: cbEurDeUsd(u.usd, u.fecha, (state.cache && state.cache.tipos_bce) || {}, state.cache) }, u);
+  }
   const n = $("cbCount");
   if (n) n.textContent = String(vivas.size);
   cont.innerHTML = cbHtmlEditor(filas, cbBorrador);
@@ -280,9 +323,20 @@ function cbFocoEditar(clave) {
   const btn = document.querySelector('#cbCuerpo [data-cb="editar"][data-clave="' + CSS.escape(clave) + '"]');
   if (btn) btn.focus();
 }
+/* «En USDT…»: abre debajo lo pagado en USD y el día (de entrada, el de la
+   compra), con el cursor en el importe; otra pulsación lo cierra. */
+function cbAbrirUsdt(clave) {
+  if (cbUsdt[clave]) { delete cbUsdt[clave]; renderCosteCompras(); return; }
+  const reg = ccRegistrosSesion().find(r => r.clave === clave);
+  cbUsdt[clave] = { usd: "", fecha: (reg && ccFechaDiaNorm(reg.fecha)) || "", antes: cbEscrito(cbBorrador, clave) ? String(cbBorrador[clave]) : "" };
+  renderCosteCompras();
+  const input = document.querySelector('#cbCuerpo .cb-usd[data-clave="' + CSS.escape(clave) + '"]');
+  if (input) input.focus();
+}
 /* «Cancelar» o Esc: se cierra sin guardar. */
 function cbCerrar(clave) {
   delete cbBorrador[clave];
+  delete cbUsdt[clave];
   renderCosteCompras();
   cbFocoEditar(clave);
 }
@@ -297,8 +351,13 @@ async function cbGuardar(clave) {
   if (!cambios.length) return cbCerrar(clave);
   let nuevos;
   try { nuevos = cbAjustesConCostes(ajustes, cambios, registros, cbPrecioSesion(), ahoraLocalISO()); }
-  catch (e) { return toast(Number.isNaN(cambios[0].valor) ? ccAvisoImporte(String(cbBorrador[clave])) : e.message, "error"); }
+  catch (e) {
+    // Con «En USDT…» abierto y algo mal allí (sin tipo del BCE, sin día…), ese es el aviso.
+    const u = cbUsdt[clave], deUsd = u && cbEurDeUsd(u.usd, u.fecha, (state.cache && state.cache.tipos_bce) || {}, state.cache).error;
+    return toast(deUsd || (Number.isNaN(cambios[0].valor) ? ccAvisoImporte(String(cbBorrador[clave])) : e.message), "error");
+  }
   delete cbBorrador[clave];
+  delete cbUsdt[clave];
   await ccGuardarAjustesDecision(nuevos, "Coste guardado.");
   cbFocoEditar(clave);
 }
@@ -309,9 +368,8 @@ function cbMontarEventos() {
   const cont = $("cbCuerpo");
   if (!cont || cont.__cbEventos) return;
   cont.__cbEventos = true;
-  cont.addEventListener("input", e => {
-    const input = e.target;
-    if (!input.classList || !input.classList.contains("cb-valor")) return;
+  // Lo escrito en la casilla de €: el € por token y el «Guardar» de la fila.
+  const alEscribir = input => {
     const clave = input.getAttribute("data-clave");
     cbBorrador[clave] = input.value;
     const registros = ccRegistrosSesion();
@@ -321,10 +379,36 @@ function cbMontarEventos() {
     if (reg && celda) celda.textContent = cbTextoPorToken(cbValorEscrito(input.value), reg.cantidad);
     const btn = fila && fila.querySelector('[data-cb="guardar"]');
     if (btn) btn.disabled = cbCambios(registros, cbAjustesSesion(), cbBorrador, clave, cbPrecioSesion()).length === 0;
+  };
+  // «En USDT…»: lo pagado y el día → la casilla de €.
+  const alEscribirUsd = input => {
+    const clave = input.getAttribute("data-clave");
+    const sub = input.closest("tr");
+    const u = cbUsdt[clave] = Object.assign(cbUsdt[clave] || { antes: "" }, { usd: sub.querySelector(".cb-usd").value,
+      fecha: sub.querySelector(".cb-usd-fecha").value });
+    const calc = cbEurDeUsd(u.usd, u.fecha, (state.cache && state.cache.tipos_bce) || {}, state.cache);
+    sub.querySelector(".cb-usd-eur").textContent = cbTextoEurDeUsd(calc);
+    // La casilla sigue a los USD: con un importe, sus €; con uno que no
+    // vale, vacía (si no, se quedaría lo de una tecla antes: «1000» de
+    // «1000.5»); sin nada escrito, lo que tenía al abrir «En USDT…».
+    const casilla = cbCasilla(clave);
+    if (!casilla) return;
+    casilla.value = calc.eur ? numEs(calc.eur, 2) : calc.error ? "" : u.antes;
+    alEscribir(casilla);
+  };
+  const esDe = (el, ...clases) => !!el.classList && clases.some(c => el.classList.contains(c));
+  cont.addEventListener("input", e => {
+    if (esDe(e.target, "cb-valor")) {
+      alEscribir(e.target);
+      // Escrita a mano: la cuenta de «En USDT…» ya no es lo que se guarda.
+      const sub = e.target.closest("tr").nextElementSibling;
+      if (sub && sub.classList.contains("cb-usdt")) sub.querySelector(".cb-usd-eur").textContent = "";
+    }
+    else if (esDe(e.target, "cb-usd", "cb-usd-fecha")) alEscribirUsd(e.target);
   });
   cont.addEventListener("keydown", e => {
     const input = e.target;
-    if (!input.classList || !input.classList.contains("cb-valor")) return;
+    if (!esDe(input, "cb-valor", "cb-usd", "cb-usd-fecha")) return;
     const clave = input.getAttribute("data-clave");
     if (e.key === "Enter") { e.preventDefault(); cbGuardar(clave); }
     else if (e.key === "Escape") { e.preventDefault(); cbCerrar(clave); }
@@ -337,6 +421,7 @@ function cbMontarEventos() {
     if (accion === "editar") cbAbrir(clave);
     else if (accion === "cancelar") cbCerrar(clave);
     else if (accion === "guardar") cbGuardar(clave);
+    else if (accion === "usdt") cbAbrirUsdt(clave);
   });
 }
 
@@ -362,6 +447,11 @@ function cbInyectarEstilos() {
     ".cb-acciones{text-align:left}",
     ".cb-accion{font-size:13px;padding:5px 10px;border-radius:8px}",
     ".cb-accion+.cb-accion{margin-left:6px}",
+    ".cb-tabla tr.cb-usdt td{height:auto;padding:4px 10px 12px;text-align:right;color:var(--muted)}",
+    ".cb-usdt label{display:inline-flex;align-items:center;gap:6px;margin-left:10px}",
+    ".cb-usdt input.cb-usd{width:110px;text-align:right;padding:5px 8px;font-size:13.5px}",
+    ".cb-usdt input.cb-usd-fecha{width:150px;padding:4px 6px;font-size:13.5px}",
+    ".cb-usd-eur{display:inline-block;min-width:230px;margin-left:10px;text-align:left;color:var(--text)}",
   ].join("\n");
   document.head.appendChild(estilo);
 }

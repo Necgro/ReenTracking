@@ -36,6 +36,12 @@
   otra vez. Solo si aparece un descuadre que no se explique (hoy una descarga a
   medias no avanza el último bloque, cambiar la wallet o el vault ya lo pide
   todo y el cuadre avisaría de un hueco).
+- **Vincular el pago de una compra:** un inmueble pagado en USDT a una wallet
+  de Reental y entregado después sale como compra bancaria. Hoy se pone lo
+  pagado en 💶 («En USDT…», con el BCE del día del pago). Si se repite mucho:
+  «🔗 Vincular pago…» en la compra, como el vínculo venta ↔ cobro, para que
+  quede igual que una compra pagada en la blockchain (coste, fecha y permuta
+  del USDT). Toca la clasificación, el motor y 🔍.
 
 ## Descartado
 

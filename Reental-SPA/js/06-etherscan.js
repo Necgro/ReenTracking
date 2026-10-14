@@ -29,9 +29,10 @@ async function etherscanGet(params, apiKey, etiqueta = "") {
 }
 /* Dónde buscar tu vault: los contratos a los que llamó tu wallet, sin los que
    la app ya conoce (tokens, inmuebles, DeFi, contratos aprendidos) ni los
-   que dijiste que no son tu vault. */
-function vaultCandidatos(cache, wallet) {
-  const fuera = new Set([normalizarDireccion(wallet), USDT, USDC, RNT, BURN, ...vaultsRechazados(cache)]);
+   que dijiste que no son tu vault (con `conRechazados`, también esos: lo
+   pides tú con «🔍 Buscar mi vault», js/19). */
+function vaultCandidatos(cache, wallet, conRechazados = false) {
+  const fuera = new Set([normalizarDireccion(wallet), USDT, USDC, RNT, BURN, ...(conRechazados ? [] : vaultsRechazados(cache))]);
   for (const bloque of [cache.catalogo_propiedades, ...Object.values(SEMILLAS_DEFI), ...Object.values(cache.contratos_aprendidos || {})]) {
     for (const a of Object.keys(bloque || {})) fuera.add(normalizarDireccion(a));
   }
