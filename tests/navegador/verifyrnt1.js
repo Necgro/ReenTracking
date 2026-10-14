@@ -45,7 +45,7 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   });
 
   function montar() {
-    const W = "0x" + "11".repeat(20), AIR = "0x" + "a7".repeat(20), REP = "0x" + "c5".repeat(20);
+    const W = "0x" + "11".repeat(20), AIR = "0x" + "a7".repeat(20), REP = "0x" + "c5".repeat(20), SOLO = "0x" + "b3".repeat(20);
     const P1 = "0x" + "a1".repeat(20);
     const Hh = n => "0x" + String(n).padStart(4, "0") + "ab".repeat(30);
     const ts = (y, m, d) => String(Math.floor(Date.UTC(y, m - 1, d, 9) / 1000));
@@ -58,7 +58,8 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
       contractAddress: RNT, value: wei(cantidad), tokenName: "Reental", tokenSymbol: "RNT", tokenDecimal: "18" });
     cache.transacciones.wallet_tokens.push(
       rnt(1, AIR, 11, ts(2024, 9, 17)), rnt(2, AIR, 9, ts(2024, 11, 8)),
-      rnt(3, REP, 5000, ts(2024, 2, 12)), rnt(4, REP, 4000, ts(2024, 7, 3)), rnt(5, REP, 2000, ts(2024, 11, 20)));
+      rnt(3, REP, 5000, ts(2024, 2, 12)), rnt(4, REP, 4000, ts(2024, 7, 3)), rnt(5, REP, 2000, ts(2024, 11, 20)),
+      rnt(7, SOLO, 5, ts(2024, 8, 8)));
     // La primera entrega la reclamó la wallet: claim(index, cuenta, asignación 20.000, prueba).
     cache.transacciones.wallet_normales.push({ blockNumber: "103", timeStamp: ts(2024, 2, 12), hash: Hh(3), from: W, to: REP,
       value: "0", gasUsed: "0", gasPrice: "0", isError: "0", txreceipt_status: "1",
@@ -225,6 +226,25 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
     (await escrituras()) === w6, d6);
   await page.keyboard.press("Escape");
   await esperar(100);
+  /* A10: doble clic con un guardado lento, en un RNT que llega solo (se guarda sin diálogo). */
+  await page.evaluate(() => { document.querySelectorAll("#toasts .toast").forEach(t => t.remove());
+    const antes = window.escribirArchivoNavegador;
+    window.escribirArchivoNavegador = async c => { await new Promise(r => setTimeout(r, 250)); return antes(c); }; });
+  const w10 = await escrituras();
+  await page.evaluate(c => { const b = document.querySelector('#ccLista [data-accion="decidir"][data-clave="' + c + '"][data-opcion="regalo"]'); b.click(); b.click(); }, await clave(7));
+  await esperar(900);
+  const avisos10 = await page.evaluate(() => [...document.querySelectorAll("#toasts .toast")].map(t => t.textContent));
+  assert("R6 -> A10: doble clic: se guarda una vez y sin el aviso rojo falso", (await escrituras()) === w10 + 1 &&
+    (await reg(7)).sub === "GPP_REGALO" && !avisos10.some(t => t.includes("Ya tiene un ajuste manual")), avisos10);
+  /* A11: cambiar de pestaña cierra el diálogo. */
+  await pulsar(1, "regalo");
+  const abierto11 = !!(await dialogo());
+  await page.evaluate(() => { location.hash = "#dashboard"; });
+  await esperar(300);
+  const tras11 = await page.evaluate(() => document.querySelectorAll(".cc-dlg-overlay").length);
+  await page.evaluate(() => { location.hash = "#revision"; });
+  await esperar(400);
+  assert("R6 -> A11: el diálogo se cierra al cambiar de pestaña", abierto11 && tras11 === 0, [abierto11, tras11]);
 
   await page.evaluate(() => document.body.classList.add("dark"));
   await page.evaluate(() => { const r = state.registros.find(x => x.clave === window.__clave(5)); ccAbrirDialogoRnt(r, "compra-rnt", null, ccContextoSesion(state.registros)); });

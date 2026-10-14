@@ -2829,9 +2829,16 @@ function renderCcResueltos() {
 /* Guardar los ajustes del usuario (una decisión, deshacerla, o los botones
    de js/18): ajuste, guardado, reclasificación y aviso. accionToast es la
    acción opcional del aviso (la usa js/18). */
+/* Mientras se guarda, otra pulsación de decidir o deshacer no hace nada
+   (un doble clic chocaría con la decisión recién puesta: «Ya tiene un
+   ajuste manual»). */
+let ccGuardandoAjustes = false;
 async function ccGuardarAjustesDecision(nuevos, mensaje, accionToast) {
   state.cache.ajustes_usuario = nuevos;
-  const enDisco = await ccGuardarYReclasificar();
+  ccGuardandoAjustes = true;
+  let enDisco;
+  try { enDisco = await ccGuardarYReclasificar(); }
+  finally { ccGuardandoAjustes = false; }
   if (enDisco === null) return;
   toast(mensaje + (enDisco ? "" : " " + CC_SIN_DISCO), enDisco ? "ok" : "warn", accionToast);
 }
@@ -2854,6 +2861,7 @@ function ccCerrarDecisionAbierta() {
 }
 async function ccDeshacerDecision(clave) {
   if (!state.cache) return toast(CC_SIN_CACHE, "warn");
+  if (ccGuardandoAjustes) return;
   let nuevos;
   try { nuevos = ccAjustesSinDecision(state.cache.ajustes_usuario, clave, ahoraLocalISO()); }
   catch (e) { return toast(e.message, "error"); }
@@ -2863,6 +2871,7 @@ async function ccDeshacerDecision(clave) {
    pulsación lo cierra); las demás se guardan al momento (se deshacen en
    «Movimientos ya decididos»). */
 function ccPulsarDecision(clave, id, trigger) {
+  if (ccGuardandoAjustes) return;
   const registros = ccRegistrosSesion();
   const reg = registros.find(r => r.clave === clave);
   if (!reg) return;
@@ -2898,7 +2907,9 @@ function ccAbrirDialogoRnt(reg, id, trigger, ctx) {
   if (id !== "compra-rnt" && !otros.length) return ccDecidir(reg.clave, id, null);
   const propuesta = id === "compra-rnt" ? ccPropuestaCompraRnt(lista, state.cache, ctx.propias) : null;
   let modal = null;
-  const cerrar = () => { if (modal) { ccQuitarModal(modal); modal = null; } };
+  // Cambiar de pestaña lo cierra (si no, se quedaría encima de otra).
+  const cerrar = () => { if (modal) { ccQuitarModal(modal); modal = null; window.removeEventListener("hashchange", cerrar); } };
+  window.addEventListener("hashchange", cerrar);
   modal = ccCrearModal(id === "compra-rnt" ? "Compra bancaria de RNT" : "Decidir también los otros movimientos de RNT",
     ccHtmlDialogoRnt(reg, id, lista, propuesta), cerrar, trigger);
   const caja = modal.overlay;
