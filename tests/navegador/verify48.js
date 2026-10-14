@@ -117,7 +117,9 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
     await esperar(300);
   }
   const clickCentrado = async sel => {
-    await page.evaluate(s => { const el = document.querySelector(s); if (el) el.scrollIntoView({ block: "center" }); }, sel);
+    /* Sin avisos: «Ya decididos» va al final de 🔍 y el de abajo a la derecha taparía sus botones. */
+    await page.evaluate(s => { document.querySelectorAll("#toasts .toast").forEach(t => t.remove());
+      const el = document.querySelector(s); if (el) el.scrollIntoView({ block: "center", behavior: "instant" }); }, sel);
     await esperar(120);
     await page.click(sel);
     await esperar(350);
