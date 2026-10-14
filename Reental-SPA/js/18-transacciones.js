@@ -252,8 +252,23 @@ function txOperacion(reg) {
   if (reg.pago_diferido && reg.pago_diferido.rol === "pago" && reg.categoria === "DEPOSITO") return "Cobro de una venta";
   /* No es un traspaso tuyo, lo devuelve quien cobró la compra. */
   if (reg.categoria === "MOVIMIENTO" && txNotaDelMotor(reg.nota, NOTA_RESTO_DEVUELTO)) return "Resto devuelto de una compra";
+  if (txEsCanje(reg)) return "Canje de contrato";
   const sub = reg.subcategoria ? String(reg.subcategoria) : "";
   return TX_OPERACIONES_POR_CATEGORIA[reg.categoria + "/" + sub] || TX_OPERACIONES[sub] || sub;
+}
+/* Las dos mitades de un canje de contrato: la llegada (COMPRA por CANJE) y
+   la quema del token viejo en su mismo hash (la regla de `emparejarCanjes`,
+   js/21). Los hashes con llegada, una vez por clasificación. */
+let txCanjeFoto = { registros: null, hashes: null };
+function txEsCanje(reg) {
+  if (reg.categoria === "COMPRA") return reg.via_compra === "CANJE";
+  if (reg.categoria !== "VENTA" || reg.subcategoria !== "GPP_INMUEBLE" || reg.destino !== BURN ||
+      reg.importe_usdt != null || reg.pago_diferido) return false;
+  const registros = txRegistros();
+  if (txCanjeFoto.registros !== registros) {
+    txCanjeFoto = { registros, hashes: new Set(registros.filter(r => r.categoria === "COMPRA" && r.via_compra === "CANJE").map(r => r.hash)) };
+  }
+  return txCanjeFoto.hashes.has(reg.hash);
 }
 /* Ayuda (title) de la operación: solo lo que no dice la celda (sin
    el código técnico ni la parte fiscal). En un spam, su

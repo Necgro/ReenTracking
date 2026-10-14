@@ -79,6 +79,23 @@ assert("ya no queda «Alta con coste de compra (abre lote)» ni «(ganancia/pér
   casos.every(([r]) => !/abre lote|ganancia\/pérdida/.test(S.txOperacion(r))));
 assert("subcategoría desconocida: tal cual (no se inventa)", S.txOperacion(reg("z", "X", "OTRA_COSA")) === "OTRA_COSA");
 
+/* P9: las dos filas de un canje de contrato (quema del viejo + llegada del nuevo, mismo hash). */
+const BURN = vm.runInContext("BURN", S);
+const llegada = reg("cj1", "COMPRA", "COSTE_BASE", { via_compra: "CANJE" });
+const quema = reg("cj2", "VENTA", "GPP_INMUEBLE", { destino: BURN, hash: llegada.hash });
+const quemaSola = reg("cj3x", "VENTA", "GPP_INMUEBLE", { destino: BURN });
+const quemaCobrada = reg("cj4", "VENTA", "GPP_INMUEBLE", { destino: BURN, hash: llegada.hash, importe_usdt: 10 });
+vm.runInContext("state.registros = " + JSON.stringify([llegada, quema, quemaSola, quemaCobrada]), S);
+assert("canje: la llegada y la quema de su hash dicen «Canje de contrato»",
+  S.txOperacion(llegada) === "Canje de contrato" && S.txOperacion(quema) === "Canje de contrato",
+  [S.txOperacion(llegada), S.txOperacion(quema)]);
+assert("canje: sin llegada en el hash, o con importe, sigue siendo «Venta de tokens»",
+  S.txOperacion(quemaSola) === "Venta de tokens" && S.txOperacion(quemaCobrada) === "Venta de tokens");
+assert("canje: la categoría no cambia (COMPRA / VENTA)", llegada.categoria === "COMPRA" && quema.categoria === "VENTA");
+vm.runInContext("state.registros = " + JSON.stringify([quema]), S);
+assert("canje: otra clasificación sin la llegada -> «Venta de tokens»", S.txOperacion(quema) === "Venta de tokens");
+vm.runInContext("state.registros = undefined", S);
+
 // =========================================================================
 console.log("== 2. T71 · spam oculto por defecto ==");
 // =========================================================================
