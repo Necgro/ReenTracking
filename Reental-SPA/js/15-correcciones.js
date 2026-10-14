@@ -949,8 +949,14 @@ function ccRepartoCompraRnt(lista, pagado, total) {
   if (!ccEsNumeroPositivo(pagado)) throw new Error("Escribe lo pagado en total.");
   if (!ccEsNumeroPositivo(total)) throw new Error("Escribe los RNT en total.");
   const cuentan = lista.filter(x => CC_RNT_CUENTA.includes(x.estado));
-  const compradas = lista.filter(x => x.estado === "compra");
-  const llegado = ccRntLlegado(lista);
+  // Solo las ya compradas de esta misma compra (lo pagado y el total de su
+  // nota): otra compra desde esa dirección va aparte.
+  const misma = x => {
+    const c = ccLeerCompraRnt(x.ajuste && x.ajuste.nota);
+    return !!c && Math.abs(c.pagado - pagado) < 0.005 && Math.abs(c.total - total) <= Math.max(1e-9 * total, 1e-6);
+  };
+  const compradas = lista.filter(x => x.estado === "compra" && misma(x));
+  const llegado = ccRntLlegado([...cuentan, ...compradas]);
   if (!ccRntCabe(total, llegado)) throw new Error("Ya te han llegado " + cantidadEs(llegado) + " RNT: el total no puede ser menos.");
   const precio = pagado / total;
   const parte = n => { const c = Math.round(n * precio * 100) / 100; return c > 0 ? c : n * precio; };

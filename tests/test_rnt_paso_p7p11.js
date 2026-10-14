@@ -220,5 +220,20 @@ console.log("== 5. Auditoría (A2…A12) ==");
   assert("A5: un total de verdad menor sigue sin valer", err.startsWith("Ya te han llegado 15 RNT"), err);
 }
 
+// A6: una segunda compra desde la misma dirección (otros importes) no arrastra la primera.
+{
+  const notaDe = (pagado, total) => ({ nota: "Decidido por ti en Revisión (2026-01-01): " + S.ccTextoCompraRnt(pagado, total) });
+  const ya = { reg: Object.assign(ent("y1", "2024-01-01 10:00:00", 2000), { coste_eur: 60 }), estado: "compra", ajuste: notaDe(60, 2000) };
+  const nueva = { reg: ent("y2", "2024-06-01 10:00:00", 1000), estado: "libre", ajuste: null };
+  const c = S.ccRepartoCompraRnt([ya, nueva], 100, 1000);
+  assert("A6: otra compra (100 € por 1.000 RNT): la nueva, a su precio y con todo lo pagado", c.length === 1 && c[0][1] === 100, c);
+  const misma = S.ccRepartoCompraRnt([ya, { reg: ent("y3", "2024-06-01 10:00:00", 1000), estado: "libre", ajuste: null }], 90, 3000);
+  assert("A6: con lo pagado y el total de la nota (90 € por 3.000): la misma compra, la nueva se lleva el resto (30 €)",
+    misma.length === 1 && misma[0][1] === 30, misma);
+  let err = "";
+  try { S.ccRepartoCompraRnt([ya, nueva], 100, 999); } catch (e) { err = e.message; }
+  assert("A6: el total de la otra compra no puede ser menos de lo suyo", err.startsWith("Ya te han llegado 1.000 RNT"), err);
+}
+
 console.log("\n" + ok + " OK, " + fallos + " FALLOS");
 process.exit(fallos ? 1 : 0);
