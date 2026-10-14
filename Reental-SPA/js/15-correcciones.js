@@ -2891,16 +2891,20 @@ function ccPintarIndice() {
     s.parentNode.title = t.replace(/^⚠\s*/, "");
   }
 }
-/* Un [data-ir] (el índice y el aviso de tokens con dudas) baja a su bloque,
-   sin quedar bajo el índice, y lo abre. */
-function ccIrABloque(e) {
-  const b = e.target.closest("[data-ir]");
-  const el = b && $(b.dataset.ir);
+/* Baja a un bloque de 🔍 (sin quedar bajo el índice fijo) y lo abre: el
+   índice, el aviso de tokens con dudas ([data-ir]) y «Ir al catálogo» de 🚀. */
+function ccIrABloque(id) {
+  const el = $(id);
   if (!el) return;
-  e.preventDefault();
   if (el.tagName === "DETAILS") el.open = true;
   el.style.scrollMarginTop = $("ccIndice").offsetHeight + 8 + "px";
   el.scrollIntoView();
+}
+function ccPulsarIrA(e) {
+  const b = e.target.closest("[data-ir]");
+  if (!b || !$(b.dataset.ir)) return;
+  e.preventDefault();
+  ccIrABloque(b.dataset.ir);
 }
 
 /* ----------------------------- Enganches -----------------------------
@@ -2933,7 +2937,7 @@ function ccIrABloque(e) {
 
   ccMontarEventos();
   const vista = $("view-revision");
-  if (vista) vista.addEventListener("click", ccIrABloque);
+  if (vista) vista.addEventListener("click", ccPulsarIrA);
   for (const s of document.querySelectorAll("#ccIndice [data-copia]")) {
     const origen = $(s.dataset.copia);
     if (origen) new MutationObserver(ccPintarIndice).observe(origen, { childList: true, characterData: true, subtree: true });

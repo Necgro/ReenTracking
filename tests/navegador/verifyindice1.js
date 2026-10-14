@@ -95,6 +95,18 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
       m.hash === "#revision", m);
   }
 
+  /* A4: «Ir al catálogo» de 🚀 tampoco deja el título bajo el índice. */
+  const desde19 = await page.evaluate(async () => {
+    document.getElementById("rvCatalogo").open = false;
+    window.scrollTo({ top: 2500, behavior: "instant" });
+    arrIrAlCatalogo();
+    await new Promise(r => setTimeout(r, 1200));
+    const el = document.getElementById("rvCatalogo");
+    return { abierto: el.open, top: Math.round(el.getBoundingClientRect().top),
+      bajoIndice: Math.round(document.getElementById("ccIndice").getBoundingClientRect().bottom) };
+  });
+  assert("A4: «Ir al catálogo» de 🚀 lo abre y el índice no tapa su título", desde19.abierto && desde19.top >= desde19.bajoIndice, desde19);
+
   /* P5: el aviso de los tokens con dudas lleva al catálogo. */
   const aviso = await page.evaluate(async () => {
     document.getElementById("rvCatalogo").open = false;

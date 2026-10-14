@@ -1034,12 +1034,7 @@ function arrNormalizarHash() {
 // Acciones del resumen que llevan a 🔍 Revisión.
 function arrIrAlCatalogo() {
   location.hash = "#revision";
-  setTimeout(() => {
-    const det = $("rvCatalogo"); // el catálogo es un bloque plegable
-    if (!det) return;
-    det.open = true;
-    det.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, 150);
+  setTimeout(() => ccIrABloque("rvCatalogo"), 150); // js/15: lo abre, sin taparlo el índice
 }
 
 /* ----------------------------- Estilos (inyectados una vez) ----------------------------- */
