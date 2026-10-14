@@ -274,12 +274,13 @@ function txEsCanje(reg) {
 /* Ayuda (title) de la operación: solo lo que no dice la celda (sin
    el código técnico ni la parte fiscal). En un spam, su
    motivo; en lo demás, la nota del motor, si la hay, y en un movimiento
-   neutro, antes, qué supone (el texto de 🔍). Vacía si no hay nada. */
-function txAyudaOperacion(reg, motivoSpam) {
+   neutro, antes, qué supone (el texto de 🔍, que distingue lo que te
+   llega por el sentido de la fila). Vacía si no hay nada. */
+function txAyudaOperacion(reg, motivoSpam, sentido) {
   if (motivoSpam) return String(motivoSpam);
   const nota = reg && reg.nota ? "Nota del motor: " + fechasEnTextoEs(reg.nota) : "";
   if (txOperacion(reg) !== "Movimiento neutro") return nota;
-  return CC_AYUDA_NEUTRO + (nota ? " " + nota : "");
+  return (sentido === "entrada" ? CC_AYUDA_NEUTRO_ENTRADA : CC_AYUDA_NEUTRO) + (nota ? " " + nota : "");
 }
 
 /* Inmueble o activo que se muestra en la fila: inmueble si lo hay; si no,
@@ -1192,8 +1193,9 @@ function txHtmlFila(reg, opts = {}) {
   h += '<td class="tx-token" title="' + ccEsc(activo) + '"><span class="tx-token-txt">' +
     ccEsc(activo ? activo.replace(/\s+(\d+)$/, " $1") : "—") + "</span></td>";
   const dirs = opts.direcciones || {};
-  const ayudaOp = txAyudaOperacion(reg, opts.motivoSpam);
-  h += '<td class="tx-op"' + (ayudaOp ? ' title="' + ccEsc(ayudaOp) + '"' : "") + ">" + txHtmlSentido(txSentido(reg, dirs.propias)) +
+  const sentido = txSentido(reg, dirs.propias);
+  const ayudaOp = txAyudaOperacion(reg, opts.motivoSpam, sentido);
+  h += '<td class="tx-op"' + (ayudaOp ? ' title="' + ccEsc(ayudaOp) + '"' : "") + ">" + txHtmlSentido(sentido) +
     '<span class="tx-op-texto">' + ccEsc(txOperacion(reg)) + "</span></td>";
   const conCant = txEsNumero(reg.cantidad);
   h += celda("num tx-cant", conCant ? txCifraExacta(reg.cantidad) : "", conCant ? txCifra(reg.cantidad, true) : "");

@@ -82,6 +82,9 @@ const AY_NEUTRO = vm.runInContext("CC_AYUDA_NEUTRO", S);
 assert("neutro: su ayuda es la de 🔍, y la nota del motor va detrás",
   S.txAyudaOperacion(casos[3][0]) === AY_NEUTRO &&
   S.txAyudaOperacion(reg("dn", "MOVIMIENTO", "NEUTRO", { nota: "x" })) === AY_NEUTRO + " Nota del motor: x");
+assert("A7: el neutro que te llega, con el texto de 🔍 para lo que llega («Ya era tuyo…»)",
+  S.txAyudaOperacion(casos[3][0], null, "entrada") === vm.runInContext("CC_AYUDA_NEUTRO_ENTRADA", S) &&
+  S.txAyudaOperacion(casos[3][0], null, "salida") === AY_NEUTRO);
 assert("filtro «Neutros»: lo neutro no va a la Renta; del gas no lo dice (cuenta en el coste de su compra o venta)",
   vm.runInContext("TX_GRUPOS", S).find(g => g.id === "neutro").ayuda ===
   "Movimientos neutros (siguen siendo tuyos; no van a la Renta) y comisiones de red (gas).");
