@@ -641,7 +641,13 @@ function ccEsNumeroPositivo(x) {
   return typeof x === "number" && Number.isFinite(x) && x > 0;
 }
 
-/* Opciones de la tarjeta: [{ id, etiqueta, sugerida, pide }] con pide =
+/* Lo que dicen «Movimiento neutro» y «🚫 Es spam» al pasar el ratón (también 📒). */
+const CC_AYUDA_NEUTRO = "Sigue siendo tuyo (otra wallet o un exchange). No va a la Renta.";
+const CC_AYUDA_NEUTRO_ENTRADA = "Ya era tuyo: vuelve de otra wallet tuya o de un exchange. No va a la Renta. " +
+  "Si lo compraste o te lo regalaron, no es esto.";
+const CC_AYUDA_SPAM = "No es tuyo: no cuenta para nada.";
+
+/* Opciones de la tarjeta: [{ id, etiqueta, sugerida, pide, ayuda? }] con pide =
    "usd" | "eur" | null (lo que hay que escribir antes de guardar). */
 function ccOpcionesDecision(reg, ctx) {
   if (!reg) return [];
@@ -676,8 +682,9 @@ function ccOpcionesDecision(reg, ctx) {
   if (onchain && sentido === "entrada" && esEstable && !(dejar && cat === "DEPOSITO")) {
     ops.push({ id: "dinero", etiqueta: "Dinero que recibí…", sugerida: false, pide: "usd" });
   }
-  if (!(dejar && cat === "MOVIMIENTO")) ops.push({ id: "neutro", etiqueta: "Movimiento neutro", sugerida: false, pide: null });
-  if (reg.hash && reg.fuente !== "CSV_REENTAL") ops.push({ id: "spam", etiqueta: "🚫 Es spam", sugerida: false, pide: null });
+  if (!(dejar && cat === "MOVIMIENTO")) ops.push({ id: "neutro", etiqueta: "Movimiento neutro", sugerida: false, pide: null,
+    ayuda: sentido === "entrada" ? CC_AYUDA_NEUTRO_ENTRADA : CC_AYUDA_NEUTRO });
+  if (reg.hash && reg.fuente !== "CSV_REENTAL") ops.push({ id: "spam", etiqueta: "🚫 Es spam", sugerida: false, pide: null, ayuda: CC_AYUDA_SPAM });
   return ops;
 }
 
@@ -1499,7 +1506,8 @@ function ccHtmlDecisiones(reg, d) {
     const abierta = ab && ab.id === o.id;
     html += '<button type="button" class="cc-accion cc-dec' + (o.sugerida ? " sugerida" : "") + (abierta ? " abierta" : "") +
       '" data-accion="decidir" data-clave="' + clave + '" data-opcion="' + ccEsc(o.id) + '"' +
-      (o.pide ? ' aria-expanded="' + (abierta ? "true" : "false") + '"' : "") + ">" + ccEsc(o.etiqueta) +
+      (o.pide ? ' aria-expanded="' + (abierta ? "true" : "false") + '"' : "") +
+      (o.ayuda ? ' title="' + ccEsc(o.ayuda) + '"' : "") + ">" + ccEsc(o.etiqueta) +
       (o.sugerida ? ' <span class="cc-sugerida">Sugerida</span>' : "") + "</button>";
   }
   html += "</div>";

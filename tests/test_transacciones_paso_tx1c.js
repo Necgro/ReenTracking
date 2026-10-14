@@ -56,7 +56,7 @@ const casos = [
   [reg("a", "COMPRA", "COSTE_BASE"), "Compra de tokens"],
   [reg("b", "DEPOSITO", "COSTE_BASE"), "Ingreso de dinero"],
   [reg("c", "COMISION", "NEUTRO"), "Comisión de red (gas)"],
-  [reg("d", "MOVIMIENTO", "NEUTRO"), "Traspaso entre tus direcciones"],
+  [reg("d", "MOVIMIENTO", "NEUTRO"), "Movimiento neutro"],
   [reg("e", "SPAM", "NEUTRO"), "Spam (no cuenta)"],
   [reg("f", "VENTA", "GPP_INMUEBLE"), "Venta de tokens"],
   [reg("g", "VENTA", "GPP_SWAP"), "Permuta (cambio por otro token)"],
@@ -77,6 +77,13 @@ assert("ayuda: sin código técnico ni «ganancia o pérdida»; solo la nota del
   S.txAyudaOperacion(reg("s", "SPAM", "NEUTRO", { nota: "x" }), "Web en el nombre") === "Web en el nombre");
 assert("ya no queda «Alta con coste de compra (abre lote)» ni «(ganancia/pérdida)» en ningún nombre",
   casos.every(([r]) => !/abre lote|ganancia\/pérdida/.test(S.txOperacion(r))));
+/* P2: el movimiento neutro dice qué supone al pasar el ratón (el mismo texto que 🔍), con su nota detrás. */
+const AY_NEUTRO = vm.runInContext("CC_AYUDA_NEUTRO", S);
+assert("neutro: su ayuda es la de 🔍, y la nota del motor va detrás",
+  S.txAyudaOperacion(casos[3][0]) === AY_NEUTRO &&
+  S.txAyudaOperacion(reg("dn", "MOVIMIENTO", "NEUTRO", { nota: "x" })) === AY_NEUTRO + " Nota del motor: x");
+assert("filtro «Neutros»: dice que no van a la Renta",
+  /No van a la Renta/.test(vm.runInContext("TX_GRUPOS", S).find(g => g.id === "neutro").ayuda));
 assert("subcategoría desconocida: tal cual (no se inventa)", S.txOperacion(reg("z", "X", "OTRA_COSA")) === "OTRA_COSA");
 
 /* P9: las dos filas de un canje de contrato (quema del viejo + llegada del nuevo, mismo hash). */

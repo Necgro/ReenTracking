@@ -144,7 +144,7 @@ assert("lo recibido en el vault también es cambio", cats(regs) === "COMPRA,VENT
   const nota = vm.runInContext("NOTA_RESTO_DEVUELTO", S);
   assert("📒 Transacciones llama al resto devuelto «Resto devuelto de una compra»",
     S.txOperacion({ categoria: "MOVIMIENTO", subcategoria: "NEUTRO", nota }) === "Resto devuelto de una compra" &&
-    S.txOperacion({ categoria: "MOVIMIENTO", subcategoria: "NEUTRO", nota: "traspaso interno" }) === "Traspaso entre tus direcciones");
+    S.txOperacion({ categoria: "MOVIMIENTO", subcategoria: "NEUTRO", nota: "traspaso interno" }) === "Movimiento neutro");
 }
 
 console.log(`\n${ok}/${ok + fallos} comprobaciones OK -> ${fallos ? fallos + " FALLOS" : "TODO VERDE"}`);

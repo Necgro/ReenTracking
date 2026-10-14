@@ -97,7 +97,7 @@ const TX_OPERACIONES_POR_CATEGORIA = {
   "COMPRA/COSTE_BASE": "Compra de tokens",
   "DEPOSITO/COSTE_BASE": "Ingreso de dinero",
   "COMISION/NEUTRO": "Comisión de red (gas)",
-  "MOVIMIENTO/NEUTRO": "Traspaso entre tus direcciones",
+  "MOVIMIENTO/NEUTRO": "Movimiento neutro",
   "SPAM/NEUTRO": "Spam (no cuenta)",
 };
 const TX_OPERACIONES = {
@@ -131,7 +131,7 @@ const TX_GRUPOS = [
   { id: "revisar", etiqueta: "Revisar", ayuda: "Se resuelven en 🔍 Revisión." },
   { id: "fiscal", etiqueta: "Con efecto fiscal",
     ayuda: "Rendimientos, recompensas DeFi, compras, ventas, depósitos y retiradas." },
-  { id: "neutro", etiqueta: "Neutros", ayuda: "Traspasos entre tus direcciones y comisiones de red (gas)." },
+  { id: "neutro", etiqueta: "Neutros", ayuda: "Movimientos neutros (siguen siendo tuyos) y comisiones de red (gas). No van a la Renta." },
 ];
 
 /* Motivos del spam, en el orden en que se miran: el primero que
@@ -272,10 +272,13 @@ function txEsCanje(reg) {
 }
 /* Ayuda (title) de la operación: solo lo que no dice la celda (sin
    el código técnico ni la parte fiscal). En un spam, su
-   motivo; en lo demás, la nota del motor, si la hay. Vacía si no hay nada. */
+   motivo; en lo demás, la nota del motor, si la hay, y en un movimiento
+   neutro, antes, qué supone (el texto de 🔍). Vacía si no hay nada. */
 function txAyudaOperacion(reg, motivoSpam) {
   if (motivoSpam) return String(motivoSpam);
-  return reg && reg.nota ? "Nota del motor: " + fechasEnTextoEs(reg.nota) : "";
+  const nota = reg && reg.nota ? "Nota del motor: " + fechasEnTextoEs(reg.nota) : "";
+  if (txOperacion(reg) !== "Movimiento neutro") return nota;
+  return CC_AYUDA_NEUTRO + (nota ? " " + nota : "");
 }
 
 /* Inmueble o activo que se muestra en la fila: inmueble si lo hay; si no,

@@ -155,6 +155,18 @@ assert("HTML: la Sugerida con su etiqueta, el formulario con «Cobrado … USD»
   /cc-dec sugerida abierta[^>]*data-opcion="venta"/.test(html) && /<span class="cc-sugerida">Sugerida<\/span>/.test(html) &&
   /Cobrado <input[^>]*value="1\.150"/.test(html) && /≈ 1\.000,00 € \(BCE del 12\/06\/2026\)/.test(html), html);
 
+console.log("== P2. Lo que dicen «Movimiento neutro» y «🚫 Es spam» al pasar el ratón ==");
+const ayuda = (r, id) => (S.ccOpcionesDecision(r, ctx).find(o => o.id === id) || {}).ayuda;
+const AY = ["CC_AYUDA_NEUTRO", "CC_AYUDA_NEUTRO_ENTRADA", "CC_AYUDA_SPAM"].map(n => vm.runInContext(n, S));
+assert("neutro en lo que llega: «Ya era tuyo…»; en lo que sale: «Sigue siendo tuyo…»",
+  ayuda(rarUsdt, "neutro") === AY[1] && /^Ya era tuyo/.test(AY[1]) &&
+  ayuda(salidaInm, "neutro") === AY[0] && /^Sigue siendo tuyo/.test(AY[0]), [ayuda(rarUsdt, "neutro"), ayuda(salidaInm, "neutro")]);
+assert("spam: «No es tuyo: no cuenta para nada.»", ayuda(rarUsdt, "spam") === AY[2] && AY[2] === "No es tuyo: no cuenta para nada.");
+const htmlAy = S.ccHtmlDecisiones(rarUsdt, { estado: "libre", opciones: S.ccOpcionesDecision(rarUsdt, ctx), abierta: null });
+assert("HTML: el texto va en el title de su botón, y no en los demás",
+  htmlAy.includes('data-opcion="neutro" title="' + AY[1] + '"') && htmlAy.includes('data-opcion="spam" title="' + AY[2] + '"') &&
+  !/data-opcion="dinero"[^>]*title=/.test(htmlAy), htmlAy);
+
 console.log("");
 console.log(ok + "/" + (ok + fallos) + " comprobaciones OK -> " + (fallos ? "HAY FALLOS" : "TODO VERDE"));
 process.exit(fallos ? 1 : 0);
