@@ -893,10 +893,12 @@ function ccLeerCompraRnt(nota) {
   return ccEsNumeroPositivo(pagado) && ccEsNumeroPositivo(total) ? { pagado, total } : null;
 }
 /* Estado de una entrada de RNT frente a su ajuste (h, de ccBuscarAjuste):
-   "libre", "propio" (solo pedía revisión), "decidido" (decisión de 🔍: se
+   "libre" (a revisar, sin ajuste), "app" (ya la clasificó la app: un
+   premio de un contrato conocido, lo que vuelve del staking, un swap…; no se
+   toca), "propio" (solo pedía revisión), "decidido" (decisión de 🔍: se
    sustituye), "compra" (compra de RNT ya decidida: no se toca) o "ajeno". */
-function ccEstadoRnt(h) {
-  if (!h) return "libre";
+function ccEstadoRnt(h, reg) {
+  if (!h) return reg && (reg.revisar || reg.categoria === "REVISAR") ? "libre" : "app";
   if (ccAjusteQuePideRevision(h.ajuste)) return "propio";
   if (ccEsAjusteDecision(h.ajuste)) return h.ajuste.categoria === "COMPRA" && ccLeerCompraRnt(h.ajuste.nota) ? "compra" : "decidido";
   return "ajeno";
@@ -909,12 +911,14 @@ function ccRntDesde(registros, reg, ajustes, ctx) {
   const desde = (registros || []).filter(r => ccEsEntradaRnt(r, ctx) && normalizarDireccion(r.origen || "") === origen);
   return ordenarPorFecha(desde, (a, b) => cmpTexto(a.clave, b.clave)).map(r => {
     const h = ccBuscarAjuste(ajustes, r.clave);
-    return { reg: r, estado: ccEstadoRnt(h), ajuste: h ? h.ajuste : null };
+    return { reg: r, estado: ccEstadoRnt(h, r), ajuste: h ? h.ajuste : null };
   });
 }
-/* Los RNT llegados que cuentan (sin los de un ajuste ajeno). */
+/* Los RNT llegados que cuentan para la compra: lo que cambia y lo ya
+   comprado (sin lo de la app ni lo de un ajuste ajeno). */
 function ccRntLlegado(lista) {
-  return lista.filter(x => x.estado !== "ajeno").reduce((s, x) => s + Number(x.reg.cantidad), 0);
+  return lista.filter(x => CC_RNT_CUENTA.includes(x.estado) || x.estado === "compra")
+    .reduce((s, x) => s + Number(x.reg.cantidad), 0);
 }
 /* ¿Cabe lo llegado en ese total? (con margen para la suma de decimales) */
 function ccRntCabe(total, llegado) {
@@ -1732,6 +1736,7 @@ function ccHtmlDecisiones(reg, d) {
    tachado) y, en la compra, lo pagado y el total con el precio. */
 function ccEstadoRntAhora(x) {
   if (x.estado === "ajeno") return "Ajuste manual";
+  if (x.estado === "app") return ccNombreDejar(x.reg);
   if (x.estado === "decidido" || x.estado === "compra") return ccResumenDecision(x.ajuste, x.reg);
   return x.reg.revisar ? "A revisar" : ccNombreDejar(x.reg);
 }

@@ -188,5 +188,23 @@ assert("diálogo P11: las dos casillas, la nota de la reclamación y «Guardar»
   html11.includes('value="40.000"') && html11.includes("leídos de tu reclamación del 12/02/2024") && html11.includes("cc-rnt-guardar"), html11);
 assert("diálogo P11: el ajeno, tachado", /cc-rnt-fuera"[^>]*><td>01\/02\/2024/.test(html11), html11);
 
+console.log("== 5. Auditoría (A2…A12) ==");
+// A2: lo que la app ya clasificó desde esa dirección (lo que vuelve del staking, un swap) no cambia.
+{
+  const premio = ent("k1", "2024-03-01 10:00:00", 7);
+  const principal = ent("k2", "2024-03-01 10:00:00", 2000, { categoria: "MOVIMIENTO", subcategoria: "NEUTRO", revisar: false });
+  const swap = ent("k3", "2024-04-01 10:00:00", 300, { categoria: "COMPRA", subcategoria: "COSTE_BASE", via_compra: "ONCHAIN",
+    importe_usdt: 30, revisar: false });
+  const l = S.ccRntDesde([premio, principal, swap], premio, {}, ctx);
+  assert("A2: lo de la app sale como «app»", JSON.stringify(l.map(x => x.estado)) === JSON.stringify(["libre", "app", "app"]), l.map(x => x.estado));
+  const h = S.ccHtmlDialogoRnt(premio, "recompensa", l, null);
+  assert("A2: «Recompensa DeFi» se guarda sin preguntar: el principal no es «otro» que cambie",
+    !l.some(x => x.reg.clave !== "k1" && vm.runInContext("CC_RNT_CUENTA", S).includes(x.estado)));
+  assert("A2: tachados en la lista", (h.match(/cc-rnt-fuera/g) || []).length === 2, h);
+  const c = S.ccRepartoCompraRnt(l, 70, 7);
+  assert("A2: la compra solo reparte lo que está a revisar (7 RNT, 70 €)", c.length === 1 && c[0][0].clave === "k1" && c[0][1] === 70, c);
+  assert("A2: lo llegado no cuenta lo de la app", S.ccRntLlegado(l) === 7);
+}
+
 console.log("\n" + ok + " OK, " + fallos + " FALLOS");
 process.exit(fallos ? 1 : 0);
