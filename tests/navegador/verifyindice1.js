@@ -107,11 +107,26 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   });
   assert("A4: «Ir al catálogo» de 🚀 lo abre y el índice no tapa su título", desde19.abierto && desde19.top >= desde19.bajoIndice, desde19);
 
-  /* P5: el aviso de los tokens con dudas lleva al catálogo. */
+  /* P5: con tokens con dudas y algo por decidir, la app pinta el aviso
+     (renderCorrecciones, con el número del catálogo) y lleva al catálogo. */
+  const dudas = n => page.evaluate(async n => {
+    const cat = {};
+    for (let i = 0; i < 3; i++) cat["0x" + String(i + 1).repeat(40)] = { estado: i < n ? "CANDIDATA" : "CONFIRMADA" };
+    state.cache = { catalogo_propiedades: cat, transacciones: {}, ajustes_usuario: {} };
+    state.registros = [{ clave: "0x" + "ab".repeat(32) + "::0x" + "cd".repeat(20), hash: "0x" + "ab".repeat(32), contrato: "0x" + "cd".repeat(20),
+      fecha: "2026-05-12 09:45:46", categoria: "REVISAR", subcategoria: "", revisar: true, cantidad: 1, simbolo: "XYZ", fuente: "ONCHAIN" }];
+    renderCorrecciones();
+    const el = document.querySelector("#ccLista .cc-dudas");
+    return el ? el.textContent : null;
+  }, n);
+  const con2 = await dudas(2), con1 = await dudas(1), con0 = await dudas(0);
+  assert("P5: la app pinta el aviso con el número del catálogo (2, 1 y ninguno)",
+    con2 === "Primero confirma los 2 tokens con dudas: cambian muchos de estos movimientos." &&
+    con1 === "Primero confirma el token con dudas: cambia muchos de estos movimientos." && con0 === null, [con2, con1, con0]);
+  await dudas(2);
   const aviso = await page.evaluate(async () => {
     document.getElementById("rvCatalogo").open = false;
-    document.getElementById("ccLista").insertAdjacentHTML("afterbegin",
-      '<div class="cc-cab cc-dudas">Primero <a href="#revision" data-ir="rvCatalogo">confirma los 2 tokens con dudas</a>: cambian muchos de estos movimientos.</div>');
+    document.querySelector("#view-revision .card").insertAdjacentHTML("beforeend", '<div style="height:3000px"></div>');
     window.scrollTo({ top: 2500, behavior: "instant" });
     document.querySelector(".cc-dudas a").click();
     await new Promise(r => setTimeout(r, 900));
