@@ -11,9 +11,10 @@
  *      estado; «Descartar» con su burbuja.
  *  U3) «✔ Confirmar» reclasifica y guarda; «🚫 Descartar» manda todo el
  *      token al spam (sale del catálogo, sin «Descartados») y su ↩ de 📒 lo
- *      devuelve con dudas: misma huella que al principio (P8).
+ *      devuelve confirmado (P8, auditoría A2).
  *  U3b) P4: en la tarjeta de 🔍 del token con dudas, «🏠 Es un inmueble» lo
- *      confirma como el catálogo; «Descartar» y ↩ lo devuelven.
+ *      confirma como el catálogo; descartado con dudas, el ↩ lo devuelve con
+ *      dudas: misma huella que al principio.
  *  U4) contratos: una dirección mal escrita no se guarda; una buena sale con
  *      su ✕ y reclasifica; quitarla devuelve la huella de antes. Las
  *      semillas también tienen ✕, con su aviso: lo que movía
@@ -180,7 +181,7 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   assert("U3 -> «Confirmar»: guardado, reclasificado (ya es inmueble) y sin aviso",
     u3.estado === "CONFIRMADA" && u3.inmueble && u3.aviso === "" && (await escrituras()) > w0, u3);
   assert("U3 -> el aviso dice el nuevo estado", /Prueba Dudosa 3 → Inmueble/.test(await ultimoAviso()));
-  const descartarYDevolver = async etiqueta => {
+  const descartarYDevolver = async (etiqueta, vuelve) => {
     await pulsarCatalogo("RDUD3", "DESCARTADA");
     const desc = await page.evaluate(() => {
       const P3 = "0x" + "a3".repeat(20), r = state.registros.find(x => x.simbolo === "RDUD3");
@@ -194,10 +195,16 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
     await page.evaluate(k => txQuitarRegla(k), desc.clave);
     await esperar(300);
     const c1 = await catalogo();
-    assert(etiqueta + " -> su ↩ de 📒 lo devuelve con dudas, con la misma huella",
-      c1.length === 2 && c1[1].estado === "Con dudas" && (await huella()) === h0, c1);
+    assert(etiqueta + " -> su ↩ de 📒 lo devuelve como estaba (" + vuelve + ")" + (vuelve === "Con dudas" ? ", con la misma huella" : ""),
+      c1.length === 2 && c1[1].estado === vuelve && (vuelve !== "Con dudas" || (await huella()) === h0), c1);
   };
-  await descartarYDevolver("U3");
+  await descartarYDevolver("U3", "Inmueble");
+  const conDudas = () => page.evaluate(() => {
+    state.cache.catalogo_propiedades["0x" + "a3".repeat(20)].estado = "CANDIDATA";
+    ejecutarClasificacion({ avisos: false });
+  });
+  await conDudas();
+  assert("U3 -> (vuelta a con dudas a mano: la huella del principio)", (await huella()) === h0);
 
   /* ============ U3b) P4: «Es un inmueble» en la tarjeta ============ */
   const tarjeta = await page.evaluate(() => {
@@ -215,7 +222,8 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   }));
   assert("U3b -> lo confirma como el catálogo (reclasificado) y el botón se va",
     u3b.estado === "CONFIRMADA" && u3b.inmueble && !u3b.boton && /Prueba Dudosa 3 → Inmueble/.test(await ultimoAviso()), u3b);
-  await descartarYDevolver("U3b");
+  await conDudas();
+  await descartarYDevolver("U3b", "Con dudas");
 
   /* ============ U4) contratos ============ */
   await page.evaluate(() => { document.getElementById("rvContratos").open = true; });

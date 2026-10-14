@@ -19,8 +19,9 @@
 /* El estado de cada entrada en llano. Una CANDIDATA cuyo token mandaste al
    spam entero («Todo el token» en 📒 o «Descartar» aquí) no sale en el
    catálogo: para el motor ya es spam, y confirmarla lo desharía; se
-   recupera con su ↩ en 📒 Transacciones. Una DESCARTADA (formato viejo
-   con el bloque de spam mal escrito, js/05) tampoco sale. */
+   recupera con su ↩ en 📒 Transacciones (salvo si la app reconoce la
+   dirección: ahí el spam no le alcanza, dudasCatalogoCache de js/14). Una
+   DESCARTADA (formato viejo) ya no llega: js/05 la pasa al spam al abrir. */
 const PN_ESTADOS = { CONFIRMADA: "Inmueble", CANDIDATA: "Con dudas" };
 /* Botones de cada estado: [estado nuevo, texto, burbuja]. «Descartar» no es
    un estado: manda todo el token al spam (pnDescartarToken). */
@@ -36,13 +37,13 @@ const PN_BOTONES_CATALOGO = {
 /* Filas del catálogo, por fecha de primera aparición (sin fecha, al final). */
 function pnFilasCatalogo(cache) {
   const catalogo = (cache && cache.catalogo_propiedades) || {};
-  const spam = cache ? apartadosCache(cache, "tokens") : new Set(); // js/14
+  const dudas = cache ? dudasCatalogoCache(cache) : new Set(); // js/14
   return Object.entries(catalogo)
     .filter(([, e]) => e && typeof e === "object")
     .sort((a, b) => String(a[1].primera_aparicion || "9999").localeCompare(String(b[1].primera_aparicion || "9999"))) // un número escrito a mano no rompe 🔍
     .map(([addr, e]) => {
       const estado = estadoCatalogo(e); // una errata sale con dudas
-      return { addr, entrada: e, estado: estado === "CANDIDATA" && spam.has(normalizarDireccion(addr)) ? "SPAM" : estado };
+      return { addr, entrada: e, estado: estado === "CANDIDATA" && !dudas.has(normalizarDireccion(addr)) ? "SPAM" : estado };
     });
 }
 
@@ -235,10 +236,24 @@ async function pnCambiarEstadoCatalogo(addr, nuevo) {
 
 /* «Descartar» = el spam de todo el token de 📒 (js/18): sale del catálogo y
    se recupera con su ↩ en 📒. Queda con dudas debajo: un inmueble
-   confirmado es un token conocido y la regla del spam no le alcanzaría. */
+   confirmado es un token conocido y la regla del spam no le alcanzaría; el
+   ↩ lo vuelve a confirmar (estado_antes). Como en 📒, solo si algún
+   movimiento suyo pasa a spam (si no, no habría ↩ con que deshacerlo). */
+const PN_NO_DESCARTADO = "No se ha descartado: ";
 async function pnDescartarToken(addr, e) {
-  if (!txPuedeClasificar()) return ejecutarClasificacion(); // dice qué falta
+  if (!txPuedeClasificar()) {
+    toast(PN_NO_DESCARTADO.slice(0, -2) + ".", "warn");
+    return ejecutarClasificacion(); // dice qué falta
+  }
+  const a = normalizarDireccion(addr);
   const bloque = txSpamUsuarioCon(state.cache.spam_usuario, "tokens", addr, ahoraLocalISO(), e.simbolo);
+  if (estadoCatalogo(e) === "CONFIRMADA") bloque.tokens[a].estado_antes = "CONFIRMADA";
+  const cambios = { spam_usuario: bloque,
+    catalogo_propiedades: Object.assign({}, state.cache.catalogo_propiedades, { [addr]: Object.assign({}, e, { estado: "CANDIDATA" }) }) };
+  const ctx = construirContexto(Object.assign({}, state.cache, cambios)); // js/14
+  if (!(txSimular(cambios) || []).some(r => normalizarDireccion(r.contrato || "") === a && txReglaSpam(r, ctx))) {
+    return toast(PN_NO_DESCARTADO + "ningún movimiento suyo pasaría a spam (ya los decidiste tú o los explica otra regla).", "warn");
+  }
   e.estado = "CANDIDATA";
   await txGuardarSpamUsuario(bloque, "tokens", true);
 }

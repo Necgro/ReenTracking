@@ -324,8 +324,9 @@ function descubrirInmuebles(cache, filasCsv, indicePorHash, wallet, vault) {
       retiradas.map(r => (r.simbolo || "?") + " " + r.addr).join(", "));
   }
 
+  // Sin las mandadas al spam: ya están decididas (no salen en el catálogo).
   resumen.candidatas = Object.entries(catalogo)
-    .filter(([a, e]) => estadoCatalogo(e) === "CANDIDATA")
+    .filter(([a, e]) => estadoCatalogo(e) === "CANDIDATA" && !spamTokens.has(normalizarDireccion(a)))
     .map(([a]) => a);
   return resumen;
 }

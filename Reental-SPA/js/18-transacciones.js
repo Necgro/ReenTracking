@@ -1595,10 +1595,14 @@ function txPuedeClasificar() {
    clasifica aparte (unos 20 ms con ~500 registros). null si ahora no se
    puede clasificar. */
 function txSimularRegistro(clave, cambios) {
+  const regs = txSimular(cambios);
+  return (regs && regs.find(r => r.clave === clave)) || null;
+}
+/* Todos los registros con esos cambios (también lo usa «Descartar» del catálogo, js/11). */
+function txSimular(cambios) {
   if (!txPuedeClasificar()) return null;
-  const regs = clasificarTransacciones(Object.assign({}, state.cache, cambios), state.filasCsv,
+  return clasificarTransacciones(Object.assign({}, state.cache, cambios), state.filasCsv,
     state.indicePorHash || {}, state.config, {});
-  return regs.find(r => r.clave === clave) || null;
 }
 
 /* 🚫 y ↩ del spam: sin diálogo, porque se deshace con un clic. */
@@ -1688,6 +1692,13 @@ async function txQuitarRegla(clave) {
   let nuevo;
   try { nuevo = txSpamUsuarioSin(state.cache.spam_usuario, regla.tipo, regla.valor); }
   catch (e) { return toast(e.message, "error"); }
+  /* Un inmueble confirmado que se descartó en el catálogo vuelve confirmado (js/11). */
+  const entrada = regla.tipo === "tokens" &&
+    Object.entries(state.cache.spam_usuario.tokens).find(([k]) => normalizarDireccion(k) === regla.valor);
+  const enCatalogo = Object.entries(state.cache.catalogo_propiedades || {}).find(([k]) => normalizarDireccion(k) === regla.valor);
+  if (entrada && pdEsObjeto(entrada[1]) && entrada[1].estado_antes === "CONFIRMADA" && enCatalogo && pdEsObjeto(enCatalogo[1]) && txPuedeClasificar()) {
+    enCatalogo[1].estado = "CONFIRMADA";
+  }
   await txGuardarSpamUsuario(nuevo, regla.tipo, false);
 }
 

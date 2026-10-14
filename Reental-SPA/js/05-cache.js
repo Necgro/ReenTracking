@@ -76,14 +76,25 @@ function saneaCatalogoYRoles(cache) {
       log("  AVISO: " + raros.length + " entrada(s) del catalogo mal escrita(s) se apartan en «catalogo_no_leido»: " + raros.join(", "), "warn");
     }
   }
+  // El spam de todo un token o una dirección (spam_usuario, js/18): si el
+  // bloque o sus tokens están mal escritos, no se usan; se apartan en
+  // «spam_usuario_no_leido» (no se pierden) y se avisa.
+  const apartarSpam = v => {
+    const previo = cache.spam_usuario_no_leido;
+    cache.spam_usuario_no_leido = previo === undefined ? v : [].concat(previo, [v]);
+    if (typeof log === "function") log("  AVISO: el spam de tokens o direcciones de la cache estaba mal escrito: se aparta en «spam_usuario_no_leido».", "warn");
+  };
+  const spam = cache.spam_usuario;
+  if (spam !== undefined && spam !== null && !esObj(spam)) { apartarSpam(spam); delete cache.spam_usuario; }
+  else if (esObj(spam) && spam.tokens !== undefined && spam.tokens !== null && !esObj(spam.tokens)) { apartarSpam({ tokens: spam.tokens }); delete spam.tokens; }
   // Formato viejo: «Descartar» era un estado (DESCARTADA); ahora es el spam
   // de todo el token, como en 📒 (se recupera con su ↩). Queda con dudas
-  // debajo. Con el bloque de spam mal escrito no se toca (sigue en spam).
-  const spam = cache.spam_usuario;
+  // debajo.
   const descartadas = Object.keys(catalogo).filter(a => estadoCatalogo(catalogo[a]) === "DESCARTADA");
-  if (descartadas.length && (spam === undefined || spam === null || (esObj(spam) && (spam.tokens === undefined || esObj(spam.tokens))))) {
-    if (!esObj(spam)) cache.spam_usuario = {};
-    const tokens = cache.spam_usuario.tokens = cache.spam_usuario.tokens || {};
+  if (descartadas.length) {
+    if (!esObj(cache.spam_usuario)) cache.spam_usuario = {};
+    if (!esObj(cache.spam_usuario.tokens)) cache.spam_usuario.tokens = {};
+    const tokens = cache.spam_usuario.tokens;
     const ya = new Set(Object.keys(tokens).map(normalizarDireccion));
     for (const a of descartadas) {
       const e = catalogo[a], clave = normalizarDireccion(a);

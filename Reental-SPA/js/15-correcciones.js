@@ -708,7 +708,7 @@ function ccOpcionesDecision(reg, ctx) {
   const sinImporte = cat === "VENTA" && !ccEsNumeroPositivo(reg.importe_usdt);
   const ops = [];
   /* Un token con dudas del catálogo: confirmarlo aquí, como en el catálogo. */
-  if (onchain && ctx && ctx.dudas && ctx.dudas.has(contrato)) {
+  if (onchain && direccionValida(contrato) && ctx && ctx.dudas && ctx.dudas.has(contrato)) {
     ops.push({ id: "inmueble", etiqueta: "🏠 Es un inmueble", sugerida: false, pide: null, ayuda: CC_AYUDA_INMUEBLE });
   }
   const dejar = cat && cat !== "REVISAR" && cat !== "SPAM" && !sinImporte;

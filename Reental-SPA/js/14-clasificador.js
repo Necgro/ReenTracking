@@ -129,11 +129,15 @@ function inmueblesConfirmadosCache(cache) {
 
 /* Los tokens con dudas (CANDIDATA), normalizados, sin los que mandaste
    enteros al spam («Todo el token» en 📒 o «Descartar» en el catálogo):
-   esos ya son spam y no cuentan como duda. */
+   esos ya son spam y no cuentan como duda. Salvo si además es un
+   contrato que la app reconoce: la regla del spam no le alcanza (sigue
+   a la vista, con dudas). */
 function dudasCatalogoCache(cache) {
   const spam = apartadosCache(cache, "tokens");
+  const aprendidos = new Set(Object.values(cache.contratos_aprendidos || {}).flatMap(b => Object.keys(b || {})).map(normalizarDireccion));
   return new Set(Object.entries(cache.catalogo_propiedades || {})
-    .filter(([, e]) => estadoCatalogo(e) === "CANDIDATA").map(([a]) => normalizarDireccion(a)).filter(a => !spam.has(a)));
+    .filter(([, e]) => estadoCatalogo(e) === "CANDIDATA").map(([a]) => normalizarDireccion(a))
+    .filter(a => !spam.has(a) || aprendidos.has(a)));
 }
 
 /* STABLECOINS (USDT+USDC) cuentan como conocidos. */
