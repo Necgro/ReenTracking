@@ -461,6 +461,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 <section id="view-revision" class="view">
   <div class="card">
     <h2>🔍 Revisión</h2>
+    <span data-que-es></span>
     <!-- CENTRO DE CORRECCIONES: estructura y estilos SIN logica (la logica
          vive en js/15-correcciones.js). Lo ya decidido vive oculto por
          defecto en el desplegable «✅ Movimientos ya decididos (n)»; cada
@@ -550,6 +551,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 <section id="view-transacciones" class="view">
   <div class="card">
     <h2>📒 Transacciones</h2>
+    <span data-que-es></span>
     <!-- Libro diario en tabla. La lógica vive en js/18-transacciones.js. Sin chips de categoría: filtra el selector, con su recuento; «DeFi» es un botón del resumen (txTriaje) -->
     <div id="txTriaje" class="tx-triaje" role="group" aria-label="Resumen del libro diario por tipo"></div>
     <div class="cc-filtros row" id="txFiltros" role="group" aria-label="Filtros del libro diario">

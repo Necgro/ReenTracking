@@ -647,6 +647,28 @@ const CC_AYUDA_NEUTRO_ENTRADA = "Ya era tuyo: vuelve de otra wallet tuya o de un
   "Si lo compraste o te lo regalaron, no es esto.";
 const CC_AYUDA_SPAM = "No es tuyo: no cuenta para nada.";
 
+/* «ⓘ Qué es cada cosa», arriba en 🔍 y 📒 (en su hueco [data-que-es]): una
+   línea por tipo de movimiento, de lo que hace la app. */
+const CC_QUE_ES_CADA_COSA = [
+  ["Compra / Venta", "tokens de inmuebles."],
+  ["Compra bancaria", "tokens que pagaste a Reental por transferencia: en la blockchain solo se ve que te llegan."],
+  ["Canje de contrato", "el token de un inmueble cambia por el de su contrato nuevo. No es una venta."],
+  ["Rendimiento", "repartos de Reental."],
+  ["Recompensa DeFi", "premio del staking o farming de RNT. Va a la Renta."],
+  ["Movimiento neutro", "sigue siendo tuyo: meter o sacar del staking, farming o pool, otra wallet o un exchange. No va a la Renta."],
+  ["Ingreso / Salida de dinero", "USDT o USDC."],
+  ["Regalo recibido", "llega sin comprarlo (p. ej. un airdrop)."],
+  ["Comisión de red (gas)", "lo que cuesta cada movimiento, en POL."],
+  ["Spam", "no es tuyo, no cuenta."],
+];
+function ccHtmlQueEs() {
+  const lineas = CC_QUE_ES_CADA_COSA.map(([n, t]) => "<div><b>" + ccEsc(n) + "</b>: " + ccEsc(t) + "</div>").join("");
+  const plano = CC_QUE_ES_CADA_COSA.map(([n, t]) => n + ": " + t).join(" ");
+  return '<span class="cc-que-es" tabindex="0" aria-label="Qué es cada cosa. ' + ccEsc(plano) +
+    '"><span class="cc-info" aria-hidden="true">ⓘ</span>Qué es cada cosa<span class="cc-burbuja" aria-hidden="true">' +
+    lineas + "</span></span>";
+}
+
 /* Opciones de la tarjeta: [{ id, etiqueta, sugerida, pide, ayuda? }] con pide =
    "usd" | "eur" | null (lo que hay que escribir antes de guardar). */
 function ccOpcionesDecision(reg, ctx) {
@@ -2695,6 +2717,15 @@ function ccInyectarEstilos() {
     ".cc-info:focus{outline:2px solid var(--accent);outline-offset:1px}",
     ".cc-info .cc-burbuja{display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);width:max-content;max-width:min(340px,72vw);background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:8px 11px;font-size:12.5px;font-weight:400;line-height:1.55;z-index:400;text-align:left;white-space:normal;cursor:auto}",
     ".cc-info:hover .cc-burbuja,.cc-info:focus .cc-burbuja,.cc-info:focus-within .cc-burbuja{display:block}",
+    /* «ⓘ Qué es cada cosa»: arriba a la derecha de la tarjeta; la burbuja se abre hacia abajo. */
+    ".card:has(>.cc-que-es){position:relative}",
+    ".card>.cc-que-es{position:absolute;top:30px;right:22px;display:inline-flex;align-items:center;gap:5px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:help}",
+    ".cc-que-es .cc-info{margin:0}",
+    ".cc-que-es:hover,.cc-que-es:focus{color:var(--accent)}",
+    ".cc-que-es:focus{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}",
+    ".cc-que-es .cc-burbuja{display:none;position:absolute;top:calc(100% + 8px);right:0;width:max-content;max-width:min(440px,80vw);background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:9px 12px;font-size:12.5px;font-weight:400;line-height:1.6;z-index:400;text-align:left;white-space:normal;cursor:auto}",
+    ".cc-que-es:hover .cc-burbuja,.cc-que-es:focus .cc-burbuja{display:block}",
+    "@media print{.cc-que-es{display:none}}",
     "#ccLista .cc-cat{margin-left:auto;display:inline-flex;align-items:center;font-size:13.5px;font-weight:700;color:var(--muted)}",
     /* La ⓘ de la nota va en el borde derecho: su burbuja se abre hacia dentro. */
     "#ccLista .cc-cat .cc-burbuja{left:auto;right:-6px;transform:none}",
@@ -2862,5 +2893,6 @@ function ccMontarEventos() {
   });
 
   ccMontarEventos();
+  document.querySelectorAll("[data-que-es]").forEach(e => { e.outerHTML = ccHtmlQueEs(); });
   ccRenderSeguro(); // el DOM ya existe: los scripts van al final del <body>
 })();
