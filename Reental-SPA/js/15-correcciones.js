@@ -1651,6 +1651,12 @@ function ccHtmlLista(registros, visibles, ctx, ventas, dec) {
     html += '<div class="cc-vacio cc-todo-ok">✅ Nada por decidir.</div>';
     return html;
   }
+  /* Los tokens con dudas del catálogo, antes que las tarjetas: confirmarlos
+     reclasifica muchos de estos movimientos. */
+  const dudas = (dec && dec.dudas) || 0;
+  if (dudas) html += '<div class="cc-cab cc-dudas">Primero <a href="#revision" data-ir="rvCatalogo">confirma ' +
+    (dudas === 1 ? "el token con dudas</a>: cambia" : "los " + numEs(dudas, 0) + " tokens con dudas</a>: cambian") +
+    " muchos de estos movimientos.</div>";
   for (const r of visibles) {
     const vinc = ccVinculoDeRegistro(r, ctx);
     if (vinc) vinc.detalle = ccDetalleVinculo(vinc, ventas, registros);
@@ -1740,6 +1746,7 @@ function renderCorrecciones() {
         tiposBce: (state.cache && state.cache.tipos_bce) || {},
         cache: state.cache,
         abierta: ccDecisionAbierta,
+        dudas: pnFilasCatalogo(state.cache).filter(f => f.estado === "CANDIDATA").length, // js/11
       });
   }
   renderCcResueltos();
@@ -2683,6 +2690,7 @@ function ccInyectarEstilos() {
     "#ccLista .cc-cab a{color:var(--accent);font-weight:600;text-decoration:none}",
     "#ccLista .cc-cab a:hover{text-decoration:underline}",
     "#ccLista .cc-todo-ok{color:var(--ok);font-size:14px;font-weight:600}",
+    "#ccLista .cc-dudas{margin-top:8px;color:var(--warn);font-weight:600}",
     /* Hash como enlace, igual en toda la app. */
     ".cc-hash-enlace{color:var(--accent);font-size:13.5px;text-decoration:none;white-space:nowrap}",
     ".cc-hash-enlace:hover{text-decoration:underline}",
@@ -2872,6 +2880,29 @@ function ccMontarEventos() {
   }
 }
 
+/* El índice fijo de arriba (#ccIndice) copia los números y ⚠ de los
+   títulos de cada bloque. Los pintan js/11, 15 y 20 cada uno a su hora, así
+   que se copian al cambiar (un observador por título), no al repintar. */
+function ccPintarIndice() {
+  for (const s of document.querySelectorAll("#ccIndice [data-copia]")) {
+    const t = ($(s.dataset.copia) || {}).textContent || "";
+    if (!s.classList.contains("rv-aviso")) { s.textContent = t || "0"; continue; }
+    s.textContent = t ? "⚠" : "";
+    s.parentNode.title = t.replace(/^⚠\s*/, "");
+  }
+}
+/* Un [data-ir] (el índice y el aviso de tokens con dudas) baja a su bloque,
+   sin quedar bajo el índice, y lo abre. */
+function ccIrABloque(e) {
+  const b = e.target.closest("[data-ir]");
+  const el = b && $(b.dataset.ir);
+  if (!el) return;
+  e.preventDefault();
+  if (el.tagName === "DETAILS") el.open = true;
+  el.style.scrollMarginTop = $("ccIndice").offsetHeight + 8 + "px";
+  el.scrollIntoView();
+}
+
 /* ----------------------------- Enganches -----------------------------
    Como js/16: envoltorios que AÑADEN el repintado detrás de las funciones
    globales que avisan de cambios de datos (cargar, crear o guardar la cache
@@ -2901,6 +2932,13 @@ function ccMontarEventos() {
   });
 
   ccMontarEventos();
+  const vista = $("view-revision");
+  if (vista) vista.addEventListener("click", ccIrABloque);
+  for (const s of document.querySelectorAll("#ccIndice [data-copia]")) {
+    const origen = $(s.dataset.copia);
+    if (origen) new MutationObserver(ccPintarIndice).observe(origen, { childList: true, characterData: true, subtree: true });
+  }
+  ccPintarIndice();
   document.querySelectorAll("[data-que-es]").forEach(e => { e.outerHTML = ccHtmlQueEs(); });
   ccRenderSeguro(); // el DOM ya existe: los scripts van al final del <body>
 })();

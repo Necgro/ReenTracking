@@ -185,6 +185,16 @@ assert("un hueco en cada pestaña, justo bajo su título",
   /<h2>🔍 Revisión<\/h2>\s*<span data-que-es><\/span>/.test(indexHtml) && /<h2>📒 Transacciones<\/h2>\s*<span data-que-es><\/span>/.test(indexHtml) &&
   (indexHtml.match(/data-que-es/g) || []).length === 2);
 
+console.log("== P5. Con tokens con dudas, el aviso encima de las tarjetas ==");
+const lista = dudas => S.ccHtmlLista([rarUsdt], [rarUsdt], ctx, [], { ajustes: {}, tiposBce: {}, cache: null, abierta: null, dudas });
+const avisoDudas = h => (h.match(/<div class="cc-cab cc-dudas">.*?<\/div>/) || [""])[0];
+assert("con 2: «Primero confirma los 2 tokens con dudas: cambian…», con su enlace al catálogo, antes de la tarjeta",
+  avisoDudas(lista(2)) === '<div class="cc-cab cc-dudas">Primero <a href="#revision" data-ir="rvCatalogo">confirma los 2 tokens con dudas</a>: cambian muchos de estos movimientos.</div>' &&
+  lista(2).indexOf("cc-dudas") < lista(2).indexOf("cc-item"), avisoDudas(lista(2)));
+assert("con 1: «el token con dudas: cambia…»", /confirma el token con dudas<\/a>: cambia muchos/.test(lista(1)), avisoDudas(lista(1)));
+assert("sin dudas, o sin nada por decidir, sin aviso", !lista(0).includes("cc-dudas") &&
+  !S.ccHtmlLista([rarUsdt], [], ctx, [], { dudas: 2 }).includes("cc-dudas"));
+
 console.log("");
 console.log(ok + "/" + (ok + fallos) + " comprobaciones OK -> " + (fallos ? "HAY FALLOS" : "TODO VERDE"));
 process.exit(fallos ? 1 : 0);

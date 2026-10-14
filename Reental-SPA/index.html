@@ -341,6 +341,9 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 .rv-plegable summary{color:var(--text)}
 .rv-aviso{margin-left:8px;color:var(--warn);font-weight:700}
 .rv-aviso:empty{display:none}
+.cc-indice{position:sticky;top:var(--alto-topbar,0px);z-index:6;display:flex;flex-wrap:wrap;gap:6px;margin:10px -22px 0;padding:8px 22px;background:var(--panel);border-bottom:1px solid var(--border)}
+.cc-indice button{font-size:13px;padding:5px 11px;min-height:0}
+.cc-indice .rv-aviso{margin-left:5px}
 /* En el móvil la tabla scrollea en su caja; en ancho completo no hace
    falta, y así las burbujas de los botones no se recortan. */
 @media(max-width:760px){.rv-caja{overflow-x:auto}}
@@ -462,28 +465,17 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
   <div class="card">
     <h2>🔍 Revisión</h2>
     <span data-que-es></span>
-    <!-- CENTRO DE CORRECCIONES: estructura y estilos SIN logica (la logica
-         vive en js/15-correcciones.js). Lo ya decidido vive oculto por
-         defecto en el desplegable «✅ Movimientos ya decididos (n)»; cada
-         caso se puede reeditar/deshacer (vuelve a la cola y reclasifica).
-         Editor de coste de adquisicion plegable, cerrado por defecto (por
-         compra). -->
-    <div id="ccLista" class="cc-lista" aria-live="polite">
-      <div class="cc-vacio">Sin movimientos todavía: completa 🚀 Puesta en marcha.</div>
-    </div>
-    <details id="ccResueltos" class="cc-resueltos">
-      <summary>✅ Movimientos ya decididos (<span id="ccResueltosCount">0</span>)</summary>
-      <div id="ccListaResueltos" class="cc-lista-resueltos">
-        <p class="help">Nada decidido todavía.</p>
-      </div>
-    </details>
-    <!-- Coste de las compras por transferencia bancaria, por compra
-         (js/20-coste-compras.js). -->
-    <details id="cbCoste" class="cc-resueltos cb-coste">
-      <summary>💶 Coste de las compras por transferencia bancaria (<span id="cbCount">0</span>)</summary>
-      <p class="help rv-explica">Lo pagado en € por cada compra. Si no lo pones: 100 € por token.</p>
-      <div id="cbCuerpo"><p class="help">Sin compras por transferencia bancaria.</p></div>
-    </details>
+    <!-- Índice fijo arriba (js/15, ccPintarIndice): en el orden en que
+         conviene resolver; copia los números y ⚠ de cada título. -->
+    <nav id="ccIndice" class="cc-indice" aria-label="Bloques de la revisión">
+      <button type="button" data-ir="rvCatalogo">① 🏠 Inmuebles<span class="rv-aviso" data-copia="rvCatalogoAviso"></span></button>
+      <button type="button" data-ir="rvContratos">② 🧭 Direcciones</button>
+      <button type="button" data-ir="ccLista">③ Por decidir (<span data-copia="ccNavRevision">0</span>)</button>
+      <button type="button" data-ir="cbCoste">④ 💶 Coste (<span data-copia="cbCount">0</span>)</button>
+      <button type="button" data-ir="rvPreciosRnt">🪙 RNT<span class="rv-aviso" data-copia="rvPreciosRntAviso"></span></button>
+      <button type="button" data-ir="rvPreciosPol">⛽ POL<span class="rv-aviso" data-copia="rvPreciosPolAviso"></span></button>
+      <button type="button" data-ir="ccResueltos">✅ Ya decididos (<span data-copia="ccResueltosCount">0</span>)</button>
+    </nav>
     <!-- Cada bloque en su tarjeta
          plegable, cerrada por defecto; js/11 abre el catálogo si hay tokens
          con dudas y los precios de RNT si falta alguna fecha. -->
@@ -495,6 +487,37 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
         <summary>Descartados (<span id="nDescartados">0</span>)</summary>
         <div class="rv-caja"><table class="rv-tabla"><thead><tr><th>Inmueble</th><th>Símbolo</th><th>1ª aparición</th><th>Contrato</th><th>Estado</th><th></th></tr></thead><tbody id="tablaDescartados"></tbody></table></div>
       </details>
+    </details>
+    <details id="rvContratos" class="cc-resueltos rv-plegable">
+      <summary>🧭 Direcciones que la app reconoce (<span id="nContratosDefi">0</span>)</summary>
+      <p class="help rv-explica">Pools, staking y otros contratos.</p>
+      <div class="rv-caja"><table class="rv-tabla"><thead><tr><th>Nombre</th><th>Tipo</th><th>Contrato</th><th></th></tr></thead><tbody id="tablaContratos"></tbody></table></div>
+      <details id="rvSemillasQuitadas" class="rv-sub" hidden>
+        <summary>Quitadas (<span id="nSemillasQuitadas">0</span>)</summary>
+        <div class="rv-caja"><table class="rv-tabla"><thead><tr><th>Nombre</th><th>Tipo</th><th>Contrato</th><th></th></tr></thead><tbody id="tablaSemillasQuitadas"></tbody></table></div>
+      </details>
+      <div class="row mt rv-form">
+        <div class="rv-form-dir"><label for="inpContratoDir">Dirección</label><input id="inpContratoDir" class="mono" placeholder="0x…" autocomplete="off"></div>
+        <div><label for="inpContratoNombre">Nombre</label><input id="inpContratoNombre" autocomplete="off"></div>
+        <div><label for="selContratoTipo">Tipo</label><select id="selContratoTipo"></select></div>
+        <div class="rv-form-btn"><button id="btnAddContrato">➕ Añadir</button></div>
+      </div>
+    </details>
+    <!-- CENTRO DE CORRECCIONES: estructura y estilos SIN logica (la logica
+         vive en js/15-correcciones.js). Lo ya decidido vive oculto por
+         defecto en el desplegable «✅ Movimientos ya decididos (n)»; cada
+         caso se puede reeditar/deshacer (vuelve a la cola y reclasifica).
+         Editor de coste de adquisicion plegable, cerrado por defecto (por
+         compra). -->
+    <div id="ccLista" class="cc-lista" aria-live="polite">
+      <div class="cc-vacio">Sin movimientos todavía: completa 🚀 Puesta en marcha.</div>
+    </div>
+    <!-- Coste de las compras por transferencia bancaria, por compra
+         (js/20-coste-compras.js). -->
+    <details id="cbCoste" class="cc-resueltos cb-coste">
+      <summary>💶 Coste de las compras por transferencia bancaria (<span id="cbCount">0</span>)</summary>
+      <p class="help rv-explica">Lo pagado en € por cada compra. Si no lo pones: 100 € por token.</p>
+      <div id="cbCuerpo"><p class="help">Sin compras por transferencia bancaria.</p></div>
     </details>
     <details id="rvPreciosRnt" class="cc-resueltos rv-plegable">
       <summary>🪙 Precios de RNT (USD) (<span id="nPreciosRnt">0</span>)<span id="rvPreciosRntAviso" class="rv-aviso"></span></summary>
@@ -523,19 +546,10 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
       </div>
       <div class="rv-caja"><table class="rv-tabla"><thead><tr><th>Fecha</th><th class="num">Precio USD</th><th></th></tr></thead><tbody id="tablaPreciosPol"></tbody></table></div>
     </details>
-    <details id="rvContratos" class="cc-resueltos rv-plegable">
-      <summary>🧭 Direcciones que la app reconoce (<span id="nContratosDefi">0</span>)</summary>
-      <p class="help rv-explica">Pools, staking y otros contratos.</p>
-      <div class="rv-caja"><table class="rv-tabla"><thead><tr><th>Nombre</th><th>Tipo</th><th>Contrato</th><th></th></tr></thead><tbody id="tablaContratos"></tbody></table></div>
-      <details id="rvSemillasQuitadas" class="rv-sub" hidden>
-        <summary>Quitadas (<span id="nSemillasQuitadas">0</span>)</summary>
-        <div class="rv-caja"><table class="rv-tabla"><thead><tr><th>Nombre</th><th>Tipo</th><th>Contrato</th><th></th></tr></thead><tbody id="tablaSemillasQuitadas"></tbody></table></div>
-      </details>
-      <div class="row mt rv-form">
-        <div class="rv-form-dir"><label for="inpContratoDir">Dirección</label><input id="inpContratoDir" class="mono" placeholder="0x…" autocomplete="off"></div>
-        <div><label for="inpContratoNombre">Nombre</label><input id="inpContratoNombre" autocomplete="off"></div>
-        <div><label for="selContratoTipo">Tipo</label><select id="selContratoTipo"></select></div>
-        <div class="rv-form-btn"><button id="btnAddContrato">➕ Añadir</button></div>
+    <details id="ccResueltos" class="cc-resueltos">
+      <summary>✅ Movimientos ya decididos (<span id="ccResueltosCount">0</span>)</summary>
+      <div id="ccListaResueltos" class="cc-lista-resueltos">
+        <p class="help">Nada decidido todavía.</p>
       </div>
     </details>
     <details id="rvAjustes" class="cc-resueltos rv-plegable">
