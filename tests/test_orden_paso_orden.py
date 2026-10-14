@@ -106,6 +106,10 @@ def tus_datos():
             v, dec = str(t.get("value") or ""), str(t.get("tokenDecimal") or "18")
             if v.isdigit() and len(v.rstrip("0")) >= 5 and dec.isdigit():
                 importe(f"{int(v) / 10 ** int(dec):.6f}".rstrip("0"))
+            # El instante exacto lleva a la transacción (y a la wallet) en Polygonscan.
+            ts = str(t.get("timeStamp") or "")
+            if re.fullmatch(r"\d{10}", ts):
+                piezas[ts] = "instante de un movimiento tuyo"
     csv_ruta = os.path.join(carpeta, "reental_rendimientos.csv")
     if os.path.isfile(csv_ruta):
         for celda in re.split(r'[,\s"]+', leer("privado/datos_reales/reental_rendimientos.csv")):
@@ -127,10 +131,11 @@ def tus_datos():
 
 
 def piezas_de(texto):
-    """Direcciones, principios de hash (0x + 10 cifras) y números con 3+
-    decimales que no son trozo de un número más largo."""
+    """Direcciones, principios de hash (0x + 10 cifras), números con 3+
+    decimales e instantes (10 cifras) que no son trozo de un número más largo."""
     return (set(re.findall(r"0x[0-9a-f]{40}", texto)) | set(re.findall(r"0x[0-9a-f]{10}", texto))
-            | set(re.findall(r"(?<![\d.,])\d+[.,]\d{3,}(?![\d])", texto)))
+            | set(re.findall(r"(?<![\d.,])\d+[.,]\d{3,}(?![\d])", texto))
+            | set(re.findall(r"(?<![\d.,])\d{10}(?![\d.,])", texto)))
 
 
 class TestOrden(unittest.TestCase):

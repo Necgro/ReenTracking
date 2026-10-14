@@ -133,7 +133,7 @@ function arrEvaluar(e) {
   if (e.syncCorriendo) pasos.sync = { estado: "run", texto: "Sincronizando…" };
   else if (errores.length) pasos.sync = { estado: "warn", texto: "Con errores en: " + errores.join(", ") };
   else if (nTx > 0) pasos.sync = { estado: "ok", texto: nTx + " transacciones en tu archivo" };
-  else pasos.sync = { estado: "pendiente", texto: "Sin transacciones: pulsa «🔄 Actualizar»" };
+  else pasos.sync = { estado: "pendiente", texto: "Sin transacciones" };
   pasos.csv = {
     estado: csvOk ? "ok" : "pendiente",
     texto: csvOk ? e.nCsv + " repartos" : "Sin cargar",
@@ -232,7 +232,7 @@ function arrResumen(d) {
         : "Transacciones: nada nuevo (" + p.total + " en total)." });
     }
   } else if (d.cacheOk && !d.keyOk) {
-    lineas.push({ tipo: "info", texto: "Sin descargar: falta la API key de Etherscan (tus datos). Ponla y pulsa «🔄 Actualizar».",
+    lineas.push({ tipo: "info", texto: "Sin descargar: falta la API key de Etherscan (tus datos).",
       accion: { texto: "ir a tus datos", ir: "arrDatos" } });
   }
 
@@ -322,12 +322,15 @@ function arrResumen(d) {
 
 /* ----------------------------- Estado del asistente ----------------------------- */
 // ultimaPreparacion: lo que hizo el último flujo automático (sincronizado,
-// erroresSync, nuevas, total); se reinicia al abrir otra cache.
+// erroresSync, nuevas, total, cuadrePendiente); se reinicia al abrir otra cache.
+// descargaSola: la huella de la última descarga que empezó sola (P6).
+// vaultsHallados: { wallet, lista } de la última búsqueda del vault en Etherscan.
 // csvFueraMasNuevo: para el resumen. olvidando: «🧹 Olvidar todo» en marcha.
 // soloLectura: la app ya está abierta en otra pestaña; esta no lee ni guarda.
 // sinLeer: no se pudo leer lo guardado; no se guarda encima hasta recargar o abrir una copia.
 const arr = { preparando: false, ultimaPreparacion: null, configClasificada: null,
-  csvFueraMasNuevo: false, olvidando: false, soloLectura: false, sinLeer: false, descargaSola: null };
+  csvFueraMasNuevo: false, olvidando: false, soloLectura: false, sinLeer: false, descargaSola: null,
+  vaultsHallados: null };
 
 function arrEsc(s) {
   return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -597,15 +600,16 @@ async function arrFlujo(opciones) {
   const conSync = !!(opciones && opciones.sincronizar);
   arr.preparando = true;
   arrPintarSeguro();
-  let vaults = [];
+  let buscarVault = false;
   const previo = arr.ultimaPreparacion || {};
-  // cuadrePendiente: se descargó sin el archivo de Reental; el cuadre, al cargarlo.
+  // cuadrePendiente: se descargó sin el archivo de Reental; el cuadre, al
+  // cargarlo, si la wallet y el vault son los de esa descarga (su huella).
   const res = { sincronizado: !!previo.sincronizado, erroresSync: previo.erroresSync || [],
     nuevas: previo.nuevas || 0, total: arrNumTx(state.cache), fecha: new Date().toISOString(),
-    cuadrePendiente: !!previo.cuadrePendiente };
+    cuadrePendiente: previo.cuadrePendiente || null };
   try {
     leerConfigDesdeFormulario();
-    let cuadrar = !conSync && res.cuadrePendiente;
+    let cuadrar = !conSync && res.cuadrePendiente === arrHuellaConfig(state.config);
     if (conSync && state.cache && !configValidaParaSincronizar().length) {
       log("=== Actualizar: sincronizar → descubrir → clasificar ===", "ok");
       const antes = arrNumTx(state.cache);
@@ -623,7 +627,7 @@ async function arrFlujo(opciones) {
     }
     res.total = arrNumTx(state.cache);
     res.clasificado = arrClasificarAhora({ detalle: true });
-    res.cuadrePendiente = cuadrar && !res.clasificado;
+    res.cuadrePendiente = cuadrar && !res.clasificado ? arrHuellaConfig(state.config) : null;
     // El cuadre con la blockchain, con lo recién clasificado (js/28).
     if (cuadrar && res.clasificado && typeof cuadreLeer === "function") {
       // Mientras lee, la barra lo dice; luego vuelve a lo de la sincronización.
@@ -634,7 +638,7 @@ async function arrFlujo(opciones) {
       // mientras leía (su propio flujo no arranca con este en marcha).
       if (arr.configClasificada !== arrHuellaConfig(state.config)) res.clasificado = arrClasificarAhora({ detalle: true });
     }
-    if (conSync && cuadrar && !normalizarDireccion(state.config.vault)) vaults = await arrBuscarVault();
+    buscarVault = conSync && cuadrar && !normalizarDireccion(state.config.vault);
     if (!res.clasificado && state.cache && !state.csvCargado) log("Esperando el archivo de rendimientos para clasificar.");
   } catch (e) {
     console.error(e);
@@ -643,8 +647,9 @@ async function arrFlujo(opciones) {
   } finally {
     arr.ultimaPreparacion = res;
     arr.preparando = false;
-    // Lo que dijo esta descarga, guardado (al recargar sale ese, no el de la anterior).
-    if (conSync && state.cache) autoGuardarCache();
+    // Lo que dijo esta descarga, guardado (al recargar sale ese, no el de
+    // la anterior); también el cuadre pendiente ya hecho (si no, se repetiría al abrir).
+    if ((conSync || (previo.cuadrePendiente || null) !== res.cuadrePendiente) && state.cache) autoGuardarCache();
     arrPintarSeguro();
     // 🧾 y 📤 se repintan al cambiar el estado; lo que
     // pidió la clasificación llegó con el flujo aún en marcha.
@@ -653,19 +658,31 @@ async function arrFlujo(opciones) {
     const enInicio = (location.hash || "").slice(1) === "inicio";
     if (fin && !fin.hidden && enInicio) fin.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
-  if (vaults.length) arrProponerVault(vaults);
+  // Con el flujo ya terminado: el CSV o un cambio de tus datos mientras busca siguen su curso.
+  if (buscarVault) await arrBuscarVault();
 }
 
-/* Con el vault vacío, el que creó tu wallet: una ayuda, no una certeza. Un
-   fallo deja una línea en el registro y nada más. */
+/* Con el vault vacío, el que creó tu wallet: una ayuda, no una certeza. Se
+   pregunta a Etherscan una vez por wallet y sesión (cada «🔄 Actualizar»
+   vuelve a enseñar lo hallado). Un fallo deja una línea en el registro y
+   nada más. */
 async function arrBuscarVault() {
   try {
-    const cfg = state.config, candidatos = vaultCandidatos(state.cache, cfg.wallet);
-    if (!candidatos.length) return [];
-    const r = await vaultsCreadosPor(candidatos, cfg.wallet, String(cfg.etherscan_api_key || "").trim());
-    if (r === null) log("No se pudo buscar tu vault en Etherscan.", "warn");
-    return r || [];
-  } catch (e) { log("No se pudo buscar tu vault: " + e.message, "warn"); return []; }
+    const cfg = state.config, wallet = normalizarDireccion(cfg.wallet);
+    if (!arr.vaultsHallados || arr.vaultsHallados.wallet !== wallet) {
+      const candidatos = vaultCandidatos(state.cache, wallet);
+      const r = candidatos.length ? await vaultsCreadosPor(candidatos, wallet, String(cfg.etherscan_api_key || "").trim()) : [];
+      if (r === null) { log("No se pudo buscar tu vault en Etherscan.", "warn"); return; }
+      arr.vaultsHallados = { wallet, lista: r };
+    }
+    // Mientras buscaba pudiste escribir tu vault, cambiar la wallet o decir «No es».
+    leerConfigDesdeFormulario();
+    const rechazados = vaultsRechazados(state.cache);
+    const lista = arr.vaultsHallados.lista.filter(v => !rechazados.has(v.direccion));
+    if (lista.length && normalizarDireccion(state.config.wallet) === wallet && !normalizarDireccion(state.config.vault)) {
+      arrProponerVault(lista);
+    }
+  } catch (e) { log("No se pudo buscar tu vault: " + e.message, "warn"); }
 }
 // La mini ventana: «Ponerlo» lo escribe en tus datos y descarga; «No es» no vuelve a salir.
 function arrProponerVault(lista) {
@@ -673,8 +690,8 @@ function arrProponerVault(lista) {
   if (!dlg || dlg.open) return;
   const pintar = () => {
     $("arrDlgVaultTit").textContent = lista.length === 1 ? "Vault probable" : "Vaults probables";
-    $("arrDlgVaultLista").innerHTML = lista.map(v => '<div class="arr-vault"><code>' + v.direccion + "</code> creado por tu wallet el " +
-      fechaEs(v.fecha) + '<div class="row"><button type="button" class="primary" data-poner="' + v.direccion + '">Ponerlo</button>' +
+    $("arrDlgVaultLista").innerHTML = lista.map(v => '<div class="arr-vault"><code>' + v.direccion + "</code> creado por tu wallet" +
+      (v.fecha ? " el " + fechaEs(enHoraEspanola(v.fecha)) : "") + '<div class="row"><button type="button" class="primary" data-poner="' + v.direccion + '">Ponerlo</button>' +
       '<button type="button" data-no-es="' + v.direccion + '">No es</button></div></div>').join("");
   };
   dlg.onclick = e => {

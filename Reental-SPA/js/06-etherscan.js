@@ -38,28 +38,31 @@ function vaultCandidatos(cache, wallet) {
   const candidatos = new Set();
   for (const tx of cache.transacciones.wallet_normales || []) {
     const a = normalizarDireccion(tx.to);
-    if (a && !fuera.has(a)) candidatos.add(a);
+    if (direccionValida(a) && !fuera.has(a)) candidatos.add(a);
   }
   return [...candidatos];
 }
 /* De `direcciones`, las que tu wallet creó con la fábrica de Reental:
-   [{ direccion, fecha }]. Etherscan admite 5 por llamada y omite las que no
-   son contratos. null si falla una llamada. */
+   [{ direccion, fecha }] (fecha null si no viene). Etherscan admite 5 por
+   llamada y omite las que no son contratos. Si falla una llamada, lo hallado
+   en las otras; null si falla y no se halló nada. */
 async function vaultsCreadosPor(direcciones, wallet, apiKey, pausa = 600, consultar = etherscanGet) {
   const w = normalizarDireccion(wallet), hallados = [];
+  let fallo = false;
   for (let i = 0; i < direcciones.length; i += 5) {
     if (i) await sleep(pausa);
     const filas = await consultar({ module: "contract", action: "getcontractcreation",
       contractaddresses: direcciones.slice(i, i + 5).join(",") }, apiKey, "vault");
-    if (filas === null) return null;
+    if (filas === null) { fallo = true; continue; }
     for (const f of Array.isArray(filas) ? filas : []) {
       if (normalizarDireccion(f.contractCreator) === w && normalizarDireccion(f.contractFactory) === FABRICA_VAULTS &&
           direccionValida(f.contractAddress)) {
-        hallados.push({ direccion: normalizarDireccion(f.contractAddress), fecha: new Date(Number(f.timestamp) * 1000) });
+        const ts = Number(f.timestamp);
+        hallados.push({ direccion: normalizarDireccion(f.contractAddress), fecha: ts > 0 ? new Date(ts * 1000) : null });
       }
     }
   }
-  return hallados;
+  return fallo && !hallados.length ? null : hallados;
 }
 /* null si falla alguna página: lo ya recibido se descarta, porque guardarlo
    haría avanzar el último bloque y lo que faltaba no se pediría nunca. */

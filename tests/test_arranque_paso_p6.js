@@ -47,11 +47,11 @@ const flujoReal = sb.arrFlujo;
 const W = "0x" + "a1".repeat(20), W2 = "0x" + "c3".repeat(20);
 let flujos = [];
 const llamadas = { sync: 0, cuadre: 0 };
-let clasifica = false;
+let clasifica = false, erroresSync = [], guardados = 0;
 Object.assign(sb, {
   toast: () => {}, log: () => {}, renderPanel: () => {}, actualizarChipEstado: () => {}, setDot: () => {},
-  setProgreso: () => {}, arrPintarSeguro: () => {}, autoGuardarCache: async () => {}, leerConfigDesdeFormulario: () => {},
-  sincronizar: async () => { llamadas.sync++; STATE.cache.transacciones.wallet_normales.push({ hash: "0x1" }); return { errores: [] }; },
+  setProgreso: () => {}, arrPintarSeguro: () => {}, autoGuardarCache: async () => { guardados++; }, leerConfigDesdeFormulario: () => {},
+  sincronizar: async () => { llamadas.sync++; STATE.cache.transacciones.wallet_normales.push({ hash: "0x1" }); return { errores: erroresSync }; },
   arrClasificarAhora: () => clasifica,
   cuadreLeer: async () => { llamadas.cuadre++; },
   arrFlujo: async o => { flujos.push(o); },
@@ -81,6 +81,9 @@ const preparar = (cfg, nTx) => {
   STATE.config.wallet = W2;
   sb.arrTrasCambioConfig();
   assert("otra wallet sin nada descargado: también", flujos.length === 3, flujos);
+  STATE.config.vault = "0x" + "b2".repeat(20);
+  sb.arrTrasCambioConfig();
+  assert("solo cambia el vault: también", flujos.length === 4, flujos);
 
   preparar({ wallet: "0x123" }, 0);
   sb.arrTrasCambioConfig();
@@ -99,15 +102,34 @@ const preparar = (cfg, nTx) => {
   clasifica = false;
   await flujoReal({ sincronizar: true });
   assert("descarga sin CSV: ni clasifica ni cuadra, queda pendiente",
-    llamadas.sync === 1 && llamadas.cuadre === 0 && ARR.ultimaPreparacion.cuadrePendiente === true, ARR.ultimaPreparacion);
+    llamadas.sync === 1 && llamadas.cuadre === 0 && ARR.ultimaPreparacion.cuadrePendiente === sb.arrHuellaConfig(STATE.config), ARR.ultimaPreparacion);
   clasifica = true;
+  guardados = 0;
   await flujoReal({ sincronizar: false });
   assert("al cargar el CSV: clasifica y cuadra",
     llamadas.cuadre === 1 && ARR.ultimaPreparacion.clasificado && !ARR.ultimaPreparacion.cuadrePendiente, ARR.ultimaPreparacion);
+  assert("y se guarda que ya no está pendiente (al abrir no se repite)", guardados === 1, guardados);
+  guardados = 0;
   await flujoReal({ sincronizar: false });
-  assert("después, sin descargar, no vuelve a cuadrar", llamadas.cuadre === 1, llamadas);
+  assert("después, sin descargar, no vuelve a cuadrar ni a guardar", llamadas.cuadre === 1 && guardados === 0, [llamadas, guardados]);
   await flujoReal({ sincronizar: true });
   assert("con «🔄 Actualizar» y el CSV: cuadra como siempre", llamadas.sync === 2 && llamadas.cuadre === 2, llamadas);
+
+  console.log("C) Lo que no se cuadra al cargar el CSV");
+  preparar({}, 0);
+  clasifica = false; erroresSync = ["etherscan"];
+  await flujoReal({ sincronizar: true });
+  clasifica = true; erroresSync = [];
+  await flujoReal({ sincronizar: false });
+  assert("descarga de Etherscan fallida y luego el CSV: no cuadra (saldría una diferencia falsa)", llamadas.cuadre === 2, llamadas);
+  preparar({}, 0);
+  clasifica = false;
+  await flujoReal({ sincronizar: true });
+  STATE.config.vault = "0x" + "b2".repeat(20);   // escrito a mano, sin descargar su vault
+  clasifica = true;
+  await flujoReal({ sincronizar: false });
+  assert("vault escrito después de descargar: no cuadra con lo que falta por bajar",
+    llamadas.cuadre === 2 && !ARR.ultimaPreparacion.cuadrePendiente, [llamadas, ARR.ultimaPreparacion]);
 
   console.log("\n" + ok + " OK, " + fallos + " fallos");
   process.exit(fallos ? 1 : 0);

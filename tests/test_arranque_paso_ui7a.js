@@ -54,7 +54,7 @@ assert("la config nombra los campos que faltan, sin el vault (opcional)",
   /wallet/.test(r.faltan[0].texto) && /API key/.test(r.faltan[0].texto) &&
   /€ por token/.test(r.faltan[0].texto) && !/vault/i.test(r.faltan[0].texto), r.faltan[0].texto);
 assert("no se puede preparar, sincronizar ni clasificar", !r.puedeActualizar && !r.puedeSincronizar && !r.puedeClasificar);
-assert("sync pide «🔄 Actualizar»", /Actualizar/.test(r.pasos.sync.texto), r.pasos.sync.texto);
+assert("sync: sin transacciones (la primera descarga empieza sola)", r.pasos.sync.texto === "Sin transacciones", r.pasos.sync.texto);
 
 /* B) Todo listo */
 console.log("B) Requisitos completos");
@@ -104,7 +104,7 @@ r = S.arrEvaluar(base({ syncErrores: ["bce", "rnt"] }));
 assert("con errores: sync en aviso nombrando los pasos", r.pasos.sync.estado === "warn" && /bce, rnt/.test(r.pasos.sync.texto), r.pasos.sync);
 r = S.arrEvaluar(base({ cache: cache(0) }));
 assert("cache nueva sin transacciones: sync pendiente y activo", r.pasos.cache.estado === "ok" && r.pasos.sync.estado === "pendiente" &&
-  r.activo === "sync" && /Actualizar/.test(r.pasos.sync.texto), r.pasos.sync);
+  r.activo === "sync" && r.pasos.sync.texto === "Sin transacciones", r.pasos.sync);
 
 /* F) Clasificación hecha */
 console.log("F) Resultado de la clasificación");
