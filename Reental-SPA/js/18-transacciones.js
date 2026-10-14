@@ -131,7 +131,7 @@ const TX_GRUPOS = [
   { id: "revisar", etiqueta: "Revisar", ayuda: "Se resuelven en 🔍 Revisión." },
   { id: "fiscal", etiqueta: "Con efecto fiscal",
     ayuda: "Rendimientos, recompensas DeFi, compras, ventas, depósitos y retiradas." },
-  { id: "neutro", etiqueta: "Neutros", ayuda: "Movimientos neutros (siguen siendo tuyos) y comisiones de red (gas). No van a la Renta." },
+  { id: "neutro", etiqueta: "Neutros", ayuda: "Movimientos neutros (siguen siendo tuyos; no van a la Renta) y comisiones de red (gas)." },
 ];
 
 /* Motivos del spam, en el orden en que se miran: el primero que
@@ -257,18 +257,19 @@ function txOperacion(reg) {
   return TX_OPERACIONES_POR_CATEGORIA[reg.categoria + "/" + sub] || TX_OPERACIONES[sub] || sub;
 }
 /* Las dos mitades de un canje de contrato: la llegada (COMPRA por CANJE) y
-   la quema del token viejo en su mismo hash (la regla de `emparejarCanjes`,
-   js/21). Los hashes con llegada, una vez por clasificación. */
-let txCanjeFoto = { registros: null, hashes: null };
+   la quema del token viejo que el motor le empareja (`emparejarCanjes`,
+   js/21, sobre copias: marca y manda a revisar). Una quema de más en el
+   mismo hash es una venta. Las claves, una vez por clasificación. */
+let txCanjeFoto = { registros: null, claves: null };
 function txEsCanje(reg) {
   if (reg.categoria === "COMPRA") return reg.via_compra === "CANJE";
-  if (reg.categoria !== "VENTA" || reg.subcategoria !== "GPP_INMUEBLE" || reg.destino !== BURN ||
-      reg.importe_usdt != null || reg.pago_diferido) return false;
+  if (reg.categoria !== "VENTA" || reg.subcategoria !== "GPP_INMUEBLE" || reg.destino !== BURN || reg.importe_usdt != null) return false;
   const registros = txRegistros();
   if (txCanjeFoto.registros !== registros) {
-    txCanjeFoto = { registros, hashes: new Set(registros.filter(r => r.categoria === "COMPRA" && r.via_compra === "CANJE").map(r => r.hash)) };
+    const pares = emparejarCanjes(registros.map(r => Object.assign({}, r)));
+    txCanjeFoto = { registros, claves: new Set([...pares.values()].map(b => b.clave)) };
   }
-  return txCanjeFoto.hashes.has(reg.hash);
+  return txCanjeFoto.claves.has(reg.clave);
 }
 /* Ayuda (title) de la operación: solo lo que no dice la celda (sin
    el código técnico ni la parte fiscal). En un spam, su

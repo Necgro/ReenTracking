@@ -28,7 +28,7 @@ const S = { console, state: {} };
 S.globalThis = S;
 vm.createContext(S);
 for (const f of ["01-constantes.js", "02-utilidades.js", "14-clasificador.js",
-                 "15-correcciones.js", "18-transacciones.js"]) {
+                 "15-correcciones.js", "18-transacciones.js", "21-fiscal.js"]) {
   vm.runInContext(fs.readFileSync(path.join(BASE, f), "utf8"), S, { filename: f });
 }
 const USDC = vm.runInContext("USDC", S);
@@ -82,8 +82,9 @@ const AY_NEUTRO = vm.runInContext("CC_AYUDA_NEUTRO", S);
 assert("neutro: su ayuda es la de 🔍, y la nota del motor va detrás",
   S.txAyudaOperacion(casos[3][0]) === AY_NEUTRO &&
   S.txAyudaOperacion(reg("dn", "MOVIMIENTO", "NEUTRO", { nota: "x" })) === AY_NEUTRO + " Nota del motor: x");
-assert("filtro «Neutros»: dice que no van a la Renta",
-  /No van a la Renta/.test(vm.runInContext("TX_GRUPOS", S).find(g => g.id === "neutro").ayuda));
+assert("filtro «Neutros»: lo neutro no va a la Renta; del gas no lo dice (cuenta en el coste de su compra o venta)",
+  vm.runInContext("TX_GRUPOS", S).find(g => g.id === "neutro").ayuda ===
+  "Movimientos neutros (siguen siendo tuyos; no van a la Renta) y comisiones de red (gas).");
 assert("subcategoría desconocida: tal cual (no se inventa)", S.txOperacion(reg("z", "X", "OTRA_COSA")) === "OTRA_COSA");
 
 /* P9: las dos filas de un canje de contrato (quema del viejo + llegada del nuevo, mismo hash). */
@@ -101,6 +102,19 @@ assert("canje: sin llegada en el hash, o con importe, sigue siendo «Venta de to
 assert("canje: la categoría no cambia (COMPRA / VENTA)", llegada.categoria === "COMPRA" && quema.categoria === "VENTA");
 vm.runInContext("state.registros = " + JSON.stringify([quema]), S);
 assert("canje: otra clasificación sin la llegada -> «Venta de tokens»", S.txOperacion(quema) === "Venta de tokens");
+/* Auditoría de la tanda P (A2, A3): lo mismo que empareja el motor (emparejarCanjes, js/21). */
+const quemaDeMas = reg("cj5", "VENTA", "GPP_INMUEBLE", { destino: BURN, hash: llegada.hash, cantidad: 3 });
+const quemaPdVacio = reg("cj6x", "VENTA", "GPP_INMUEBLE", { destino: BURN, pago_diferido: {} });
+const llegada2 = reg("cj7xx", "COMPRA", "COSTE_BASE", { via_compra: "CANJE", hash: quemaPdVacio.hash });
+const todos = [llegada, quema, quemaDeMas, quemaPdVacio, llegada2];
+vm.runInContext("state.registros = " + JSON.stringify(todos), S);
+const delMotor = new Set([...S.emparejarCanjes(JSON.parse(JSON.stringify(todos))).values()].map(b => b.clave));
+assert("A2: dos quemas y una llegada: solo la que empareja el motor es canje; la otra, «Venta de tokens»",
+  S.txOperacion(quema) === "Canje de contrato" && S.txOperacion(quemaDeMas) === "Venta de tokens" &&
+  delMotor.has("cj2") && !delMotor.has("cj5"), [S.txOperacion(quema), S.txOperacion(quemaDeMas), [...delMotor]]);
+assert("A3: con pago_diferido vacío, como el motor: canje", S.txOperacion(quemaPdVacio) === "Canje de contrato" && delMotor.has("cj6x"));
+assert("el motor no marca los registros de la pestaña (empareja copias)",
+  vm.runInContext("state.registros.every(r => !r.canje && !r.revisar)", S));
 vm.runInContext("state.registros = undefined", S);
 
 // =========================================================================
