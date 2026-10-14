@@ -36,10 +36,10 @@ const entrega = (clave, fecha, n) => reg(clave, fecha, "REVISAR", "PENDIENTE", n
 const compraRnt = coste => ({ categoria: "COMPRA", subcategoria: "COSTE_BASE", via_compra: "BANCARIA", coste_eur: coste,
   revisar: false, nota: "Decidido por ti en Revisión (2025-12-01): compra de RNT" });
 
-function correr(regs, ajustes = {}, precios = {}) {
+function correr(regs, ajustes = {}, precios = {}, tipo = 1) {
   const sb = sandbox(MODULOS, HORA_APP);
   const tipos = {};
-  for (const r of regs) tipos[r.fecha.slice(0, 10)] = 1;
+  for (const r of regs) tipos[r.fecha.slice(0, 10)] = tipo;
   sb.__regs = regs;
   sb.__cache = { tipos_bce: tipos, precios_rnt: precios, ajustes_usuario: ajustes, contratos_aprendidos: {} };
   return vm.runInContext(`state.config = { wallet: "${WALLET}", vault: "" };
@@ -94,6 +94,37 @@ console.log("== 2. Venta de RNT después: la encuentra, mezcla con un premio =="
   assert("el Excel lleva las dos filas (del 05/01 y del 10/01)", r.excel.includes('"2025-01-05T00:00:00.000Z"') &&
     r.excel.includes('"2025-01-10T00:00:00.000Z"'));
   assert("quedan 50 RNT de la compra", JSON.stringify(r.colas.find(([a]) => a === "RNT")[1].map(l => l.cantidad)) === "[50]");
+}
+
+console.log("== 3. Con los ajustes de 🔍 de verdad y un tipo del BCE distinto de 1 ==");
+{
+  // La compra, con el ajuste que escribe «Compra bancaria…» (1.000 RNT por 40 €); el premio, a 0,5 USD con 1,25 USD/EUR.
+  const e1 = entrega("e1", "2025-01-10 10:00:00", 1000);
+  const aj = sb0.ccAjustesConDecision({}, e1, "compra-rnt", { coste: 40, pagado: 40, total: 1000 }, "2025-12-01T10:00:00.000Z");
+  const premio = reg("p1", "2025-01-05 10:00:00", "REWARD", "GPP_REGALO", 100);
+  const venta = reg("v1", "2025-03-01 10:00:00", "VENTA", "GPP_SWAP", 1100, { origen: WALLET, destino: DEX, importe_usdt: 125 });
+  aj.p1 = { subcategoria: "GPP_REGALO" };
+  const r = correr([premio, e1, venta], aj, { "2025-01-05": 0.5 }, 1.25);
+  const v = r.regs.find(x => x.clave === "v1");
+  // 100 RNT × 0,5 USD / 1,25 = 40 € del premio + 40 € de la compra = 80 €; vendido por 125 USD = 100 €.
+  assert("coste 80 € (40 + 40) y G/P 20 €", Math.abs(v.coste_fifo_eur - 80) < 1e-9 && Math.abs(v.gp_eur - 20) < 1e-9, [v.coste_fifo_eur, v.gp_eur]);
+  assert("el trozo del premio lleva su USD (50) y el de la compra no", v.lotes_consumidos[0].coste_usd === 50 &&
+    v.lotes_consumidos[1].coste_usd === null, v.lotes_consumidos);
+}
+
+console.log("== 4. A4: «✔ Recompensa DeFi» en 🔍 fija la subcategoría (el motor ya no la vuelve regalo) ==");
+{
+  // Un premio de un contrato conocido sin posición DeFi que lo respalde.
+  const premio = () => reg("p1", "2025-02-01 10:00:00", "REWARD", "RCM_REWARD", 10, { revisar: true });
+  const sin = correr([premio()], {}, { "2025-02-01": 1 }).regs[0];
+  assert("sin decidir: el motor lo vuelve regalo", sin.subcategoria === "GPP_REGALO" && sin.codigo_concepto === "GP_BASE_GRAL", sin);
+  const aj = sb0.ccAjustesConDecision({}, premio(), "dejar", null, "2025-12-01T10:00:00.000Z");
+  assert("el ajuste de «✔ Recompensa DeFi» lleva su subcategoría", aj.p1.subcategoria === "RCM_REWARD" && sb0.ccEsAjusteDecision(aj.p1), aj.p1);
+  const con = correr([premio()], aj, { "2025-02-01": 1 }).regs[0];
+  assert("decidido: recompensa (RCM_STAKING) y fuera de revisar", con.subcategoria === "RCM_REWARD" &&
+    con.codigo_concepto === "RCM_STAKING" && !con.revisar, con);
+  const deshecho = sb0.ccAjustesSinDecision(aj, "p1", "2025-12-02T10:00:00.000Z");
+  assert("deshacerlo lo deja sin ajuste", JSON.stringify(deshecho) === "{}", deshecho);
 }
 
 console.log("\n" + ok + " OK, " + fallos + " FALLOS");

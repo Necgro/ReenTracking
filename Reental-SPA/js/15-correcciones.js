@@ -791,8 +791,12 @@ function ccAjusteDecision(reg, id, valor, fechaISO, antes, previo) {
   const v = ccLeerImporte(valor);
   const pideValor = () => { if (!ccEsNumeroPositivo(v)) throw new Error(ccAvisoImporte(valor)); return v; };
   switch (id) {
-    case "dejar":
-      return { revisar: false, nota: nota("se deja como " + ccNombreCategoria(reg.categoria).toLowerCase()) };
+    case "dejar": {
+      const aj = { revisar: false, nota: nota("se deja como " + ccNombreCategoria(reg.categoria).toLowerCase()) };
+      // Un premio fija lo que es (regalo o recompensa): si no, el motor lo
+      // vuelve regalo cuando no ve una posición DeFi que lo respalde.
+      return reg.categoria === "REWARD" && reg.subcategoria ? Object.assign({ subcategoria: reg.subcategoria }, aj) : aj;
+    }
     case "venta":
       return { categoria: "VENTA", subcategoria: "GPP_INMUEBLE", importe_usdt: pideValor(), revisar: false,
                nota: nota("venta cobrada aparte") };
