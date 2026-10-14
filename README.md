@@ -20,8 +20,8 @@ lo que has cobrado y lo que va en la Renta (IRPF, España).
 abrirla (sí para actualizar): [ReenTrack.zip](https://zinc-lab.github.io/ReenTrack/ReenTrack.zip).
 Cada versión nueva hay que descargarla otra vez.
 
-1. **🚀 Puesta en marcha:** pon tu wallet y tu API key de Etherscan (es gratis)
-   y pulsa «🔄 Actualizar».
+1. **🚀 Puesta en marcha:** pon tu wallet y tu API key de Etherscan (es gratis);
+   la descarga empieza sola.
 2. Añade el archivo de rendimientos de Reental (el CSV que descargas de su web).
 3. **🔍 Revisión:** resuelve lo que quede por decidir hasta que no haya nada.
 4. Ya puedes mirar **📊 Dashboard** y **🧾 Fiscal**.

@@ -327,7 +327,7 @@ function arrResumen(d) {
 // soloLectura: la app ya está abierta en otra pestaña; esta no lee ni guarda.
 // sinLeer: no se pudo leer lo guardado; no se guarda encima hasta recargar o abrir una copia.
 const arr = { preparando: false, ultimaPreparacion: null, configClasificada: null,
-  csvFueraMasNuevo: false, olvidando: false, soloLectura: false, sinLeer: false };
+  csvFueraMasNuevo: false, olvidando: false, soloLectura: false, sinLeer: false, descargaSola: null };
 
 function arrEsc(s) {
   return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -564,11 +564,23 @@ function arrReiniciarSync() {
 
 function arrTrasCambioConfig() {
   arrPintarSeguro();
-  if (arr.preparando || !state.cache || !state.csvCargado) return;
+  if (arr.preparando || !state.cache || arrPrimeraDescarga() || !state.csvCargado) return;
   if (!direccionesConfigOk(state.config)) return;                      // a medio escribir
   if (arr.configClasificada === arrHuellaConfig(state.config)) return; // nada que cambie el resultado
   arrLimpiarClasificacion();
   arrFlujo({ sincronizar: false });
+}
+
+/* La primera descarga empieza sola en cuanto tus datos valen y no hay nada
+   descargado. Una vez por wallet, vault y key: con la key mal no se repite
+   sola al tocar el nombre; «🔄 Actualizar» reintenta. */
+function arrPrimeraDescarga() {
+  const ev = arrEvaluar(arrFoto()), cfg = state.config || {};
+  const huella = arrHuellaConfig(cfg) + "|" + String(cfg.etherscan_api_key || "").trim();
+  if (!ev.puedeActualizar || ev.nTx > 0 || arr.descargaSola === huella) return false;
+  arr.descargaSola = huella;
+  arrFlujo({ sincronizar: true });
+  return true;
 }
 
 // El archivo de Reental va dentro de tu archivo (js/12).
@@ -586,11 +598,13 @@ async function arrFlujo(opciones) {
   arr.preparando = true;
   arrPintarSeguro();
   const previo = arr.ultimaPreparacion || {};
+  // cuadrePendiente: se descargó sin el archivo de Reental; el cuadre, al cargarlo.
   const res = { sincronizado: !!previo.sincronizado, erroresSync: previo.erroresSync || [],
-    nuevas: previo.nuevas || 0, total: arrNumTx(state.cache), fecha: new Date().toISOString() };
+    nuevas: previo.nuevas || 0, total: arrNumTx(state.cache), fecha: new Date().toISOString(),
+    cuadrePendiente: !!previo.cuadrePendiente };
   try {
     leerConfigDesdeFormulario();
-    let cuadrar = false;
+    let cuadrar = !conSync && res.cuadrePendiente;
     if (conSync && state.cache && !configValidaParaSincronizar().length) {
       log("=== Actualizar: sincronizar → descubrir → clasificar ===", "ok");
       const antes = arrNumTx(state.cache);
@@ -608,6 +622,7 @@ async function arrFlujo(opciones) {
     }
     res.total = arrNumTx(state.cache);
     res.clasificado = arrClasificarAhora({ detalle: true });
+    res.cuadrePendiente = cuadrar && !res.clasificado;
     // El cuadre con la blockchain, con lo recién clasificado (js/28).
     if (cuadrar && res.clasificado && typeof cuadreLeer === "function") {
       // Mientras lee, la barra lo dice; luego vuelve a lo de la sincronización.
