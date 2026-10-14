@@ -353,6 +353,8 @@ textos que el usuario o un ajuste pueden cambiar.
   comentario: lo que pagó, su asignación y la fecha de su reclamación,
   copiados del plan. La prueba de orden solo vigila tus datos: lo de un
   probador va a `otras_palabras.txt` en cuanto aparece en un plan.
+- Cifras de una captura que pasa el usuario (su cuenta de Reental) como
+  ejemplo en un comentario o un test: también son datos reales.
 
 ## 11. Tests demasiado optimistas
 
