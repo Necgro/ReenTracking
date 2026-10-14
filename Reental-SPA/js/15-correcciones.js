@@ -648,6 +648,9 @@ const CC_AYUDA_NEUTRO_ENTRADA = "Ya era tuyo: vuelve de otra wallet tuya o de un
   "Si lo compraste o te lo regalaron, no es esto.";
 const CC_AYUDA_SPAM = "No es tuyo: no cuenta para nada.";
 const CC_AYUDA_INMUEBLE = "Lo confirma en el catálogo: cambia todos sus movimientos.";
+const CC_AYUDA_REGALO = "Llega sin comprarlo (p. ej. un airdrop).";
+const CC_AYUDA_RECOMPENSA = "Premio del staking o farming de RNT.";
+const CC_AYUDA_COMPRA_RNT = "RNT que pagaste en € (p. ej. una preventa): cada entrega es una compra.";
 
 /* «ⓘ Qué es cada cosa», arriba en 🔍 y 📒 (en su hueco [data-que-es]): una
    línea por tipo de movimiento, de lo que hace la app. */
@@ -722,6 +725,17 @@ function ccOpcionesDecision(reg, ctx) {
   if (onchain && sentido === "entrada" && esEstable && !(dejar && cat === "DEPOSITO")) {
     ops.push({ id: "dinero", etiqueta: "Ingreso de dinero…", sugerida: false, pide: "usd" });
   }
+  /* RNT que te llega, venga de donde venga (P7 y P11): las tres ofrecen lo
+     mismo para el resto del RNT llegado desde esa dirección (dialogo). */
+  if (onchain && sentido === "entrada" && contrato === RNT) {
+    const yaEs = sub => dejar && cat === "REWARD" && reg.subcategoria === sub;
+    if (!yaEs("GPP_REGALO")) ops.push({ id: "regalo", etiqueta: "Regalo (airdrop)", sugerida: false, pide: null, dialogo: true,
+      ayuda: CC_AYUDA_REGALO });
+    if (!yaEs("RCM_REWARD")) ops.push({ id: "recompensa", etiqueta: "Recompensa DeFi", sugerida: false, pide: null, dialogo: true,
+      ayuda: CC_AYUDA_RECOMPENSA });
+    if (cat === "REVISAR" || cat === "MOVIMIENTO") ops.push({ id: "compra-rnt", etiqueta: "Compra bancaria…", sugerida: false,
+      pide: null, dialogo: true, ayuda: CC_AYUDA_COMPRA_RNT });
+  }
   if (!(dejar && cat === "MOVIMIENTO")) ops.push({ id: "neutro", etiqueta: "Movimiento neutro", sugerida: false, pide: null,
     ayuda: sentido === "entrada" ? CC_AYUDA_NEUTRO_ENTRADA : CC_AYUDA_NEUTRO });
   if (reg.hash && reg.fuente !== "CSV_REENTAL") ops.push({ id: "spam", etiqueta: "🚫 Es spam", sugerida: false, pide: null, ayuda: CC_AYUDA_SPAM });
@@ -730,11 +744,21 @@ function ccOpcionesDecision(reg, ctx) {
 
 /* El ajuste de una decisión (lanza si falta el importe). `antes` =
    "revisar" | "sacado" | null: el ajuste que sustituye. */
-/* Importe escrito a la española («1.234,5») o con punto decimal («1234.5»). */
+/* Importe escrito a la española («1.234,5», «1234,5», «1.250»). El punto
+   solo vale para los miles, en grupos de tres: en cualquier otro sitio
+   («1250.75», «1.5») es NaN, con el aviso de CC_AVISO_COMA. */
+const CC_RE_IMPORTE = /^-?(?:[1-9]\d{0,2}(?:\.\d{3})+|\d+)(?:,\d+)?$/;
+const CC_AVISO_COMA = "Usa la coma para los decimales (1.234,56).";
 function ccLeerImporte(valor) {
-  return typeof valor === "string"
-    ? Number(valor.includes(",") ? valor.replace(/\./g, "").replace(",", ".") : valor)
-    : Number(valor);
+  if (typeof valor !== "string") return Number(valor);
+  const t = valor.trim();
+  if (!t.includes(".")) return Number(t.replace(",", "."));
+  return CC_RE_IMPORTE.test(t) ? Number(t.replace(/\./g, "").replace(",", ".")) : NaN;
+}
+/* El aviso de un importe que no vale: el de la coma si lleva un punto. */
+function ccAvisoImporte(valor) {
+  return typeof valor === "string" && valor.includes(".") && !Number.isFinite(ccLeerImporte(valor))
+    ? CC_AVISO_COMA : "Escribe un importe mayor que 0.";
 }
 /* La cola « [antes: …]» lleva la fecha y el motivo del
    ajuste sustituido, para devolverlo tal cual al deshacer:
@@ -765,7 +789,7 @@ function ccAjusteDecision(reg, id, valor, fechaISO, antes, previo) {
   const cola = ccColaAntes(antes, previo);
   const nota = que => CC_MARCA_DECISION + dia + ": " + que + cola;
   const v = ccLeerImporte(valor);
-  const pideValor = () => { if (!ccEsNumeroPositivo(v)) throw new Error("Escribe un importe mayor que 0."); return v; };
+  const pideValor = () => { if (!ccEsNumeroPositivo(v)) throw new Error(ccAvisoImporte(valor)); return v; };
   switch (id) {
     case "dejar":
       return { revisar: false, nota: nota("se deja como " + ccNombreCategoria(reg.categoria).toLowerCase()) };
@@ -780,6 +804,16 @@ function ccAjusteDecision(reg, id, valor, fechaISO, antes, previo) {
                nota: nota("dinero recibido, valorado al cambio del día") };
     case "neutro":
       return { categoria: "MOVIMIENTO", subcategoria: "NEUTRO", revisar: false, nota: nota("movimiento neutro") };
+    case "regalo":
+      return { categoria: "REWARD", subcategoria: "GPP_REGALO", revisar: false, nota: nota("regalo (airdrop)") };
+    case "recompensa":
+      return { categoria: "REWARD", subcategoria: "RCM_REWARD", revisar: false, nota: nota("recompensa DeFi") };
+    case "compra-rnt": { // valor = { coste, pagado, total } (ccRepartoCompraRnt)
+      const c = valor && valor.coste;
+      if (!ccEsNumeroPositivo(c)) throw new Error("Escribe un importe mayor que 0.");
+      return { categoria: "COMPRA", subcategoria: "COSTE_BASE", via_compra: "BANCARIA", coste_eur: c, revisar: false,
+               nota: nota(ccTextoCompraRnt(valor.pagado, valor.total)) };
+    }
     case "spam":
       return { categoria: "SPAM", subcategoria: "NEUTRO", revisar: false,
                nota: CC_MARCA_SPAM + dia + CC_SUFIJO_SPAM_REVISION + cola };
@@ -833,6 +867,133 @@ function ccAjustesSinDecision(ajustes, clave, fechaISO) {
   return copia;
 }
 
+/* ----------------------------- RNT que te llega (P7 y P11) -----------------------------
+   «Regalo (airdrop)», «Recompensa DeFi» y «Compra bancaria…» (RNT pagado
+   en €, p. ej. una preventa entregada poco a poco) valen también para el
+   resto del RNT llegado desde esa dirección: una decisión por movimiento,
+   cada una se deshace en «Ya decididos». Nunca se guarda la dirección (un
+   rol DEFI_* cambiaría también el USDC que llega de ella y lo que se le
+   manda). Un ajuste de otro origen nunca se pisa. */
+function ccEsEntradaRnt(reg, ctx) {
+  return !!reg && reg.fuente !== "CSV_REENTAL" && !pdEsObjeto(reg.pago_diferido) &&
+    normalizarDireccion(reg.contrato || "") === RNT && ccSentidoBasico(reg, ctx) === "entrada";
+}
+/* La nota de una compra de RNT lleva lo pagado y el total («compra de RNT:
+   1.200,00 EUR por 40.000 RNT»): de ahí sale su precio, que se queda para
+   lo que llegue después (sin emojis ni €: texto plano en la cache). */
+function ccTextoCompraRnt(pagado, total) {
+  return "compra de RNT: " + numEs(pagado, 2) + " EUR por " + cantidadNota(total) + " RNT";
+}
+const CC_RE_COMPRA_RNT = /compra de RNT: (\S+) EUR por (\S+) RNT/;
+/* { pagado, total } de la nota de una compra de RNT, o null. */
+function ccLeerCompraRnt(nota) {
+  const m = CC_RE_COMPRA_RNT.exec(String(nota || ""));
+  if (!m) return null;
+  const pagado = ccLeerImporte(m[1]), total = ccLeerImporte(m[2]);
+  return ccEsNumeroPositivo(pagado) && ccEsNumeroPositivo(total) ? { pagado, total } : null;
+}
+/* Estado de una entrada de RNT frente a su ajuste (h, de ccBuscarAjuste):
+   "libre", "propio" (solo pedía revisión), "decidido" (decisión de 🔍: se
+   sustituye), "compra" (compra de RNT ya decidida: no se toca) o "ajeno". */
+function ccEstadoRnt(h) {
+  if (!h) return "libre";
+  if (ccAjusteQuePideRevision(h.ajuste)) return "propio";
+  if (ccEsAjusteDecision(h.ajuste)) return h.ajuste.categoria === "COMPRA" && ccLeerCompraRnt(h.ajuste.nota) ? "compra" : "decidido";
+  return "ajeno";
+}
+const CC_RNT_CUENTA = ["libre", "propio", "decidido"];
+/* El RNT llegado desde la dirección de `reg` (también él), por fecha:
+   [{ reg, estado, ajuste }] (ajuste: el suyo o null). */
+function ccRntDesde(registros, reg, ajustes, ctx) {
+  const origen = normalizarDireccion((reg && reg.origen) || "");
+  const desde = (registros || []).filter(r => ccEsEntradaRnt(r, ctx) && normalizarDireccion(r.origen || "") === origen);
+  return ordenarPorFecha(desde, (a, b) => cmpTexto(a.clave, b.clave)).map(r => {
+    const h = ccBuscarAjuste(ajustes, r.clave);
+    return { reg: r, estado: ccEstadoRnt(h), ajuste: h ? h.ajuste : null };
+  });
+}
+/* Los RNT llegados que cuentan (sin los de un ajuste ajeno). */
+function ccRntLlegado(lista) {
+  return lista.filter(x => x.estado !== "ajeno").reduce((s, x) => s + Number(x.reg.cantidad), 0);
+}
+/* ¿Cabe lo llegado en ese total? (con margen para la suma de decimales) */
+function ccRntCabe(total, llegado) {
+  return total >= llegado - 1e-9 * Math.max(1, total);
+}
+/* Ajustes NUEVOS con varias decisiones [[reg, id, valor]]: una decisión
+   de 🔍 que ya tenía se deshace antes (vuelve lo que sustituyó). */
+function ccAjustesConDecisiones(ajustes, lista, fechaISO) {
+  let a = pdEsObjeto(ajustes) ? ajustes : {};
+  for (const [reg, id, valor] of lista) {
+    const h = ccBuscarAjuste(a, reg.clave);
+    if (h && ccEsAjusteDecision(h.ajuste)) a = ccAjustesSinDecision(a, reg.clave, fechaISO);
+    a = ccAjustesConDecision(a, reg, id, valor, fechaISO);
+  }
+  return a;
+}
+/* La compra de RNT pagada en €: [[reg, coste]] de lo que cuenta, cada
+   entrega con su parte (cantidad × pagado ÷ total, en céntimos). Si con
+   ellas ha llegado todo, la última se lleva el resto de céntimos (las ya
+   compradas, con su coste). Lanza si falta un importe o si el total es
+   menos de lo llegado. */
+function ccRepartoCompraRnt(lista, pagado, total) {
+  if (!ccEsNumeroPositivo(pagado)) throw new Error("Escribe lo pagado en total.");
+  if (!ccEsNumeroPositivo(total)) throw new Error("Escribe los RNT en total.");
+  const cuentan = lista.filter(x => CC_RNT_CUENTA.includes(x.estado));
+  const compradas = lista.filter(x => x.estado === "compra");
+  const llegado = ccRntLlegado(lista);
+  if (!ccRntCabe(total, llegado)) throw new Error("Ya te han llegado " + cantidadEs(llegado) + " RNT: el total no puede ser menos.");
+  const precio = pagado / total;
+  const parte = n => { const c = Math.round(n * precio * 100) / 100; return c > 0 ? c : n * precio; };
+  const costes = cuentan.map(x => [x.reg, parte(Number(x.reg.cantidad))]);
+  if (costes.length && ccRntCabe(llegado, total)) { // ha llegado todo
+    const resto = pagado - costes.slice(0, -1).reduce((s, [, c]) => s + c, 0) -
+      compradas.reduce((s, x) => s + Number(x.reg.coste_eur || 0), 0);
+    const ultimo = Math.round(resto * 100) / 100;
+    if (ultimo > 0) costes[costes.length - 1][1] = ultimo;
+  }
+  return costes;
+}
+/* «1.200,00 € ÷ 40.000 RNT = 0,0300 €/RNT» */
+function ccTextoPrecioRnt(pagado, total) {
+  return numEs(pagado, 2) + " € ÷ " + cantidadEs(total) + " RNT = " + numEs(pagado / total, 4) + " €/RNT";
+}
+/* La asignación de tus reclamaciones a esa dirección
+   (claim(index, cuenta, asignación, prueba) de un contrato de reparto, con
+   la cuenta tuya): { total, fecha } de la mayor, o null. Se reconoce por
+   la función, no por la dirección: vale para cualquier contrato así. */
+const CC_SELECTOR_CLAIM = "0x2e7ba6ef";
+function ccAsignacionReclamada(cache, origen, propias) {
+  let mejor = null;
+  const txs = ((cache && cache.transacciones) || {}).wallet_normales;
+  for (const tx of Array.isArray(txs) ? txs : []) {
+    const input = String((tx && tx.input) || "").toLowerCase();
+    if (normalizarDireccion(tx.to || "") !== origen || !input.startsWith(CC_SELECTOR_CLAIM) || String(tx.isError) === "1") continue;
+    const datos = input.slice(10);
+    if (datos.length < 192 || !/^[0-9a-f]+$/.test(datos)) continue;
+    if (!(propias || new Set()).has("0x" + datos.slice(88, 128))) continue;
+    const total = enteroAUnidades(BigInt("0x" + datos.slice(128, 192)).toString(), 18);
+    if (!ccEsNumeroPositivo(total)) continue;
+    if (!mejor || total > mejor.total) mejor = { total, fecha: fechaHoraRegistro(tx.timeStamp) };
+  }
+  return mejor;
+}
+/* Lo que viene escrito al abrir la compra: { pagado, total, de } con de =
+   "precio" (el de tus compras anteriores desde ahí), "reclamacion" (la
+   asignación leída, con su fecha) o "llegado" (lo que ha llegado). */
+function ccPropuestaCompraRnt(lista, cache, propias) {
+  const compras = lista.filter(x => x.estado === "compra");
+  const previa = compras.length ? ccLeerCompraRnt(compras[compras.length - 1].ajuste.nota) : null;
+  if (previa) return { pagado: previa.pagado, total: previa.total, de: "precio" };
+  const origen = normalizarDireccion((lista[0] && lista[0].reg.origen) || "");
+  const llegado = ccRntLlegado(lista);
+  const leida = ccAsignacionReclamada(cache, origen, propias);
+  if (leida && ccRntCabe(leida.total, llegado)) {
+    return { pagado: null, total: leida.total, de: "reclamacion", fecha: leida.fecha };
+  }
+  return { pagado: null, total: llegado, de: "llegado" };
+}
+
 /* Resumen corto de una decisión, para «Movimientos ya decididos». reg (opcional):
    su movimiento, para nombrar la categoría que se deja. */
 function ccResumenDecision(ajuste, reg) {
@@ -841,6 +1002,7 @@ function ccResumenDecision(ajuste, reg) {
   if (ajuste.categoria === "COMPRA") return "Compra bancaria · " + numEs(ajuste.coste_eur, 2) + " €";
   if (ajuste.categoria === "DEPOSITO") return "Ingreso de dinero · " + numEs(ajuste.importe_usdt, 2) + " USD";
   if (ajuste.categoria === "MOVIMIENTO") return "Movimiento neutro";
+  if (ajuste.categoria === "REWARD") return ajuste.subcategoria === "GPP_REGALO" ? "Regalo (airdrop)" : "Recompensa DeFi";
   if (ajuste.categoria === "SPAM") return "Spam";
   return reg && reg.categoria ? "Se deja como " + ccNombreDejar(reg) : "Se deja como lo dice la app";
 }
@@ -1546,7 +1708,7 @@ function ccHtmlDecisiones(reg, d) {
     const abierta = ab && ab.id === o.id;
     html += '<button type="button" class="cc-accion cc-dec' + (o.sugerida ? " sugerida" : "") + (abierta ? " abierta" : "") +
       '" data-accion="decidir" data-clave="' + clave + '" data-opcion="' + ccEsc(o.id) + '"' +
-      (o.pide ? ' aria-expanded="' + (abierta ? "true" : "false") + '"' : "") +
+      (o.pide ? ' aria-expanded="' + (abierta ? "true" : "false") + '"' : "") + (o.dialogo ? ' aria-haspopup="dialog"' : "") +
       (o.ayuda ? ' title="' + ccEsc(o.ayuda) + '"' : "") + ">" + ccEsc(o.etiqueta) +
       (o.sugerida ? ' <span class="cc-sugerida">Sugerida</span>' : "") + "</button>";
   }
@@ -1562,6 +1724,53 @@ function ccHtmlDecisiones(reg, d) {
       '<button type="button" class="cc-accion" data-accion="decidir-cerrar" data-clave="' + clave + '">Cancelar</button>' +
       '<span class="cc-dec-eur help">' + (op.pide === "usd" ? ccEsc(ccTextoEurOrientativo(d.eur)) : "") + "</span></div>";
   }
+  return html;
+}
+
+/* El diálogo del RNT que te llega (P7 y P11): la lista de lo llegado desde
+   esa dirección (fecha, cantidad y lo que es ahora; lo que no cambia,
+   tachado) y, en la compra, lo pagado y el total con el precio. */
+function ccEstadoRntAhora(x) {
+  if (x.estado === "ajeno") return "Ajuste manual";
+  if (x.estado === "decidido" || x.estado === "compra") return ccResumenDecision(x.ajuste, x.reg);
+  return x.reg.revisar ? "A revisar" : ccNombreDejar(x.reg);
+}
+function ccHtmlDialogoRnt(reg, id, lista, propuesta) {
+  const compra = id === "compra-rnt";
+  const cambia = x => CC_RNT_CUENTA.includes(x.estado);
+  const fuera = x => !cambia(x) && !(compra && x.estado === "compra");
+  const otros = lista.filter(x => x.reg.clave !== reg.clave && cambia(x)).length;
+  const titulo = compra ? "Compra bancaria de RNT"
+    : otros === 1 ? "¿También el otro movimiento de RNT de esta dirección?"
+    : "¿También los otros " + otros + " movimientos de RNT de esta dirección?";
+  const filas = lista.map(x => '<tr class="' + (x.reg.clave === reg.clave ? "cc-rnt-este" : "") + (fuera(x) ? " cc-rnt-fuera" : "") + '"' +
+    (fuera(x) ? ' title="No cambia."' : "") + "><td>" + ccEsc(ccFechaVer(x.reg) || "sin fecha") + "</td>" +
+    '<td class="num">' + ccEsc(ccCantidad(Number(x.reg.cantidad))) + "</td><td>" + ccEsc(ccEstadoRntAhora(x)) + "</td></tr>").join("");
+  let html = '<div class="cc-dlg cc-dlg-rnt"><div class="cc-dlg-head"><h3>' + ccEsc(titulo) + "</h3>" +
+    '<button type="button" class="cc-dlg-cerrar" aria-label="Cerrar">✖</button></div>' +
+    '<p class="help">Desde <span class="mono" title="' + ccEsc(reg.origen || "") + '">' + ccEsc(ccAddrCorta(reg.origen)) + "</span>." +
+    (compra ? " Cada entrega es una compra con su parte de lo pagado." : "") + "</p>" +
+    '<div class="cc-rnt-caja"><table class="cc-rnt-tabla"><thead><tr><th>Fecha</th><th class="num">RNT</th><th>Ahora</th></tr></thead><tbody>' +
+    filas + "</tbody></table></div>";
+  if (compra) {
+    const p = propuesta || {};
+    const valor = x => ccEsNumeroPositivo(x) ? ccEsc(cantidadEs(x)) : "";
+    const nota = p.de === "precio" ? "El de tus compras anteriores desde esta dirección."
+      : p.de === "reclamacion" ? "RNT en total leídos de tu reclamación" + (p.fecha ? " del " + fechaEs(p.fecha) : "") + "."
+      : "Si aún no te ha llegado todo, pon el total.";
+    html += '<div class="cc-rnt-campos"><label>Pagado en total <input type="text" inputmode="decimal" class="cc-rnt-pagado" value="' +
+      (ccEsNumeroPositivo(p.pagado) ? ccEsc(numEs(p.pagado, 2)) : "") + '"> €</label>' +
+      '<label>RNT en total (aunque falten por llegar) <input type="text" inputmode="decimal" class="cc-rnt-total" value="' +
+      valor(p.total) + '"></label></div><p class="help cc-rnt-nota">' + ccEsc(nota) + "</p>" +
+      '<p class="cc-rnt-precio" aria-live="polite">' + (ccEsNumeroPositivo(p.pagado) && ccEsNumeroPositivo(p.total)
+        ? ccEsc(ccTextoPrecioRnt(p.pagado, p.total)) : "") + "</p>";
+  }
+  html += '<div class="cc-dlg-foot"><span class="cc-rnt-error" role="alert"></span><div class="row">' +
+    '<button type="button" class="cc-dlg-cancelar">Cancelar</button>' +
+    (compra ? '<button type="button" class="primary cc-rnt-guardar">Guardar</button>'
+      : '<button type="button" class="cc-rnt-solo">Solo este</button>' +
+        '<button type="button" class="primary cc-rnt-todos">Todos (' + (otros + 1) + ")</button>") +
+    "</div></div></div>";
   return html;
 }
 
@@ -2628,13 +2837,15 @@ async function ccDeshacerDecision(clave) {
 /* Pulsar una opción: las que piden importe abren su formulario (otra
    pulsación lo cierra); las demás se guardan al momento (se deshacen en
    «Movimientos ya decididos»). */
-function ccPulsarDecision(clave, id) {
+function ccPulsarDecision(clave, id, trigger) {
   const registros = ccRegistrosSesion();
   const reg = registros.find(r => r.clave === clave);
   if (!reg) return;
-  const op = ccOpcionesDecision(reg, ccContextoSesion(registros)).find(o => o.id === id);
+  const ctx = ccContextoSesion(registros);
+  const op = ccOpcionesDecision(reg, ctx).find(o => o.id === id);
   if (!op) return;
   if (id === "inmueble") return pnCambiarEstadoCatalogo(normalizarDireccion(reg.contrato), "CONFIRMADA"); // js/11
+  if (op.dialogo) return ccAbrirDialogoRnt(reg, id, trigger, ctx);
   if (!op.pide) return ccDecidir(clave, id, null);
   if (ccDecisionAbierta && ccDecisionAbierta.clave === clave && ccDecisionAbierta.id === id) ccDecisionAbierta = null;
   else {
@@ -2645,6 +2856,63 @@ function ccPulsarDecision(clave, id) {
   ccRenderSeguro();
   const input = document.querySelector('#ccLista .cc-dec-valor[data-clave="' + (typeof CSS !== "undefined" && CSS.escape ? CSS.escape(clave) : clave) + '"]');
   if (input) { input.focus(); input.select(); }
+}
+
+/* «Regalo (airdrop)» y «Recompensa DeFi» sin más RNT desde esa dirección
+   se guardan al momento; si hay más, el diálogo pregunta. «Compra
+   bancaria…» de RNT siempre lo abre (pide lo pagado y el total). */
+function ccAbrirDialogoRnt(reg, id, trigger, ctx) {
+  if (!state.cache) return toast(CC_SIN_CACHE, "warn");
+  const lista = ccRntDesde(ccRegistrosSesion(), reg, state.cache.ajustes_usuario || {}, ctx);
+  const otros = lista.filter(x => x.reg.clave !== reg.clave && CC_RNT_CUENTA.includes(x.estado));
+  if (id !== "compra-rnt" && !otros.length) return ccDecidir(reg.clave, id, null);
+  const propuesta = id === "compra-rnt" ? ccPropuestaCompraRnt(lista, state.cache, ctx.propias) : null;
+  let modal = null;
+  const cerrar = () => { if (modal) { ccQuitarModal(modal); modal = null; } };
+  modal = ccCrearModal(id === "compra-rnt" ? "Compra bancaria de RNT" : "Decidir también los otros movimientos de RNT",
+    ccHtmlDialogoRnt(reg, id, lista, propuesta), cerrar, trigger);
+  const caja = modal.overlay;
+  const error = caja.querySelector(".cc-rnt-error");
+  const guardar = async (decisiones, mensaje) => {
+    let nuevos;
+    try { nuevos = ccAjustesConDecisiones(state.cache.ajustes_usuario, decisiones, ahoraLocalISO()); }
+    catch (e) { error.textContent = e.message; return; }
+    cerrar();
+    ccDecisionAbierta = null;
+    await ccGuardarAjustesDecision(nuevos, mensaje);
+  };
+  const enLista = n => n === 1 ? "Decidido." : "Decididos " + n + " movimientos.";
+  if (id !== "compra-rnt") {
+    caja.querySelector(".cc-rnt-solo").addEventListener("click", () => guardar([[reg, id, null]], enLista(1) + " Está en «Movimientos ya decididos»."));
+    const todos = caja.querySelector(".cc-rnt-todos");
+    todos.addEventListener("click", () => guardar([reg, ...otros.map(x => x.reg)].map(r => [r, id, null]),
+      enLista(otros.length + 1) + " Están en «Movimientos ya decididos»."));
+    todos.focus();
+    return;
+  }
+  const pagado = caja.querySelector(".cc-rnt-pagado"), total = caja.querySelector(".cc-rnt-total");
+  const precio = caja.querySelector(".cc-rnt-precio");
+  const leer = () => [ccLeerImporte(pagado.value), ccLeerImporte(total.value)];
+  const repintar = () => {
+    const [p, t] = leer();
+    error.textContent = "";
+    precio.textContent = ccEsNumeroPositivo(p) && ccEsNumeroPositivo(t) ? ccTextoPrecioRnt(p, t) : "";
+  };
+  const aplicar = () => {
+    const [p, t] = leer();
+    if ([pagado, total].some(el => ccAvisoImporte(el.value) === CC_AVISO_COMA)) { error.textContent = CC_AVISO_COMA; return; }
+    let costes;
+    try { costes = ccRepartoCompraRnt(lista, p, t); }
+    catch (e) { error.textContent = e.message; return; }
+    guardar(costes.map(([r, c]) => [r, "compra-rnt", { coste: c, pagado: p, total: t }]),
+      (costes.length === 1 ? "Decidida 1 compra de RNT." : "Decididas " + costes.length + " compras de RNT.") +
+      " En «Movimientos ya decididos» y en 💶.");
+  };
+  pagado.addEventListener("input", repintar);
+  total.addEventListener("input", repintar);
+  for (const el of [pagado, total]) el.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); aplicar(); } });
+  caja.querySelector(".cc-rnt-guardar").addEventListener("click", aplicar);
+  (pagado.value ? total : pagado).focus();
 }
 
 /* Saltos entre los movimientos de un vínculo (también los usa js/18).
@@ -2803,6 +3071,18 @@ function ccInyectarEstilos() {
     ".cc-dlg-precio.ok{color:var(--accent)}",
     ".cc-dlg-foot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}",
     ".cc-dlg-foot .row{margin-left:auto}",
+    /* El RNT que te llega (P7 y P11). */
+    ".cc-dlg-rnt{width:min(640px,100%)}",
+    ".cc-rnt-caja{max-height:42vh;overflow:auto;margin-top:10px;border:1px solid var(--border);border-radius:10px}",
+    ".cc-rnt-tabla{width:100%;border-collapse:collapse;font-size:14px}",
+    ".cc-rnt-tabla th,.cc-rnt-tabla td{padding:5px 10px;text-align:left;border-bottom:1px solid var(--border)}",
+    ".cc-rnt-tabla .num{text-align:right;font-variant-numeric:tabular-nums}",
+    ".cc-rnt-tabla .cc-rnt-este td{font-weight:700}",
+    ".cc-rnt-tabla .cc-rnt-fuera td{text-decoration:line-through;color:var(--faint)}",
+    ".cc-rnt-campos{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;font-size:14px}",
+    ".cc-rnt-campos input{width:130px;margin:0 4px}",
+    ".cc-rnt-precio{font-weight:700;font-variant-numeric:tabular-nums;min-height:1.4em;margin:6px 0 0}",
+    ".cc-rnt-error{color:var(--err);font-weight:600;font-size:14px}",
     /* Formulario. */
     ".cc-form{width:min(880px,100%)}",
     ".cc-form-campos{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}",
@@ -2863,7 +3143,7 @@ function ccMontarEventos() {
       else if (accion === "editar-vinculo") ccAbrirFormularioEdicion(id, btn);
       else if (accion === "ver-vinculo") ccIrAVinculo(id);
       else if (accion === "ver-movimiento") ccIrAMovimiento(btn.getAttribute("data-clave"));
-      else if (accion === "decidir") ccPulsarDecision(btn.getAttribute("data-clave"), btn.getAttribute("data-opcion"));
+      else if (accion === "decidir") ccPulsarDecision(btn.getAttribute("data-clave"), btn.getAttribute("data-opcion"), btn);
       else if (accion === "decidir-aplicar" && ccDecisionAbierta) ccAplicarDecisionAbierta();
       else if (accion === "decidir-cerrar") ccCerrarDecisionAbierta();
       else if (accion === "deshacer-decision") ccDeshacerDecision(btn.getAttribute("data-clave"));

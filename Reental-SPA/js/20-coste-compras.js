@@ -162,10 +162,11 @@ function cbAjustesConCostes(ajustes, cambios, registros, precio, fechaISO) {
   return copia;
 }
 
-/* € por token de un coste y unos tokens («50,00 €»), o «—». */
+/* € por token de un coste y unos tokens («50,00 €»; por debajo de 1 €,
+   con 4 decimales, como el RNT: «0,0300 €»), o «—». */
 function cbTextoPorToken(coste, tokens) {
   const c = Number(coste), t = Number(tokens);
-  return ccEsNumeroPositivo(c) && ccEsNumeroPositivo(t) ? numEs(c / t, 2) + " €" : "—";
+  return ccEsNumeroPositivo(c) && ccEsNumeroPositivo(t) ? numEs(c / t, c / t < 1 ? 4 : 2) + " €" : "—";
 }
 
 /* ----------------------------- HTML (puro) ----------------------------- */
@@ -181,6 +182,9 @@ function cbHtmlFila(f, borrador) {
   const abierta = f.estado !== "ajeno" && cbEscrito(borrador, r.clave);
   const coste = f.coste;
   const guardado = numEs(coste, 2), fecha = ccFechaVer(r);
+  // El inmueble o, en el RNT (P11), su símbolo (sin rellenar `inmueble`:
+  // 📊 lo contaría como uno).
+  const nombre = txActivo(r);
   const texto = abierta ? String(borrador[r.clave]) : guardado;
   const valor = abierta ? cbValorEscrito(texto) : coste;
   let pagado, acciones = "";
@@ -190,7 +194,7 @@ function cbHtmlFila(f, borrador) {
   } else if (abierta) {
     const cambia = !cbMismoImporte(valor, coste);
     pagado = '<input type="text" inputmode="decimal" class="cb-valor" data-clave="' + ccEsc(r.clave) + '" value="' +
-      ccEsc(texto) + '" aria-label="' + ccEsc("Pagado en € · " + (r.inmueble || "") + " · " + (fecha || "")) + '"> €';
+      ccEsc(texto) + '" aria-label="' + ccEsc("Pagado en € · " + nombre + " · " + (fecha || "")) + '"> €';
     acciones = cbBoton("guardar", r.clave, "Guardar", !cambia && !f.supuesto) + cbBoton("cancelar", r.clave, "Cancelar");
   } else {
     // El de por defecto lo dice (en el informe lleva «**»).
@@ -200,7 +204,7 @@ function cbHtmlFila(f, borrador) {
   }
   return '<tr class="cb-fila' + (abierta ? " abierta" : "") + '" data-clave="' + ccEsc(r.clave) + '">' +
     "<td>" + ccEsc(fecha || "sin fecha") + "</td>" +
-    "<td>" + ccEsc(r.inmueble || "—") + "</td>" +
+    "<td>" + ccEsc(nombre || "—") + "</td>" +
     "<td>" + ccEnlaceHash(r.hash) + "</td>" +
     '<td class="num">' + ccEsc(ccCantidad(Number(r.cantidad))) + "</td>" +
     '<td class="num">' + pagado + "</td>" +
@@ -293,7 +297,7 @@ async function cbGuardar(clave) {
   if (!cambios.length) return cbCerrar(clave);
   let nuevos;
   try { nuevos = cbAjustesConCostes(ajustes, cambios, registros, cbPrecioSesion(), ahoraLocalISO()); }
-  catch (e) { return toast(e.message, "error"); }
+  catch (e) { return toast(Number.isNaN(cambios[0].valor) ? ccAvisoImporte(String(cbBorrador[clave])) : e.message, "error"); }
   delete cbBorrador[clave];
   await ccGuardarAjustesDecision(nuevos, "Coste guardado.");
   cbFocoEditar(clave);

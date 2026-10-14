@@ -84,7 +84,9 @@ assert("dejar: solo revisar:false y la marca", JSON.stringify(aj(reg("d", "DEPOS
 const venta = aj(salidaInm, "venta", "1.234,5");
 assert("venta: VENTA/GPP_INMUEBLE con el importe (escrito a la española)",
   venta.categoria === "VENTA" && venta.subcategoria === "GPP_INMUEBLE" && venta.importe_usdt === 1234.5 && venta.revisar === false, venta);
-assert("importe del campo numérico («1234.5») también vale", aj(salidaInm, "venta", "1234.5").importe_usdt === 1234.5);
+let errPunto = "";
+try { aj(salidaInm, "venta", "1234.5"); } catch (e) { errPunto = e.message; }
+assert("«1234.5» no vale: pide la coma para los decimales (P11)", errPunto === "Usa la coma para los decimales (1.234,56).", errPunto);
 const compra = aj(entradaInm, "compra", "3000");
 assert("compra bancaria: COMPRA/COSTE_BASE, via_compra BANCARIA y coste_eur",
   compra.categoria === "COMPRA" && compra.via_compra === "BANCARIA" && compra.coste_eur === 3000, compra);

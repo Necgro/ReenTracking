@@ -1205,7 +1205,9 @@ function motorFiscal(registros, cache, config, opciones = {}) {
       };
       if (r.via_compra === "BANCARIA") {
         r.importe_eur = r.coste_eur;
-        const lote = fiscAbrirLote(r, colas, r.contrato, r.cantidad,
+        // La cola por nombre: una compra de RNT pagada en € (P11) va a la
+        // del RNT; en los inmuebles, la dirección del contrato.
+        const lote = fiscAbrirLote(r, colas, nombreActivoFifo(r.contrato), r.cantidad,
           !fiscHay(r.coste_eur) ? null : r.coste_eur + gas(), "COMPRA_BANCO");
         // Sin coste tuyo, el de por defecto (100 € por token): el informe
         // lo marca con «**».

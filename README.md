@@ -141,8 +141,9 @@ usan, si existen, `privado/datos_reales/` (`config.json`, `reental_cache.json`,
 - **No tocar `serieSaldoVault`.**
 - **La clasificación no valora en euros;** eso lo hace el motor fiscal (`js/21`).
 - **Un depósito en stablecoin** cuesta al tipo del BCE del día en que llega.
-- **Un importe escrito «1.800» (sin coma)** se lee como 1,8 en 🔍 y en el coste
-  de las compras (`ccLeerImporte`).
+- **Importes escritos:** el punto solo separa miles («1.250» = 1250, «1.250,75»);
+  en otro sitio («1250.75», «1.5») no vale y pide la coma (`ccLeerImporte`, en 🔍
+  y en el coste de las compras).
 - **Los registros guardados** conservan sus nombres en `snake_case`
   (`importe_usdt`, `fecha_reparto`…). Renombrar o quitar un dato exige leer
   también el formato viejo (los archivos de antes deben dar las mismas cifras).

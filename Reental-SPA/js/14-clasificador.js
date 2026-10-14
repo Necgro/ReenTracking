@@ -2382,7 +2382,7 @@ function ejecutarClasificacion(opciones) {
     if (resumen.bancarias.length) {
       log("Compras bancarias detectadas (" + resumen.bancarias.length + "), verificar:", "warn");
       for (const r of resumen.bancarias) {
-        log("  " + fechaEs(r.fecha, true) + " " + r.inmueble + ": " + r.cantidad +
+        log("  " + fechaEs(r.fecha, true) + " " + (r.inmueble || r.simbolo || r.contrato) + ": " + r.cantidad +
             " tokens -> " + r.coste_eur + " EUR", "warn");
       }
     }

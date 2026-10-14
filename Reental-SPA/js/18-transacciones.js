@@ -225,7 +225,8 @@ function txHashCorto(h) {
 }
 
 /* Compra por transferencia bancaria (la valora el motor con el coste por
-   token de la config, 100 € por defecto). */
+   token de la config, 100 € por defecto; las de RNT, P11, siempre con el
+   coste que pusiste). */
 function txEsCompraBancaria(reg) {
   return !!reg && reg.categoria === "COMPRA" && reg.via_compra === "BANCARIA";
 }
@@ -1126,11 +1127,11 @@ function txEtiquetaCategoriaConteo(categoria, n) {
 }
 
 /* Nota del coste por token de las compras por transferencia bancaria
-   (corta, neutra y sin ⓘ). Solo si hay alguna en el libro (si no,
-   vacío). `precio` es el de la config; si no es un número válido se dice
+   (corta, neutra y sin ⓘ). Solo si hay alguna de un inmueble en el libro
+   (las de RNT no tienen coste por defecto; si no, vacío). `precio` es el de la config; si no es un número válido se dice
    100 € (el valor fijo). */
 function txHtmlNotaCoste(registros, precio) {
-  if (!(registros || []).some(txEsCompraBancaria)) return "";
+  if (!(registros || []).some(r => txEsCompraBancaria(r) && normalizarDireccion(r.contrato || "") !== RNT)) return "";
   const p = Number(precio);
   const eur = ccCantidad(Number.isFinite(p) && p > 0 ? p : 100) + " €";
   return "💶 Compras por transferencia bancaria: " + ccEsc(eur) + " por token (se ajusta en 🔍 Revisión).";
