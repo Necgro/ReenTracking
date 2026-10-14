@@ -1695,7 +1695,7 @@ function pdAuditarBloque(pagosDiferidos, registros, ajustesNorm) {
     } else if (suma < rec && !PD_CATEGORIAS_PAGO_PARCIAL.includes(pdCategoriaConAjuste(entrada, ajustesNorm))) {
       // El resto de un rendimiento (o de otra cosa ya explicada)
       // contaria dos veces: no se aplica y se dice que hacer.
-      problemas.push(`pago ${pdStr(entrada.clave)}: asignado en parte (${pdFormatear6(suma)} de ${pdFormatear6(rec)}) y es ${pdStr(entrada.categoria)}, no un deposito; asignalo entero o marcalo antes como 'Dinero que recibi...' (ventas: ${ventasTxt})`);
+      problemas.push(`pago ${pdStr(entrada.clave)}: asignado en parte (${pdFormatear6(suma)} de ${pdFormatear6(rec)}) y es ${pdStr(entrada.categoria)}, no un deposito; asignalo entero o marcalo antes como 'Ingreso de dinero...' (ventas: ${ventasTxt})`);
       pagosDescartados.add(pago);
     }
   }
@@ -1711,7 +1711,7 @@ function pdAuditarBloque(pagosDiferidos, registros, ajustesNorm) {
 
 // La categoria con la que cuenta el control del pago asignado
 // en parte: la de tu ajuste si lo hace deposito (o «a revisar»), para que
-// valga marcar antes el cobro como «Dinero que recibi...»; si no, la de la
+// valga marcar antes el cobro como «Ingreso de dinero...»; si no, la de la
 // clasificacion (con un ajuste de otra categoria el vinculo se aplica y el
 // ajuste gana con su aviso).
 // ajustesNorm: Map {clave normalizada -> ajuste} (el de aplicarPagosDiferidos).
