@@ -166,7 +166,7 @@ function cbAjustesConCostes(ajustes, cambios, registros, precio, fechaISO) {
    con 4 decimales, como el RNT: «0,0300 €»), o «—». */
 function cbTextoPorToken(coste, tokens) {
   const c = Number(coste), t = Number(tokens);
-  return ccEsNumeroPositivo(c) && ccEsNumeroPositivo(t) ? numEs(c / t, c / t < 1 ? 4 : 2) + " €" : "—";
+  return ccEsNumeroPositivo(c) && ccEsNumeroPositivo(t) ? numEs(c / t, ccDecimalesPrecio(c / t)) + " €" : "—";
 }
 
 /* ----------------------------- HTML (puro) ----------------------------- */

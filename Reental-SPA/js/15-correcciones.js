@@ -727,7 +727,7 @@ function ccOpcionesDecision(reg, ctx) {
   }
   /* RNT que te llega, venga de donde venga (P7 y P11): las tres ofrecen lo
      mismo para el resto del RNT llegado desde esa dirección (dialogo). */
-  if (onchain && sentido === "entrada" && contrato === RNT) {
+  if (ccEsEntradaRnt(reg, ctx)) {
     const yaEs = sub => dejar && cat === "REWARD" && reg.subcategoria === sub;
     if (!yaEs("GPP_REGALO")) ops.push({ id: "regalo", etiqueta: "Regalo (airdrop)", sugerida: false, pide: null, dialogo: true,
       ayuda: CC_AYUDA_REGALO });
@@ -879,7 +879,7 @@ function ccAjustesSinDecision(ajustes, clave, fechaISO) {
    rol DEFI_* cambiaría también el USDC que llega de ella y lo que se le
    manda). Un ajuste de otro origen nunca se pisa. */
 function ccEsEntradaRnt(reg, ctx) {
-  return !!reg && reg.fuente !== "CSV_REENTAL" && !pdEsObjeto(reg.pago_diferido) &&
+  return !!reg && reg.fuente !== "CSV_REENTAL" && !pdEsObjeto(reg.pago_diferido) && ccEsNumeroPositivo(reg.cantidad) &&
     normalizarDireccion(reg.contrato || "") === RNT && ccSentidoBasico(reg, ctx) === "entrada";
 }
 /* La nota de una compra de RNT lleva lo pagado y el total («compra de RNT:
@@ -971,7 +971,16 @@ function ccRepartoCompraRnt(lista, pagado, total) {
 }
 /* «1.200,00 € ÷ 40.000 RNT = 0,0300 €/RNT» */
 function ccTextoPrecioRnt(pagado, total) {
-  return numEs(pagado, 2) + " € ÷ " + cantidadEs(total) + " RNT = " + numEs(pagado / total, 4) + " €/RNT";
+  return numEs(pagado, 2) + " € ÷ " + cantidadEs(total) + " RNT = " + numEs(pagado / total, ccDecimalesPrecio(pagado / total)) + " €/RNT";
+}
+/* Decimales de un € por token: 2 desde 1 €; por debajo, 4 (0,0300); y 8
+   si con 4 saldría 0 (también los usa 💶, js/20). */
+function ccDecimalesPrecio(v) {
+  return v >= 1 ? 2 : v >= 1e-4 ? 4 : 8;
+}
+/* Lo pagado, a céntimos (lo mismo en el reparto que en la nota). */
+function ccLeerPagado(texto) {
+  return Math.round(ccLeerImporte(texto) * 100) / 100;
 }
 /* La asignación de tus reclamaciones a esa dirección
    (claim(index, cuenta, asignación, prueba) de un contrato de reparto, con
@@ -2917,7 +2926,7 @@ function ccAbrirDialogoRnt(reg, id, trigger, ctx) {
   }
   const pagado = caja.querySelector(".cc-rnt-pagado"), total = caja.querySelector(".cc-rnt-total");
   const precio = caja.querySelector(".cc-rnt-precio");
-  const leer = () => [ccLeerImporte(pagado.value), ccLeerImporte(total.value)];
+  const leer = () => [ccLeerPagado(pagado.value), ccLeerImporte(total.value)];
   const repintar = () => {
     const [p, t] = leer();
     error.textContent = "";

@@ -235,5 +235,25 @@ console.log("== 5. Auditoría (A2…A12) ==");
   assert("A6: el total de la otra compra no puede ser menos de lo suyo", err.startsWith("Ya te han llegado 1.000 RNT"), err);
 }
 
+// A7: una entrada sin cantidad no entra en la lista ni lleva los botones (atascaría la compra).
+{
+  const sinCant = ent("z0", "2024-01-01 10:00:00", null), buena = ent("z1", "2024-02-01 10:00:00", 1000);
+  assert("A7: sin cantidad, ni regalo ni compra", !ids(sinCant).some(i => ["regalo", "recompensa", "compra-rnt"].includes(i)), ids(sinCant));
+  const l = S.ccRntDesde([sinCant, buena], buena, {}, ctx);
+  assert("A7: fuera de la lista: la compra se guarda", l.length === 1 && S.ccRepartoCompraRnt(l, 30, 1000)[0][1] === 30, l.length);
+}
+// A8: lo pagado se lee a céntimos (el reparto y la nota dicen lo mismo).
+{
+  assert("A8: «1.200,255» → 1.200,26 y «0,004» → 0", S.ccLeerPagado("1.200,255") === 1200.26 && S.ccLeerPagado("0,004") === 0 &&
+    Number.isNaN(S.ccLeerPagado("1200.5")), [S.ccLeerPagado("1.200,255"), S.ccLeerPagado("0,004")]);
+  const p = S.ccLeerPagado("1.200,255"), l = [{ reg: ent("w", "2024-01-01 10:00:00", 1000), estado: "libre", ajuste: null }];
+  const c = S.ccRepartoCompraRnt(l, p, 1000)[0][1];
+  assert("A8: el coste es lo de la nota", c === 1200.26 && S.ccLeerCompraRnt(S.ccTextoCompraRnt(p, 1000)).pagado === c, c);
+}
+// A9: un precio diminuto no sale «0,0000».
+assert("A9: 1 € por 100.000 RNT → 0,00001000 €/RNT (y 💶 igual)",
+  S.ccTextoPrecioRnt(1, 100000) === "1,00 € ÷ 100.000 RNT = 0,00001000 €/RNT" && S.cbTextoPorToken(1, 100000) === "0,00001000 €" &&
+  S.cbTextoPorToken(37, 1000) === "0,0370 €" && S.cbTextoPorToken(300, 3) === "100,00 €", [S.ccTextoPrecioRnt(1, 100000), S.cbTextoPorToken(1, 100000)]);
+
 console.log("\n" + ok + " OK, " + fallos + " FALLOS");
 process.exit(fallos ? 1 : 0);
