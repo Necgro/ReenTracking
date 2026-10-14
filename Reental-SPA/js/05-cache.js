@@ -46,6 +46,15 @@ function semillasQuitadas(cache) {
   const lista = cache && cache.semillas_quitadas;
   return new Set(Array.isArray(lista) ? lista.map(normalizarDireccion).filter(Boolean) : []);
 }
+/* Los vaults que la app te propuso y dijiste «No es» (js/19): la lista
+   «vaults_rechazados», fuera de la plantilla como «semillas_quitadas». */
+function vaultsRechazados(cache) {
+  const lista = cache && cache.vaults_rechazados;
+  return new Set(Array.isArray(lista) ? lista.map(normalizarDireccion).filter(Boolean) : []);
+}
+function rechazarVault(cache, direccion) {
+  cache.vaults_rechazados = [...new Set([...vaultsRechazados(cache), normalizarDireccion(direccion)])];
+}
 function sembrarContratosDefi(cache) {
   const aprendidos = cache.contratos_aprendidos;
   const quitadas = semillasQuitadas(cache);

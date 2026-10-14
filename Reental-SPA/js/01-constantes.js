@@ -27,6 +27,8 @@ const SEMILLAS_DEFI = {
     "0xb20d1ec6ead7aa22a5001401cde522940eeb0f0e": "frmRNT Claim"
   }
 };
+// La fábrica de Reental que crea los vaults (createVault).
+const FABRICA_VAULTS = "0x11a6f1e9ac749aea790340fa3c2f6a0d4c7fa6bb";
 const ETHERSCAN_BASE = "https://api.etherscan.io/v2/api";
 const ETHERSCAN_CHAINID = 137;
 const ETHERSCAN_MAX_REGISTROS = 10000;

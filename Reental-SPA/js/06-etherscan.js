@@ -17,7 +17,7 @@ async function etherscanGet(params, apiKey, etiqueta = "") {
         log("Rate limit de Etherscan (" + etiqueta + "), esperando 6s...", "warn");
         await sleep(6000); continue;
       }
-      if (data.message === "No transactions found" || data.message === "No records found") return [];
+      if (["No transactions found", "No records found", "No data found"].includes(data.message)) return [];
       log("Aviso Etherscan " + etiqueta + ": " + data.message + " - " + data.result, "warn");
       return null;
     } catch (e) {
@@ -26,6 +26,40 @@ async function etherscanGet(params, apiKey, etiqueta = "") {
     }
   }
   return null;
+}
+/* Dónde buscar tu vault: los contratos a los que llamó tu wallet, sin los que
+   la app ya conoce (tokens, inmuebles, DeFi, contratos aprendidos) ni los
+   que dijiste que no son tu vault. */
+function vaultCandidatos(cache, wallet) {
+  const fuera = new Set([normalizarDireccion(wallet), USDT, USDC, RNT, BURN, ...vaultsRechazados(cache)]);
+  for (const bloque of [cache.catalogo_propiedades, ...Object.values(SEMILLAS_DEFI), ...Object.values(cache.contratos_aprendidos || {})]) {
+    for (const a of Object.keys(bloque || {})) fuera.add(normalizarDireccion(a));
+  }
+  const candidatos = new Set();
+  for (const tx of cache.transacciones.wallet_normales || []) {
+    const a = normalizarDireccion(tx.to);
+    if (a && !fuera.has(a)) candidatos.add(a);
+  }
+  return [...candidatos];
+}
+/* De `direcciones`, las que tu wallet creó con la fábrica de Reental:
+   [{ direccion, fecha }]. Etherscan admite 5 por llamada y omite las que no
+   son contratos. null si falla una llamada. */
+async function vaultsCreadosPor(direcciones, wallet, apiKey, pausa = 600, consultar = etherscanGet) {
+  const w = normalizarDireccion(wallet), hallados = [];
+  for (let i = 0; i < direcciones.length; i += 5) {
+    if (i) await sleep(pausa);
+    const filas = await consultar({ module: "contract", action: "getcontractcreation",
+      contractaddresses: direcciones.slice(i, i + 5).join(",") }, apiKey, "vault");
+    if (filas === null) return null;
+    for (const f of Array.isArray(filas) ? filas : []) {
+      if (normalizarDireccion(f.contractCreator) === w && normalizarDireccion(f.contractFactory) === FABRICA_VAULTS &&
+          direccionValida(f.contractAddress)) {
+        hallados.push({ direccion: normalizarDireccion(f.contractAddress), fecha: new Date(Number(f.timestamp) * 1000) });
+      }
+    }
+  }
+  return hallados;
 }
 /* null si falla alguna página: lo ya recibido se descarta, porque guardarlo
    haría avanzar el último bloque y lo que faltaba no se pediría nunca. */

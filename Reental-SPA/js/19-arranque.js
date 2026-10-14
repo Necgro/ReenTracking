@@ -597,6 +597,7 @@ async function arrFlujo(opciones) {
   const conSync = !!(opciones && opciones.sincronizar);
   arr.preparando = true;
   arrPintarSeguro();
+  let vaults = [];
   const previo = arr.ultimaPreparacion || {};
   // cuadrePendiente: se descargó sin el archivo de Reental; el cuadre, al cargarlo.
   const res = { sincronizado: !!previo.sincronizado, erroresSync: previo.erroresSync || [],
@@ -633,6 +634,7 @@ async function arrFlujo(opciones) {
       // mientras leía (su propio flujo no arranca con este en marcha).
       if (arr.configClasificada !== arrHuellaConfig(state.config)) res.clasificado = arrClasificarAhora({ detalle: true });
     }
+    if (conSync && cuadrar && !normalizarDireccion(state.config.vault)) vaults = await arrBuscarVault();
     if (!res.clasificado && state.cache && !state.csvCargado) log("Esperando el archivo de rendimientos para clasificar.");
   } catch (e) {
     console.error(e);
@@ -651,6 +653,46 @@ async function arrFlujo(opciones) {
     const enInicio = (location.hash || "").slice(1) === "inicio";
     if (fin && !fin.hidden && enInicio) fin.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
+  if (vaults.length) arrProponerVault(vaults);
+}
+
+/* Con el vault vacío, el que creó tu wallet: una ayuda, no una certeza. Un
+   fallo deja una línea en el registro y nada más. */
+async function arrBuscarVault() {
+  try {
+    const cfg = state.config, candidatos = vaultCandidatos(state.cache, cfg.wallet);
+    if (!candidatos.length) return [];
+    const r = await vaultsCreadosPor(candidatos, cfg.wallet, String(cfg.etherscan_api_key || "").trim());
+    if (r === null) log("No se pudo buscar tu vault en Etherscan.", "warn");
+    return r || [];
+  } catch (e) { log("No se pudo buscar tu vault: " + e.message, "warn"); return []; }
+}
+// La mini ventana: «Ponerlo» lo escribe en tus datos y descarga; «No es» no vuelve a salir.
+function arrProponerVault(lista) {
+  const dlg = $("arrDlgVault");
+  if (!dlg || dlg.open) return;
+  const pintar = () => {
+    $("arrDlgVaultTit").textContent = lista.length === 1 ? "Vault probable" : "Vaults probables";
+    $("arrDlgVaultLista").innerHTML = lista.map(v => '<div class="arr-vault"><code>' + v.direccion + "</code> creado por tu wallet el " +
+      fechaEs(v.fecha) + '<div class="row"><button type="button" class="primary" data-poner="' + v.direccion + '">Ponerlo</button>' +
+      '<button type="button" data-no-es="' + v.direccion + '">No es</button></div></div>').join("");
+  };
+  dlg.onclick = e => {
+    const poner = e.target.closest("[data-poner]"), noEs = e.target.closest("[data-no-es]");
+    if (poner) {
+      dlg.close();
+      $("cfgVault").value = poner.dataset.poner;
+      $("cfgVault").dispatchEvent(new Event("change"));
+      arrActualizar();
+    } else if (noEs) {
+      rechazarVault(state.cache, noEs.dataset.noEs);
+      marcarCacheDirty();
+      lista = lista.filter(v => v.direccion !== noEs.dataset.noEs);
+      if (lista.length) pintar(); else dlg.close();
+    }
+  };
+  pintar();
+  dlg.showModal();
 }
 
 // «🔄 Actualizar»: volver a descargar lo nuevo y clasificar.
@@ -1088,9 +1130,10 @@ function arrInyectarEstilos() {
     ".arr-registro{margin-top:14px}",
     "#exUltima{margin-top:6px}",
     /* El diálogo de «🧹 Olvidar todo» (#arrDlgOlvidar de index.html). */
-    ".arr-dlg{max-width:520px;border:1px solid var(--border);border-radius:14px;background:var(--tarjeta);color:var(--text);padding:18px 20px}",
+    ".arr-dlg{margin:auto;max-width:520px;border:1px solid var(--border);border-radius:14px;background:var(--tarjeta);color:var(--text);padding:18px 20px}",
     ".arr-dlg::backdrop{background:rgba(0,0,0,.45)}",
     ".arr-dlg h3{margin:0 0 8px}",
+    ".arr-vault{margin:8px 0}.arr-vault code{word-break:break-all}",
     /* La app ya abierta en otra pestaña (#arrOtraPestana de index.html), por encima de todo. */
     ".arr-otra{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:var(--bg);padding:16px}",
     ".arr-otra[hidden]{display:none}",

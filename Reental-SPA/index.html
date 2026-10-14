@@ -726,6 +726,17 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
   </form>
 </dialog>
 
+<!-- Vault probable (js/19, arrProponerVault): se abre sola al terminar la descarga
+     con el vault vacío. Cerrarla no cuenta como «No es». -->
+<dialog id="arrDlgVault" class="arr-dlg" aria-labelledby="arrDlgVaultTit">
+  <form method="dialog">
+    <h3 id="arrDlgVaultTit">Vault probable</h3>
+    <div id="arrDlgVaultLista"></div>
+    <p>Confírmalo con Reental.</p>
+    <div class="row mt"><button value="">Ahora no</button></div>
+  </form>
+</dialog>
+
 <!-- ============================ EXPORTAR ============================ -->
 <section id="view-exportar" class="view">
   <div class="card">
