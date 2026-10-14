@@ -153,6 +153,19 @@ assert("resumen: «Compra bancaria · 3.000,00 €»", S.ccResumenDecision(compr
 // «Dejar como…» nombra la categoría del movimiento (sin ella, el texto genérico).
 assert("resumen: «Se deja como Compra»", S.ccResumenDecision({ revisar: false }, { categoria: "COMPRA" }) === "Se deja como Compra" &&
   S.ccResumenDecision({ revisar: false }) === "Se deja como lo dice la app");
+/* Auditoría de la tanda P (A5, A6, A8): el mismo nombre en el botón, en «Ya decididos» y en 📒. */
+const cobroV = { clave: "cv", categoria: "DEPOSITO", subcategoria: "COSTE_BASE", pago_diferido: { rol: "pago", venta_id: "pd_1" } };
+const dejarCobro = S.ccOpcionesDecision(cobroV, ctx);
+assert("el cobro asignado en parte: «✔ Ingreso de dinero» (lo que queda es tuyo) y lo mismo en «Ya decididos»",
+  dejarCobro.length === 1 && dejarCobro[0].etiqueta === "✔ Ingreso de dinero" &&
+  S.ccResumenDecision({ revisar: false }, cobroV) === "Se deja como Ingreso de dinero", dejarCobro);
+assert("A5: «Ya decididos» con el nombre del botón: «Se deja como Compra de tokens», «Ingreso de dinero · …»",
+  S.ccResumenDecision({ revisar: false }, { categoria: "COMPRA", subcategoria: "COSTE_BASE" }) === "Se deja como Compra de tokens" &&
+  S.ccResumenDecision({ categoria: "DEPOSITO", importe_usdt: 18.54 }) === "Ingreso de dinero · 18,54 USD");
+const mixto = { clave: "mx", categoria: "RENDIMIENTO", subcategoria: "RCM_MIXTO", revisar: true, fuente: "CSV_REENTAL" };
+assert("A8: el rendimiento mixto: «✔ Rendimiento mixto», sin «(a revisar)» en el botón",
+  S.ccOpcionesDecision(mixto, ctx)[0].etiqueta === "✔ Rendimiento mixto" && S.txOperacion(mixto) === "Rendimiento mixto (a revisar)",
+  S.ccOpcionesDecision(mixto, ctx)[0]);
 const eur = S.ccEurOrientativo(115, "2026-06-14 10:00:00", { "2026-06-12": 1.15, "2026-06-15": 1.2 });
 assert("≈ €: con el tipo BCE del día o el último anterior", eur && Math.abs(eur.eur - 100) < 1e-9 && eur.fecha === "2026-06-12", eur);
 assert("≈ €: sin tipos, nada", S.ccEurOrientativo(115, "2026-06-14", {}) === null);

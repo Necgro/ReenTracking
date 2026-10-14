@@ -670,11 +670,15 @@ function ccHtmlQueEs() {
 }
 
 /* Lo que dice «✔ …» (dejarlo como está): el nombre de la operación en 📒
-   (txOperacion, js/18, cargado después); sin él, o con una subcategoría
-   que 📒 no conoce, el de la categoría. */
+   (txOperacion, js/18, cargado después), sin su «(a revisar)»: el botón lo
+   quita de revisar; sin él, o con una subcategoría que 📒 no conoce, el de
+   la categoría. En un cobro asignado en parte (el único con vínculo que se
+   deja), lo que queda es dinero tuyo: «Ingreso de dinero», aunque 📒 diga
+   «Cobro de una venta». También en «Ya decididos». */
 function ccNombreDejar(reg) {
+  if (pdEsObjeto(reg.pago_diferido)) return "Ingreso de dinero";
   const op = typeof txOperacion === "function" ? txOperacion(reg) : "";
-  return op && op !== String(reg.subcategoria || "") ? op : ccNombreCategoria(reg.categoria);
+  return op && op !== String(reg.subcategoria || "") ? op.replace(/ \(a revisar\)$/, "") : ccNombreCategoria(reg.categoria);
 }
 
 /* Opciones de la tarjeta: [{ id, etiqueta, sugerida, pide, ayuda? }] con pide =
@@ -688,7 +692,7 @@ function ccOpcionesDecision(reg, ctx) {
   const pd = reg.pago_diferido;
   if (pdEsObjeto(pd)) {
     return pd.rol === "pago" && reg.categoria === "DEPOSITO"
-      ? [{ id: "dejar", etiqueta: "✔ Ingreso de dinero", sugerida: true, pide: null }]
+      ? [{ id: "dejar", etiqueta: "✔ " + ccNombreDejar(reg), sugerida: true, pide: null }]
       : [];
   }
   const sentido = ccSentidoBasico(reg, ctx);
@@ -829,10 +833,10 @@ function ccResumenDecision(ajuste, reg) {
   if (!pdEsObjeto(ajuste)) return "";
   if (ajuste.categoria === "VENTA") return "Venta · " + numEs(ajuste.importe_usdt, 2) + " USD";
   if (ajuste.categoria === "COMPRA") return "Compra bancaria · " + numEs(ajuste.coste_eur, 2) + " €";
-  if (ajuste.categoria === "DEPOSITO") return "Dinero recibido · " + numEs(ajuste.importe_usdt, 2) + " USD";
+  if (ajuste.categoria === "DEPOSITO") return "Ingreso de dinero · " + numEs(ajuste.importe_usdt, 2) + " USD";
   if (ajuste.categoria === "MOVIMIENTO") return "Movimiento neutro";
   if (ajuste.categoria === "SPAM") return "Spam";
-  return reg && reg.categoria ? "Se deja como " + ccNombreCategoria(reg.categoria) : "Se deja como lo dice la app";
+  return reg && reg.categoria ? "Se deja como " + ccNombreDejar(reg) : "Se deja como lo dice la app";
 }
 
 /* ≈ € orientativo de un importe en USD con el tipo BCE de la fecha del
