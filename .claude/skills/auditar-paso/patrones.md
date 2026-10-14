@@ -81,6 +81,11 @@ tiene otro tipo o está vacío?
   que había al abrirlo: tras cambiarlo en otra pestaña, lo que añades sale
   como «cambió mientras escribías» y se pierde. Lo que se compara tiene que
   ser lo que se ve.
+- Una acción que se deshace desde otro sitio (el ↩ de una fila de otra
+  pestaña): si no alcanza a ninguna fila (todas ya decididas por el
+  usuario), no queda ningún ↩ y lo hecho es invisible; y lo que la acción
+  cambió de paso (un token confirmado que pasa a «con dudas») el ↩ no lo
+  devuelve.
 
 **Mirar:** para cada acción nueva, hacer → deshacer → ¿queda exactamente
 como antes? Hacer → editar → ¿se conservan los campos que no se editaron?
