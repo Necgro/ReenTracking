@@ -21,7 +21,7 @@ function assert(nombre, cond, extra) {
   else { fallos++; console.error("  FALLO " + nombre + (extra !== undefined ? " -> " + JSON.stringify(extra) : "")); }
 }
 const WALLET = "0x" + "1".repeat(40), REPARTO = "0x" + "d".repeat(40), DEX = "0x" + "e".repeat(40);
-const MODULOS = MODULOS_PDF.concat(["16-dashboard.js", "18-transacciones.js", "20-coste-compras.js"]);
+const MODULOS = MODULOS_PDF.concat(["16-dashboard.js", "18-transacciones.js", "20-coste-compras.js", "28-cuadre.js"]);
 const sb0 = sandbox(MODULOS, HORA_APP);
 const RNT = vm.runInContext("RNT", sb0);
 
@@ -53,7 +53,7 @@ function correr(regs, ajustes = {}, precios = {}, tipo = 1) {
       const inf = informes[2025];
       const libro = excelLibro(regs, colas, resumen, __cache, state.config, informes, new Date(), null, null);
       return { op, inf, regs, colas: [...colas].map(([a, l]) => [a, l.map(x => Object.assign({}, x))]),
-        dash: dashDineroInvertido(regs, __cache.tipos_bce),
+        dash: dashDineroInvertido(regs, __cache.tipos_bce), activos: Object.keys(cuadreActivos(colas, __cache)),
         pdf: JSON.stringify(pdfBloques(inf)), excel: JSON.stringify(libro, (k, v) => (v instanceof Map ? [...v] : v)) };
     })();`, sb);
 }
@@ -70,6 +70,8 @@ console.log("== 1. La compra de RNT en € abre lote en la cola «RNT» ==");
   assert("📊 no las cuenta como inmueble", r.dash.compras === 0, r.dash);
   assert("«Inversiones activas» sin RNT", r.inf.inversiones_activas.inmuebles.filas.length === 0, r.inf.inversiones_activas.inmuebles.filas);
   assert("cierres_supuestos vacíos", !(r.op.cierres_supuestos[2025] || []).length, r.op.cierres_supuestos);
+  assert("el cuadre con la blockchain lo mira como «RNT» (no como un activo con la dirección del contrato)",
+    r.activos.includes("RNT") && !r.activos.includes(RNT), r.activos);
 }
 
 console.log("== 2. Venta de RNT después: la encuentra, mezcla con un premio ==");

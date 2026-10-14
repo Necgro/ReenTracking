@@ -170,6 +170,20 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   });
   assert("R3 -> 💶: las tres con «RNT», 0,0600 € por token y sin «por defecto»",
     cb.length === 3 && cb.every(f => f[1] === "RNT" && f[5] === "0,0600 €" && !f[4].includes("por defecto")), cb);
+  /* 💶: un punto que no es de miles pide la coma (y no guarda). */
+  await page.evaluate(() => document.querySelectorAll("#toasts .toast").forEach(t => t.remove()));
+  const w3 = await escrituras();
+  await page.click('#cbCuerpo [data-cb="editar"][data-clave="' + (await clave(3)) + '"]');
+  await esperar(100);
+  await page.$eval('#cbCuerpo .cb-valor', el => { el.value = ""; el.focus(); });
+  await page.type('#cbCuerpo .cb-valor', "300.5");
+  await page.keyboard.press("Enter");
+  await esperar(300);
+  const aviso3 = await page.evaluate(() => [...document.querySelectorAll("#toasts .toast")].map(t => t.textContent).join(" | "));
+  assert("R3 -> 💶: «300.5» pide la coma y no guarda", aviso3.includes("Usa la coma para los decimales (1.234,56).") &&
+    (await escrituras()) === w3 && (await ajuste(3)).coste_eur === 300, aviso3);
+  await page.keyboard.press("Escape");
+  await esperar(100);
 
   /* ============ R4) una entrega posterior: con el precio puesto ============ */
   await page.evaluate(() => {

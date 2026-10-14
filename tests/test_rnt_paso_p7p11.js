@@ -257,5 +257,24 @@ assert("A9: 1 € por 100.000 RNT → 0,00001000 €/RNT (y 💶 igual)",
 
 assert("A12: «Qué es cada cosa» cuenta el RNT comprado en € como compra", S.ccHtmlQueEs().includes("tokens de inmuebles (y el RNT que compraste en €)."));
 
+console.log("== 6. Huecos de la auditoría ==");
+{
+  // Orden por fecha aunque las claves vayan al revés: el resto cae en la última por fecha.
+  const zz = ent("zz", "2024-01-01 10:00:00", 1), aa = ent("aa", "2024-02-01 10:00:00", 1), mm = ent("mm", "2024-03-01 10:00:00", 1);
+  const l = S.ccRntDesde([aa, mm, zz], zz, {}, ctx);
+  assert("la lista va por fecha, no por clave", l.map(x => x.reg.clave).join() === "zz,aa,mm", l.map(x => x.reg.clave));
+  const c = S.ccRepartoCompraRnt(l, 100, 3);
+  assert("el resto (33,34) cae en la última por fecha", c[2][0].clave === "mm" && c[2][1] === 33.34, c.map(([r, v]) => r.clave + ":" + v));
+  // Redondeo a céntimos (no truncar): 1 de 3 RNT por 2 € → 0,67.
+  assert("cada parte se redondea (0,666… → 0,67)", S.ccRepartoCompraRnt([{ reg: zz, estado: "libre", ajuste: null }], 2, 3)[0][1] === 0.67);
+  // Solo el RNT que te llega: ni USDC, ni filas del archivo de Reental, ni lo vinculado, desde esa misma dirección.
+  const usdc = ent("f1", "2024-01-02 10:00:00", 50, { contrato: vm.runInContext("USDC", S) });
+  const csv = ent("f2", "2024-01-03 10:00:00", 50, { fuente: "CSV_REENTAL" });
+  const vinc = ent("f3", "2024-01-04 10:00:00", 50, { pago_diferido: { rol: "pago" } });
+  const sale = ent("f4", "2024-01-06 10:00:00", 50, { origen: W, destino: REPARTO });
+  const l2 = S.ccRntDesde([zz, usdc, csv, vinc, sale], zz, {}, ctx);
+  assert("la lista no lleva USDC, archivo, vinculados ni lo que sale", l2.length === 1 && l2[0].reg.clave === "zz", l2.map(x => x.reg.clave));
+}
+
 console.log("\n" + ok + " OK, " + fallos + " FALLOS");
 process.exit(fallos ? 1 : 0);
