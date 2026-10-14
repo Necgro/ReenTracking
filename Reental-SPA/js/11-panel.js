@@ -17,21 +17,20 @@
 /* ----------------------------- Catálogo (puro) ----------------------------- */
 
 /* El estado de cada entrada en llano. Una CANDIDATA cuyo token mandaste al
-   spam entero («Todo el token») no sale en el catálogo: para el motor ya
-   es spam, y confirmarla lo desharía; se recupera con su ↩ en
-   📒 Transacciones. Las DESCARTADAS van aparte, en «Descartados (n)» al
-   final del catálogo, con sus botones para recuperarlas. */
-const PN_ESTADOS = { CONFIRMADA: "Inmueble", CANDIDATA: "Con dudas", DESCARTADA: "Descartado" };
-/* Botones de cada estado: [estado nuevo, texto, burbuja]. */
+   spam entero («Todo el token» en 📒 o «Descartar» aquí) no sale en el
+   catálogo: para el motor ya es spam, y confirmarla lo desharía; se
+   recupera con su ↩ en 📒 Transacciones. Una DESCARTADA (formato viejo
+   con el bloque de spam mal escrito, js/05) tampoco sale. */
+const PN_ESTADOS = { CONFIRMADA: "Inmueble", CANDIDATA: "Con dudas" };
+/* Botones de cada estado: [estado nuevo, texto, burbuja]. «Descartar» no es
+   un estado: manda todo el token al spam (pnDescartarToken). */
 const PN_BOTON = {
   CONFIRMADA: ["CONFIRMADA", "✔ Confirmar", "Es un inmueble."],
-  DESCARTADA: ["DESCARTADA", "🚫 Descartar", "No es un inmueble: pasa a spam."],
-  CANDIDATA: ["CANDIDATA", "↩ Con dudas", "No cuenta como inmueble."],
+  DESCARTADA: ["DESCARTADA", "🚫 Descartar", "No es un inmueble: todo el token pasa a spam. Se deshace con ↩ en 📒."],
 };
 const PN_BOTONES_CATALOGO = {
   CONFIRMADA: [PN_BOTON.DESCARTADA],
   CANDIDATA: [PN_BOTON.CONFIRMADA, PN_BOTON.DESCARTADA],
-  DESCARTADA: [PN_BOTON.CONFIRMADA, PN_BOTON.CANDIDATA],
 };
 
 /* Filas del catálogo, por fecha de primera aparición (sin fecha, al final). */
@@ -70,13 +69,9 @@ function pnHtmlFilaCatalogo(f) {
     '<td class="rv-acciones">' + botones + "</td></tr>";
 }
 
-/* La lista principal (inmuebles y con dudas) y la de descartados; los
-   mandados al spam, en ninguna. */
-function pnPartirCatalogo(filas) {
-  return {
-    lista: filas.filter(f => f.estado === "CONFIRMADA" || f.estado === "CANDIDATA"),
-    descartados: filas.filter(f => f.estado === "DESCARTADA"),
-  };
+/* Lo que sale en el catálogo: inmuebles y con dudas (sin lo mandado al spam). */
+function pnFilasVisibles(filas) {
+  return filas.filter(f => f.estado in PN_BOTONES_CATALOGO);
 }
 
 function pnHtmlCatalogo(filas) {
@@ -230,11 +225,22 @@ async function pnGuardarYClasificar() {
 async function pnCambiarEstadoCatalogo(addr, nuevo) {
   const e = state.cache && state.cache.catalogo_propiedades && state.cache.catalogo_propiedades[addr];
   if (!e) return;
+  if (nuevo === "DESCARTADA") return pnDescartarToken(addr, e);
   e.estado = nuevo;
   await pnGuardarYClasificar();
   // El estado final: el descubrimiento vuelve a confirmar una «con dudas»
   // que tenga pruebas de ser inmueble (p. ej. su nombre en el archivo).
   toast((e.nombre_reental || e.nombre_etherscan || addr) + " → " + (PN_ESTADOS[e.estado || "CONFIRMADA"] || PN_ESTADOS[nuevo]), "ok");
+}
+
+/* «Descartar» = el spam de todo el token de 📒 (js/18): sale del catálogo y
+   se recupera con su ↩ en 📒. Queda con dudas debajo: un inmueble
+   confirmado es un token conocido y la regla del spam no le alcanzaría. */
+async function pnDescartarToken(addr, e) {
+  if (!txPuedeClasificar()) return ejecutarClasificacion(); // dice qué falta
+  const bloque = txSpamUsuarioCon(state.cache.spam_usuario, "tokens", addr, ahoraLocalISO(), e.simbolo);
+  e.estado = "CANDIDATA";
+  await txGuardarSpamUsuario(bloque, "tokens", true);
 }
 
 async function pnAñadirContrato() {
@@ -507,14 +513,11 @@ function renderPanel() {
   $("nSemillasQuitadas").textContent = quitadas.length;
   $("rvSemillasQuitadas").hidden = !quitadas.length;
 
-  // Catálogo de inmuebles: la lista y, plegados al final, los descartados
-  const partes = pnPartirCatalogo(pnFilasCatalogo(cache));
-  $("tablaCatalogo").innerHTML = pnHtmlCatalogo(partes.lista);
-  $("nCatalogo").textContent = partes.lista.length;
-  $("tablaDescartados").innerHTML = partes.descartados.map(pnHtmlFilaCatalogo).join("");
-  $("nDescartados").textContent = partes.descartados.length;
-  $("rvDescartados").hidden = !partes.descartados.length;
-  const dudas = partes.lista.filter(f => f.estado === "CANDIDATA").length;
+  // Catálogo de inmuebles
+  const lista = pnFilasVisibles(pnFilasCatalogo(cache));
+  $("tablaCatalogo").innerHTML = pnHtmlCatalogo(lista);
+  $("nCatalogo").textContent = lista.length;
+  const dudas = lista.filter(f => f.estado === "CANDIDATA").length;
   $("rvCatalogoAviso").textContent = dudas ? "⚠ " + dudas + " con dudas" : "";
   pnAbrirSiHace("rvCatalogo", dudas > 0);
 

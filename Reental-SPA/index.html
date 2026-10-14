@@ -308,7 +308,6 @@ th{background:var(--panel2);font-size:12px;text-transform:uppercase;letter-spaci
 .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:700}
 .badge.CONFIRMADA{background:var(--ok-bg);color:var(--ok)}
 .badge.CANDIDATA{background:var(--warn-bg);color:var(--warn)}
-.badge.DESCARTADA{background:var(--err-bg);color:var(--err)}
 #toasts{position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;gap:10px;z-index:200;max-width:380px}
 .toast{background:var(--panel);border:1px solid var(--border);border-left:5px solid var(--accent);border-radius:12px;padding:12px 14px;font-size:13px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px}
 .toast.ok{border-left-color:var(--ok)}
@@ -483,10 +482,6 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
       <summary>🏠 Catálogo de inmuebles (<span id="nCatalogo">0</span>)<span id="rvCatalogoAviso" class="rv-aviso"></span></summary>
       <p class="help rv-explica">Los tokens que la app cuenta como inmuebles.</p>
       <div class="rv-caja"><table class="rv-tabla"><thead><tr><th>Inmueble</th><th>Símbolo</th><th>1ª aparición</th><th>Contrato</th><th>Estado</th><th></th></tr></thead><tbody id="tablaCatalogo"></tbody></table></div>
-      <details id="rvDescartados" class="rv-sub" hidden>
-        <summary>Descartados (<span id="nDescartados">0</span>)</summary>
-        <div class="rv-caja"><table class="rv-tabla"><thead><tr><th>Inmueble</th><th>Símbolo</th><th>1ª aparición</th><th>Contrato</th><th>Estado</th><th></th></tr></thead><tbody id="tablaDescartados"></tbody></table></div>
-      </details>
     </details>
     <details id="rvContratos" class="cc-resueltos rv-plegable">
       <summary>🧭 Direcciones que la app reconoce (<span id="nContratosDefi">0</span>)</summary>

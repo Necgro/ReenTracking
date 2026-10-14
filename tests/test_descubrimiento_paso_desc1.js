@@ -6,7 +6,8 @@
  *   con el catálogo vacío descubre y confirma las propiedades con refuerzo,
  *   deja como CANDIDATA las dudosas (avisando) y guarda con el patrón js/13;
  *   es idempotente (segunda clasificación: sin cambios y sin marcar la cache);
- *   respeta las decisiones del usuario (DESCARTADA sigue DESCARTADA); avisa si
+ *   respeta las decisiones del usuario (una DESCARTADA vieja pasa al spam de
+ *   todo el token, P8, y un token en el spam no se confirma solo); avisa si
  *   no se reconoce ninguna propiedad; y el resultado es IDÉNTICO a pulsar el
  *   Descubrimiento a mano y luego clasificar.
  *
@@ -116,8 +117,24 @@ console.log("== 3. Respeta las decisiones del usuario ==");
 sb = nuevoSandbox();
 cache = montar(sb, { [P2]: { estado: "DESCARTADA", nombre_etherscan: "Reental-Prueba Duna 2", simbolo: "RDUN2", refuerzos: [] } });
 g(sb, "ejecutarClasificacion()");
-assert("DESCARTADA por el usuario sigue DESCARTADA", cache.catalogo_propiedades[P2].estado === "DESCARTADA");
+assert("P8: una DESCARTADA vieja pasa al spam de todo el token, con dudas debajo",
+  cache.catalogo_propiedades[P2].estado === "CANDIDATA" && cache.spam_usuario.tokens[P2].simbolo === "RDUN2", [cache.catalogo_propiedades[P2], cache.spam_usuario]);
+assert("P8: sigue en spam y no cuenta como duda en el aviso",
+  g(sb, "state.registros").filter(r => r.contrato === P2).every(r => r.categoria === "SPAM") &&
+  g(sb, "__toasts").some(t => /^1 token\(s\) con dudas/.test(t.m)), g(sb, "__toasts").map(t => t.m));
 assert("y las demás se descubren igualmente", cache.catalogo_propiedades[P1].estado === "CONFIRMADA");
+
+/* P8: un token en el spam no se confirma solo aunque llegue al vault en un
+   hash del archivo de Reental (Vía A, que confirmaría un «con dudas»). */
+sb = nuevoSandbox();
+cache = montar(sb, { [P2]: { estado: "CANDIDATA", nombre_etherscan: "Reental-Prueba Duna 2", simbolo: "RDUN2", refuerzos: [] } });
+cache.spam_usuario = { tokens: { [P2]: { fecha: "2026-10-14" } } };
+cache.transacciones.vault_tokens.push(leg("0x" + "99".repeat(32), T, V, P2, tok18(1), "Reental-Prueba Duna 2", "RDUN2", "18", ts(2026, 6, 10), "13"));
+g(sb, "ejecutarClasificacion()");
+assert("P8: en el spam, la Vía A no lo confirma", cache.catalogo_propiedades[P2].estado === "CANDIDATA", cache.catalogo_propiedades[P2]);
+delete cache.spam_usuario;
+g(sb, "ejecutarClasificacion()");
+assert("P8: (sin el spam, la Vía A sí lo confirmaría)", cache.catalogo_propiedades[P2].estado === "CONFIRMADA", cache.catalogo_propiedades[P2]);
 
 // =========================================================================
 console.log("== 4. Mismo resultado que Descubrimiento manual + clasificar ==");

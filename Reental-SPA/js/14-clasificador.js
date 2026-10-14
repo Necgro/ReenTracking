@@ -127,6 +127,15 @@ function inmueblesConfirmadosCache(cache) {
   return confirmadas;
 }
 
+/* Los tokens con dudas (CANDIDATA), normalizados, sin los que mandaste
+   enteros al spam («Todo el token» en 📒 o «Descartar» en el catálogo):
+   esos ya son spam y no cuentan como duda. */
+function dudasCatalogoCache(cache) {
+  const spam = apartadosCache(cache, "tokens");
+  return new Set(Object.entries(cache.catalogo_propiedades || {})
+    .filter(([, e]) => estadoCatalogo(e) === "CANDIDATA").map(([a]) => normalizarDireccion(a)).filter(a => !spam.has(a)));
+}
+
 /* STABLECOINS (USDT+USDC) cuentan como conocidos. */
 function contratosConocidosCache(cache, inmuebles) {
   const conocidos = new Set([walletConfig(), USDT, RNT, BURN, ...STABLECOINS]);
@@ -2270,12 +2279,9 @@ function descubrimientoAntesDeClasificar(silencioso) {
           "Sin inmuebles, casi todo quedará a revisar.", "warn",
           { texto: "Ir a Puesta en marcha", fn: () => { location.hash = "#inicio"; } }, 9000);
   }
-  /* Un token mandado al spam entero no cuenta como duda (como en el
-     catálogo, js/11). */
-  const spam = apartadosCache(cache, "tokens");
-  const dudas = resumen.candidatas.filter(a => !spam.has(normalizarDireccion(a)));
-  if (nConf && dudas.length) {
-    toast(dudas.length + " token(s) con dudas: no se tratan como inmueble hasta que los " +
+  const dudas = dudasCatalogoCache(cache).size;
+  if (nConf && dudas) {
+    toast(dudas + " token(s) con dudas: no se tratan como inmueble hasta que los " +
           "confirmes o descartes en 🔍 Revisión → Catálogo de inmuebles.", "warn",
           { texto: "Ir al catálogo", fn: () => { location.hash = "#revision"; } }, 9000);
   }

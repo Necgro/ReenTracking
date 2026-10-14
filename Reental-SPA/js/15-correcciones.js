@@ -270,6 +270,7 @@ function ccContextoCandidatos(cache, config, registros) {
   if (v) propias.add(v);
   const inmuebles = new Set(
     cache ? Object.keys(inmueblesConfirmadosCache(cache)).map(normalizarDireccion) : []);
+  const dudas = cache ? dudasCatalogoCache(cache) : new Set(); // para «Es un inmueble»
   const vinculos = ccVinculosDeContexto(cache, registros);
   /* Lo que tú dijiste que es un movimiento neutro (en
      Revisión o en tus ajustes) ya no es una salida por vincular. También
@@ -284,7 +285,7 @@ function ccContextoCandidatos(cache, config, registros) {
       if (pdEsObjeto(a) && (a.categoria === "MOVIMIENTO" || ccEsAjusteDecision(a))) decididas.add(ccClaveAjuste(k));
     }
   }
-  return { propias, inmuebles, hayCache: !!cache, hayPropias: propias.size > 0,
+  return { propias, inmuebles, dudas, hayCache: !!cache, hayPropias: propias.size > 0,
            salidasVinculadas: vinculos.salidasVinculadas,
            cobrosAsignados: vinculos.cobrosAsignados,
            noAplicadas: vinculos.noAplicadas, decididas };
@@ -646,6 +647,7 @@ const CC_AYUDA_NEUTRO = "Sigue siendo tuyo (otra wallet o un exchange). No va a 
 const CC_AYUDA_NEUTRO_ENTRADA = "Ya era tuyo: vuelve de otra wallet tuya o de un exchange. No va a la Renta. " +
   "Si lo compraste o te lo regalaron, no es esto.";
 const CC_AYUDA_SPAM = "No es tuyo: no cuenta para nada.";
+const CC_AYUDA_INMUEBLE = "Lo confirma en el catálogo: cambia todos sus movimientos.";
 
 /* «ⓘ Qué es cada cosa», arriba en 🔍 y 📒 (en su hueco [data-que-es]): una
    línea por tipo de movimiento, de lo que hace la app. */
@@ -705,6 +707,10 @@ function ccOpcionesDecision(reg, ctx) {
   const cat = reg.categoria;
   const sinImporte = cat === "VENTA" && !ccEsNumeroPositivo(reg.importe_usdt);
   const ops = [];
+  /* Un token con dudas del catálogo: confirmarlo aquí, como en el catálogo. */
+  if (onchain && ctx && ctx.dudas && ctx.dudas.has(contrato)) {
+    ops.push({ id: "inmueble", etiqueta: "🏠 Es un inmueble", sugerida: false, pide: null, ayuda: CC_AYUDA_INMUEBLE });
+  }
   const dejar = cat && cat !== "REVISAR" && cat !== "SPAM" && !sinImporte;
   if (dejar) ops.push({ id: "dejar", etiqueta: "✔ " + ccNombreDejar(reg), sugerida: true, pide: null });
   if (onchain && sentido === "salida" && esInmueble && !(dejar && cat === "VENTA")) {
@@ -1750,7 +1756,7 @@ function renderCorrecciones() {
         tiposBce: (state.cache && state.cache.tipos_bce) || {},
         cache: state.cache,
         abierta: ccDecisionAbierta,
-        dudas: pnFilasCatalogo(state.cache).filter(f => f.estado === "CANDIDATA").length, // js/11
+        dudas: ctx.dudas.size,
       });
   }
   renderCcResueltos();
@@ -2628,6 +2634,7 @@ function ccPulsarDecision(clave, id) {
   if (!reg) return;
   const op = ccOpcionesDecision(reg, ccContextoSesion(registros)).find(o => o.id === id);
   if (!op) return;
+  if (id === "inmueble") return pnCambiarEstadoCatalogo(normalizarDireccion(reg.contrato), "CONFIRMADA"); // js/11
   if (!op.pide) return ccDecidir(clave, id, null);
   if (ccDecisionAbierta && ccDecisionAbierta.clave === clave && ccDecisionAbierta.id === id) ccDecisionAbierta = null;
   else {

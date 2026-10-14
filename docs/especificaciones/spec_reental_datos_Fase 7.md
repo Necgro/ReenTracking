@@ -146,7 +146,7 @@ Objeto donde cada clave es una dirección de contrato (lowercase) y el valor son
 | `simbolo` | string | `"Reental-TOL-1"` | Símbolo del token |
 | `via` | string | `"B"` / `"A"` / `"A+B"` | Vía de descubrimiento |
 | `primera_aparicion` | string fecha | `"2024-01-10"` | Fecha de primera aparición |
-| `estado` | string enum | `"CONFIRMADA"` / `"CANDIDATA"` / `"DESCARTADA"` | Estado de confirmación |
+| `estado` | string enum | `"CONFIRMADA"` / `"CANDIDATA"` | Estado de confirmación. `"DESCARTADA"` es de copias viejas: al abrirlas pasa a `spam_usuario.tokens` (spam de todo el token) y queda `"CANDIDATA"` |
 
 Si `nombre_reental` es null, se usa `nombre_etherscan`.
 

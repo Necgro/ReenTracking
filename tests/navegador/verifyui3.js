@@ -9,8 +9,11 @@
  *      con su aviso; los precios de RNT se abren solos si falta una fecha.
  *  U2) catálogo: el token en el spam no sale; ningún desplegable de
  *      estado; «Descartar» con su burbuja.
- *  U3) «✔ Confirmar» reclasifica y guarda; «🚫 Descartar» y «↩ Con dudas»
- *      lo devuelven: misma huella que al principio.
+ *  U3) «✔ Confirmar» reclasifica y guarda; «🚫 Descartar» manda todo el
+ *      token al spam (sale del catálogo, sin «Descartados») y su ↩ de 📒 lo
+ *      devuelve con dudas: misma huella que al principio (P8).
+ *  U3b) P4: en la tarjeta de 🔍 del token con dudas, «🏠 Es un inmueble» lo
+ *      confirma como el catálogo; «Descartar» y ↩ lo devuelven.
  *  U4) contratos: una dirección mal escrita no se guarda; una buena sale con
  *      su ✕ y reclasifica; quitarla devuelve la huella de antes. Las
  *      semillas también tienen ✕, con su aviso: lo que movía
@@ -141,9 +144,9 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   const c0 = await catalogo();
   assert("U2 -> dos filas, en orden, con su estado en llano; el token del spam no sale",
     JSON.stringify(c0.map(f => [f.simbolo, f.estado])) === JSON.stringify([["RALC1", "Inmueble"], ["RDUD3", "Con dudas"]]), c0);
-  assert("U2 -> el de dudas, Confirmar y Descartar; sin descartados, su plegable no se ve",
+  assert("U2 -> el de dudas, Confirmar y Descartar; sin plegable de descartados (P8)",
     JSON.stringify(c0[1].botones) === JSON.stringify(["✔ Confirmar", "🚫 Descartar"]) &&
-    (await page.evaluate(() => document.getElementById("rvDescartados").hidden)), c0);
+    !(await page.$("#rvDescartados")), c0);
   const burbuja = await page.evaluate(async () => {
     const b = document.querySelector('#tablaCatalogo button[data-estado="DESCARTADA"]');
     b.focus();
@@ -177,17 +180,42 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   assert("U3 -> «Confirmar»: guardado, reclasificado (ya es inmueble) y sin aviso",
     u3.estado === "CONFIRMADA" && u3.inmueble && u3.aviso === "" && (await escrituras()) > w0, u3);
   assert("U3 -> el aviso dice el nuevo estado", /Prueba Dudosa 3 → Inmueble/.test(await ultimoAviso()));
-  await pulsarCatalogo("RDUD3", "DESCARTADA");
-  const desc = await page.evaluate(() => ({ oculto: document.getElementById("rvDescartados").hidden,
-    n: document.getElementById("nDescartados").textContent, lista: document.querySelectorAll("#tablaCatalogo tr[data-addr]").length }));
-  const cDesc = await catalogo("tablaDescartados");
-  assert("U3 -> «Descartar» lo pasa a «Descartados (1)», con Confirmar y Con dudas",
-    !desc.oculto && desc.n === "1" && desc.lista === 1 && cDesc.length === 1 &&
-    JSON.stringify(cDesc[0].botones) === JSON.stringify(["✔ Confirmar", "↩ Con dudas"]), [desc, cDesc]);
-  await pulsarCatalogo("RDUD3", "CANDIDATA");
-  const c1 = await catalogo();
-  assert("U3 -> «Descartar» y «↩ Con dudas» lo devuelven, con la misma huella",
-    c1[1].estado === "Con dudas" && (await huella()) === h0, c1[1]);
+  const descartarYDevolver = async etiqueta => {
+    await pulsarCatalogo("RDUD3", "DESCARTADA");
+    const desc = await page.evaluate(() => {
+      const P3 = "0x" + "a3".repeat(20), r = state.registros.find(x => x.simbolo === "RDUD3");
+      return { estado: state.cache.catalogo_propiedades[P3].estado, spam: !!state.cache.spam_usuario.tokens[P3],
+        lista: document.querySelectorAll("#tablaCatalogo tr[data-addr]").length, categoria: r.categoria, clave: r.clave,
+        regla: !!txReglaSpam(r, construirContexto(state.cache)) };
+    });
+    assert(etiqueta + " -> «Descartar»: todo el token al spam, fuera del catálogo y con su ↩ en 📒",
+      desc.estado === "CANDIDATA" && desc.spam && desc.lista === 1 && desc.categoria === "SPAM" && desc.regla &&
+      /^Token mandado al spam: 1 movimiento\./.test(await ultimoAviso()), [desc, await ultimoAviso()]);
+    await page.evaluate(k => txQuitarRegla(k), desc.clave);
+    await esperar(300);
+    const c1 = await catalogo();
+    assert(etiqueta + " -> su ↩ de 📒 lo devuelve con dudas, con la misma huella",
+      c1.length === 2 && c1[1].estado === "Con dudas" && (await huella()) === h0, c1);
+  };
+  await descartarYDevolver("U3");
+
+  /* ============ U3b) P4: «Es un inmueble» en la tarjeta ============ */
+  const tarjeta = await page.evaluate(() => {
+    const b = [...document.querySelectorAll('#ccLista button[data-accion="decidir"][data-opcion="inmueble"]')];
+    return { n: b.length, texto: b[0] && b[0].textContent };
+  });
+  assert("U3b -> la tarjeta del token con dudas trae «🏠 Es un inmueble» (solo esa)",
+    tarjeta.n === 1 && /🏠 Es un inmueble/.test(tarjeta.texto), tarjeta);
+  await page.click('#ccLista button[data-accion="decidir"][data-opcion="inmueble"]');
+  await esperar(300);
+  const u3b = await page.evaluate(() => ({
+    estado: state.cache.catalogo_propiedades["0x" + "a3".repeat(20)].estado,
+    inmueble: state.registros.some(r => r.simbolo === "RDUD3" && r.inmueble),
+    boton: !!document.querySelector('#ccLista button[data-opcion="inmueble"]'),
+  }));
+  assert("U3b -> lo confirma como el catálogo (reclasificado) y el botón se va",
+    u3b.estado === "CONFIRMADA" && u3b.inmueble && !u3b.boton && /Prueba Dudosa 3 → Inmueble/.test(await ultimoAviso()), u3b);
+  await descartarYDevolver("U3b");
 
   /* ============ U4) contratos ============ */
   await page.evaluate(() => { document.getElementById("rvContratos").open = true; });

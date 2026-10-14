@@ -195,6 +195,10 @@ function descubrirInmuebles(cache, filasCsv, indicePorHash, wallet, vault) {
   // Una dirección que trae la app y el usuario quitó sigue sin
   // ser un inmueble (p. ej. el recibo del pool de SushiSwap).
   if (typeof semillasQuitadas === "function") semillasQuitadas(cache).forEach(a => noInmueble.add(a));
+  // Ni un token que mandaste al spam (también «Descartar» del catálogo):
+  // no se confirma solo ni cuenta como dueño de un nombre.
+  const spamTokens = apartadosCache(cache, "tokens");
+  spamTokens.forEach(a => noInmueble.add(a));
   const nombresCsv = new Map();
   for (const fila of filasCsv) {
     const clave = normalizarNombreInmueble(fila.inmueble);
@@ -202,6 +206,7 @@ function descubrirInmuebles(cache, filasCsv, indicePorHash, wallet, vault) {
   }
   const primeras = primerasApariciones(cache);
   const resumen = { nuevas: [], confirmadas: [], candidatas: [], avisos: [] };
+  const spamDirecciones = apartadosCache(cache, "direcciones");
 
   function registrar(tx, via, nombreReental, refuerzos) {
     const ca = normalizarDireccion(tx.contractAddress);
@@ -250,7 +255,7 @@ function descubrirInmuebles(cache, filasCsv, indicePorHash, wallet, vault) {
     duenos.get(clave).add(addr);
   };
   for (const [addr, entrada] of Object.entries(catalogo)) {
-    if (!entrada || typeof entrada !== "object" || estadoCatalogo(entrada) === "DESCARTADA") continue;
+    if (!entrada || typeof entrada !== "object" || estadoCatalogo(entrada) === "DESCARTADA" || spamTokens.has(normalizarDireccion(addr))) continue;
     for (const campo of ["nombre_reental", "nombre_etherscan"]) {
       const clave = normalizarNombreInmueble(entrada[campo]);
       if (clave) anotarDueno(clave, normalizarDireccion(addr));
@@ -263,14 +268,12 @@ function descubrirInmuebles(cache, filasCsv, indicePorHash, wallet, vault) {
         quemados.add(normalizarDireccion(tx.hash) + "|" + normalizarDireccion(tx.contractAddress));
     }
   }
-  const spamDirecciones = apartadosCache(cache, "direcciones");
-  const spamTokens = apartadosCache(cache, "tokens");
   for (const tx of (cache.transacciones.wallet_tokens || [])) {
     const ca = normalizarDireccion(tx.contractAddress);
     if (!ca || noInmueble.has(ca)) continue;
     if (normalizarDireccion(tx.to) !== wallet) continue;
     const origen = normalizarDireccion(tx.from);
-    if (spamTokens.has(ca) || spamDirecciones.has(origen) || imitaDireccionPropia(origen)) continue;
+    if (spamDirecciones.has(origen) || imitaDireccionPropia(origen)) continue;
     const nombre = (tx.tokenName || "").trim();
     const simbolo = (tx.tokenSymbol || "").trim();
     if (nombreTokenSospechoso(nombre, simbolo)) continue;

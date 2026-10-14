@@ -4,7 +4,8 @@
  * Bajo prueba (Reental-SPA/js/11-panel.js):
  * - pnFilasCatalogo: orden por primera aparición y una CANDIDATA cuyo token
  *   está en spam_usuario.tokens queda como SPAM; CONFIRMADA y DESCARTADA
- *   no cambian.
+ *   no cambian. pnFilasVisibles: solo inmuebles y con dudas (P8: sin
+ *   «Descartados»).
  * - pnHtmlCatalogo: un botón por cada estado al que se puede pasar, ninguno
  *   para un token en el spam; el contrato enlaza a Polygonscan.
  * - pnFilasContratos / pnContratoQuitable / pnHtmlContratos: lo aprendido
@@ -74,21 +75,21 @@ try { conNumero = S.pnFilasCatalogo({ catalogo_propiedades: { [A]: { primera_apa
 assert("A11: con primera_aparicion numérica, las filas salen igual (sin lanzar)", Array.isArray(conNumero) && conNumero.length === 3, conNumero);
 
 console.log("== 2. HTML del catálogo ==");
-// El token del spam (SPAM) no se pinta nunca (pnPartirCatalogo lo deja fuera): su hueco queda vacío.
-const html = filas.map(f => f.estado === "SPAM" ? "" : S.pnHtmlFilaCatalogo(f));
+// El token del spam (SPAM) y el DESCARTADA viejo no se pintan nunca (pnFilasVisibles los deja fuera): su hueco queda vacío.
+const html = filas.map(f => f.estado === "SPAM" || f.estado === "DESCARTADA" ? "" : S.pnHtmlFilaCatalogo(f));
 const estados = h => [...h.matchAll(/data-estado="([A-Z]+)"/g)].map(m => m[1]);
 assert("Inmueble: solo «Descartar»", json(estados(html[0])) === json(["DESCARTADA"]) && /🚫 Descartar/.test(html[0]));
 assert("Con dudas: «Confirmar» y «Descartar»", json(estados(html[1])) === json(["CONFIRMADA", "DESCARTADA"]));
 assert("el del spam no se pinta", html[2] === "");
-const partes = S.pnPartirCatalogo(filas);
-assert("la lista lleva inmuebles y con dudas; los descartados, aparte; el del spam, en ninguna",
-  json(partes.lista.map(f => f.addr)) === json([A, B]) && json(partes.descartados.map(f => f.addr)) === json([D]));
-assert("cada botón con su burbuja (Descartar dice que pasa a spam)",
-  /class="rv-burbuja"[^>]*>No es un inmueble: pasa a spam/.test(html[0]) &&
+assert("P8: la lista lleva inmuebles y con dudas; ni el del spam ni un DESCARTADA viejo",
+  json(S.pnFilasVisibles(filas).map(f => f.addr)) === json([A, B]));
+assert("cada botón con su burbuja (Descartar: todo el token a spam, se deshace en 📒)",
+  /class="rv-burbuja"[^>]*>No es un inmueble: todo el token pasa a spam\. Se deshace con ↩ en 📒\./.test(html[0]) &&
   (html[1].match(/rv-burbuja/g) || []).length === 2 && /aria-label="Descartar: No es un inmueble/.test(html[0]));
-assert("Descartado: «Confirmar» y «Con dudas»", json(estados(html[3])) === json(["CONFIRMADA", "CANDIDATA"]));
+assert("P8: sin «↩ Con dudas» (ya no hay descartados en el catálogo)", !html.join("").includes('data-estado="CANDIDATA"'));
 assert("el contrato enlaza a Polygonscan, corto", html[0].includes("https://polygonscan.com/address/" + A) && html[0].includes("0xaaaa…aaaa ↗"));
-assert("fecha a la española y «—» sin fecha", html[0].includes("11/07/2024") && html[3].includes("<td>—</td>"));
+assert("fecha a la española y «—» sin fecha", html[0].includes("11/07/2024") &&
+  S.pnHtmlFilaCatalogo({ addr: D, estado: "CANDIDATA", entrada: {} }).includes("<td>—</td>"));
 assert("sin estado de selección (W13: botones, no desplegable)", !html.join("").includes("<select"));
 assert("catálogo vacío: una fila que lo dice", /Sin inmuebles todavía/.test(S.pnHtmlCatalogo([])));
 assert("el nombre se escapa", /&lt;b&gt;/.test(S.pnHtmlFilaCatalogo({ addr: A, estado: "CANDIDATA", entrada: { nombre_etherscan: "<b>x" } })));

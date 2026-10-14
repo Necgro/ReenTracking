@@ -76,6 +76,21 @@ function saneaCatalogoYRoles(cache) {
       log("  AVISO: " + raros.length + " entrada(s) del catalogo mal escrita(s) se apartan en «catalogo_no_leido»: " + raros.join(", "), "warn");
     }
   }
+  // Formato viejo: «Descartar» era un estado (DESCARTADA); ahora es el spam
+  // de todo el token, como en 📒 (se recupera con su ↩). Queda con dudas
+  // debajo. Con el bloque de spam mal escrito no se toca (sigue en spam).
+  const spam = cache.spam_usuario;
+  const descartadas = Object.keys(catalogo).filter(a => estadoCatalogo(catalogo[a]) === "DESCARTADA");
+  if (descartadas.length && (spam === undefined || spam === null || (esObj(spam) && (spam.tokens === undefined || esObj(spam.tokens))))) {
+    if (!esObj(spam)) cache.spam_usuario = {};
+    const tokens = cache.spam_usuario.tokens = cache.spam_usuario.tokens || {};
+    const ya = new Set(Object.keys(tokens).map(normalizarDireccion));
+    for (const a of descartadas) {
+      const e = catalogo[a], clave = normalizarDireccion(a);
+      if (!ya.has(clave)) tokens[clave] = e.simbolo ? { fecha: "", simbolo: String(e.simbolo) } : { fecha: "" };
+      e.estado = "CANDIDATA";
+    }
+  }
   if (!esObj(cache.contratos_aprendidos)) cache.contratos_aprendidos = {};
   for (const rol of new Set([...ROLES_CONTRATOS, ...Object.keys(cache.contratos_aprendidos)])) {
     if (!esObj(cache.contratos_aprendidos[rol])) cache.contratos_aprendidos[rol] = {};

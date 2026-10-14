@@ -370,12 +370,7 @@ function dashCarteraTokens(cache) {
   // Los «con dudas» no cuentan (solo los confirmados), pero se dice
   // cuántos tienen tokens, para que no desaparezcan sin aviso. Los que
   // mandaste enteros al spam no (como el catálogo de 🔍 Revisión).
-  const dudas = {};
-  const spam = apartadosCache(cache, "tokens");
-  for (const [addr, e] of Object.entries(cache.catalogo_propiedades || {})) {
-    const a = normalizarDireccion(addr);
-    if (e && typeof e === "object" && estadoCatalogo(e) === "CANDIDATA" && !spam.has(a)) dudas[a] = true;
-  }
+  const dudas = dudasCatalogoCache(cache); // js/14
   const wallet = walletConfig();
   const tuya = a => { const d = normalizarDireccion(a || ""); return (!!wallet && d === wallet) || esDelVault(d); };
   const saldos = new Map();
@@ -384,7 +379,7 @@ function dashCarteraTokens(cache) {
     const contrato = normalizarDireccion(tx.contractAddress || "");
     // Solo las del catálogo (con `in`, «constructor» o «__proto__» de
     // una cache escrita a mano pasarían por inmuebles).
-    if (!Object.prototype.hasOwnProperty.call(inmuebles, contrato) && !Object.prototype.hasOwnProperty.call(dudas, contrato)) continue;
+    if (!Object.prototype.hasOwnProperty.call(inmuebles, contrato) && !dudas.has(contrato)) continue;
     const q = cantidadTx(tx);
     if (q === null || !Number.isFinite(q)) { ignorados++; continue; }
     saldos.set(contrato, (saldos.get(contrato) || 0) + (tuya(tx.to) ? q : 0) - (tuya(tx.from) ? q : 0));

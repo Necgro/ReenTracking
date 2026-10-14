@@ -374,10 +374,7 @@ function arrDatosResumen() {
         ? pnFechasSinPrecioRnt(cache, Date.now()).length
         : fechasConMovimientoRnt(cache).filter(f => !(f in precios)).length;
     } catch (e) { fechasSinPrecio = 0; }
-    // Un token mandado al spam entero no cuenta como duda (js/11).
-    const spam = apartadosCache(cache, "tokens"); // js/14
-    candidatas = Object.entries(cache.catalogo_propiedades || {})
-      .filter(([a, e]) => estadoCatalogo(e) === "CANDIDATA" && !spam.has(normalizarDireccion(a))).length;
+    candidatas = dudasCatalogoCache(cache).size; // js/14
   }
   const hayRegistros = Array.isArray(state.registros) && state.registros.length > 0;
   const uc = state.ultimaClasificacion;

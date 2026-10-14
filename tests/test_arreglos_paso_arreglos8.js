@@ -148,9 +148,9 @@ console.log("A7 · un estado con errata sale con dudas en el catálogo");
     e({ estado: "DESCARTADO" }) === "CANDIDATA" && e("CONFIRMADA") === "CANDIDATA" && e(null) === "CANDIDATA");
   const cache = sb.cacheVacia();
   cache.catalogo_propiedades["0x" + "19".repeat(20)] = { nombre_etherscan: "Free Claim", estado: "DESCARTADO" };
-  const partes = sb.pnPartirCatalogo(sb.pnFilasCatalogo(cache));
-  const fila = partes.lista.find(f => f.addr === "0x" + "19".repeat(20));
-  assert("sale en la lista, con dudas y sus botones", fila && fila.estado === "CANDIDATA", partes);
+  const lista = sb.pnFilasVisibles(sb.pnFilasCatalogo(cache));
+  const fila = lista.find(f => f.addr === "0x" + "19".repeat(20));
+  assert("sale en la lista, con dudas y sus botones", fila && fila.estado === "CANDIDATA", lista);
   assert("no cuenta como inmueble", Object.keys(sb.inmueblesConfirmadosCache(cache)).length === 0);
 }
 
