@@ -655,7 +655,7 @@ const CC_AYUDA_COMPRA_RNT = "RNT que pagaste en € (p. ej. una preventa): cada 
 /* «ⓘ Qué es cada cosa», arriba en 🔍 y 📒 (en su hueco [data-que-es]): una
    línea por tipo de movimiento, de lo que hace la app. */
 const CC_QUE_ES_CADA_COSA = [
-  ["Compra / Venta", "tokens de inmuebles."],
+  ["Compra / Venta", "tokens de inmuebles (y el RNT que compraste en €)."],
   ["Compra bancaria", "tokens que pagaste a Reental por transferencia: en la blockchain solo se ve que te llegan."],
   ["Canje de contrato", "el token de un inmueble cambia por el de su contrato nuevo. No es una venta."],
   ["Rendimiento", "repartos de Reental."],
@@ -1026,7 +1026,8 @@ function ccResumenDecision(ajuste, reg) {
   if (ajuste.categoria === "COMPRA") return "Compra bancaria · " + numEs(ajuste.coste_eur, 2) + " €";
   if (ajuste.categoria === "DEPOSITO") return "Ingreso de dinero · " + numEs(ajuste.importe_usdt, 2) + " USD";
   if (ajuste.categoria === "MOVIMIENTO") return "Movimiento neutro";
-  if (ajuste.categoria === "REWARD") return ajuste.subcategoria === "GPP_REGALO" ? "Regalo (airdrop)" : "Recompensa DeFi";
+  // Con el nombre de 📒 (txOperacion).
+  if (ajuste.categoria === "REWARD") return ajuste.subcategoria === "GPP_REGALO" ? "Regalo recibido" : "Recompensa DeFi";
   if (ajuste.categoria === "SPAM") return "Spam";
   return reg && reg.categoria ? "Se deja como " + ccNombreDejar(reg) : "Se deja como lo dice la app";
 }

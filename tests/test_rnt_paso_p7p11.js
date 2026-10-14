@@ -92,7 +92,7 @@ const decidir = (r, id) => S.ccAjustesConDecision({}, r, id, null, FECHA)[r.clav
 assert("regalo: REWARD/GPP_REGALO", JSON.stringify(decidir(e1, "regalo")) === JSON.stringify({ categoria: "REWARD", subcategoria: "GPP_REGALO",
   revisar: false, nota: "Decidido por ti en Revisión (2026-10-14): regalo (airdrop)" }), decidir(e1, "regalo"));
 assert("recompensa: REWARD/RCM_REWARD", decidir(e1, "recompensa").subcategoria === "RCM_REWARD" && S.ccEsAjusteDecision(decidir(e1, "recompensa")));
-assert("«Ya decididos» los nombra", S.ccResumenDecision(decidir(e1, "regalo")) === "Regalo (airdrop)" &&
+assert("A12: «Ya decididos» los nombra como 📒", S.ccResumenDecision(decidir(e1, "regalo")) === S.txOperacion({ categoria: "REWARD", subcategoria: "GPP_REGALO" }) &&
   S.ccResumenDecision(decidir(e1, "recompensa")) === "Recompensa DeFi");
 
 // La lista desde esa dirección: e1 libre, e2 decidido neutro (con un «mandado a revisar» antes),
@@ -254,6 +254,8 @@ console.log("== 5. Auditoría (A2…A12) ==");
 assert("A9: 1 € por 100.000 RNT → 0,00001000 €/RNT (y 💶 igual)",
   S.ccTextoPrecioRnt(1, 100000) === "1,00 € ÷ 100.000 RNT = 0,00001000 €/RNT" && S.cbTextoPorToken(1, 100000) === "0,00001000 €" &&
   S.cbTextoPorToken(37, 1000) === "0,0370 €" && S.cbTextoPorToken(300, 3) === "100,00 €", [S.ccTextoPrecioRnt(1, 100000), S.cbTextoPorToken(1, 100000)]);
+
+assert("A12: «Qué es cada cosa» cuenta el RNT comprado en € como compra", S.ccHtmlQueEs().includes("tokens de inmuebles (y el RNT que compraste en €)."));
 
 console.log("\n" + ok + " OK, " + fallos + " FALLOS");
 process.exit(fallos ? 1 : 0);
