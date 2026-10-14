@@ -487,12 +487,12 @@ function ccColaRevision(registros, ctx) {
 }
 
 /* ----------------------------- Decisiones de la cola -----------------------------
-   Cada tarjeta a revisar ofrece primero «✔ Dejar como …» (lo que dice la
-   app, con la etiqueta «Sugerida») y después solo las alternativas que
+   Cada tarjeta a revisar ofrece primero «✔ …» (lo que dice la app, con su
+   nombre de 📒 y la etiqueta «Sugerida») y después solo las alternativas que
    tienen sentido para ese movimiento:
    - «Es una venta…» (importe cobrado en USD): salidas de un inmueble.
    - «Compra bancaria…» (coste real en €): entradas de un inmueble.
-   - «Dinero que recibí…» (USDT o USDC recibido): entradas de una stablecoin.
+   - «Ingreso de dinero…» (USDT o USDC recibido): entradas de una stablecoin.
    - «Movimiento neutro»: siempre.
    - «🚫 Es spam»: movimientos de la blockchain (el mismo ajuste que el 🚫
      de 📒 Transacciones, así su ↩ lo deshace también allí).
@@ -669,6 +669,14 @@ function ccHtmlQueEs() {
     lineas + "</span></span>";
 }
 
+/* Lo que dice «✔ …» (dejarlo como está): el nombre de la operación en 📒
+   (txOperacion, js/18, cargado después); sin él, o con una subcategoría
+   que 📒 no conoce, el de la categoría. */
+function ccNombreDejar(reg) {
+  const op = typeof txOperacion === "function" ? txOperacion(reg) : "";
+  return op && op !== String(reg.subcategoria || "") ? op : ccNombreCategoria(reg.categoria);
+}
+
 /* Opciones de la tarjeta: [{ id, etiqueta, sugerida, pide, ayuda? }] con pide =
    "usd" | "eur" | null (lo que hay que escribir antes de guardar). */
 function ccOpcionesDecision(reg, ctx) {
@@ -680,7 +688,7 @@ function ccOpcionesDecision(reg, ctx) {
   const pd = reg.pago_diferido;
   if (pdEsObjeto(pd)) {
     return pd.rol === "pago" && reg.categoria === "DEPOSITO"
-      ? [{ id: "dejar", etiqueta: "✔ Dejar como " + ccNombreCategoria("DEPOSITO"), sugerida: true, pide: null }]
+      ? [{ id: "dejar", etiqueta: "✔ Ingreso de dinero", sugerida: true, pide: null }]
       : [];
   }
   const sentido = ccSentidoBasico(reg, ctx);
@@ -694,7 +702,7 @@ function ccOpcionesDecision(reg, ctx) {
   const sinImporte = cat === "VENTA" && !ccEsNumeroPositivo(reg.importe_usdt);
   const ops = [];
   const dejar = cat && cat !== "REVISAR" && cat !== "SPAM" && !sinImporte;
-  if (dejar) ops.push({ id: "dejar", etiqueta: "✔ Dejar como " + ccNombreCategoria(cat), sugerida: true, pide: null });
+  if (dejar) ops.push({ id: "dejar", etiqueta: "✔ " + ccNombreDejar(reg), sugerida: true, pide: null });
   if (onchain && sentido === "salida" && esInmueble && !(dejar && cat === "VENTA")) {
     ops.push({ id: "venta", etiqueta: "Es una venta…", sugerida: cat === "VENTA", pide: "usd" });
   }
@@ -702,7 +710,7 @@ function ccOpcionesDecision(reg, ctx) {
     ops.push({ id: "compra", etiqueta: "Compra bancaria…", sugerida: false, pide: "eur" });
   }
   if (onchain && sentido === "entrada" && esEstable && !(dejar && cat === "DEPOSITO")) {
-    ops.push({ id: "dinero", etiqueta: "Dinero que recibí…", sugerida: false, pide: "usd" });
+    ops.push({ id: "dinero", etiqueta: "Ingreso de dinero…", sugerida: false, pide: "usd" });
   }
   if (!(dejar && cat === "MOVIMIENTO")) ops.push({ id: "neutro", etiqueta: "Movimiento neutro", sugerida: false, pide: null,
     ayuda: sentido === "entrada" ? CC_AYUDA_NEUTRO_ENTRADA : CC_AYUDA_NEUTRO });
@@ -1115,7 +1123,7 @@ const CC_PROBLEMAS_EN_LLANO = [
   [/pago no encontrado/, "Un cobro ya no está entre tus movimientos."],
   [/duplicado venta\+pago/, "Este cobro ya está en esta venta."],
   [/^sobreasignacion/, "A un cobro se le asigna más de lo que llegó."],
-  [/asignado en parte/, "Un cobro asignado en parte tiene que ser «Dinero que recibí…»: asígnalo entero o márcalo así antes."],
+  [/asignado en parte/, "Un cobro asignado en parte tiene que ser «Ingreso de dinero…»: asígnalo entero o márcalo así antes."],
   [/sin cantidad util/, "Un cobro no tiene cantidad."],
   [/^conflicto: el ajuste de usuario/, "Un ajuste tuyo también cambia este movimiento: cuenta el ajuste."],
   [/cantidad_asignada .* invalida/, "Escribe una cantidad mayor que 0."],

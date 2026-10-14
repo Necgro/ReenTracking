@@ -158,7 +158,7 @@ const ctxDe = sb => run(sb, "ccContextoSesion(state.registros)");
       c1V.categoria === "DEPOSITO" && c1V.revisar === true && c1V.pago_diferido.rol === "pago", c1V);
     const ops = run(sb, "ccOpcionesDecision")(c1V, ctxDe(sb));
     assert("cobro en parte: solo «✔ Dejar como Depósito» (sin neutro ni spam)",
-      ops.length === 1 && ops[0].id === "dejar" && ops[0].etiqueta === "✔ Dejar como Depósito", ops);
+      ops.length === 1 && ops[0].id === "dejar" && ops[0].etiqueta === "✔ Ingreso de dinero", ops);
     assert("la venta vinculada: ningún botón",
       run(sb, "ccOpcionesDecision")(salV, ctxDe(sb)).length === 0);
     const html = run(sb, "ccHtmlDecisiones")(salV, { estado: "libre", opciones: [] });

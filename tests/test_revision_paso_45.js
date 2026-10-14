@@ -50,11 +50,18 @@ const ids = r => S.ccOpcionesDecision(r, ctx).map(o => o.id + (o.sugerida ? "*" 
 const FECHA = "2026-10-01T10:00:00.000Z";
 
 console.log("== 1. Solo los que encajan ==");
-assert("depósito de USDT: Dejar como Depósito (Sugerida), Neutro y Spam",
+assert("depósito de USDT: ✔ (Sugerida), Neutro y Spam",
   JSON.stringify(ids(reg("d", "DEPOSITO"))) === JSON.stringify(["dejar*", "neutro", "spam"]), ids(reg("d", "DEPOSITO")));
-assert("la etiqueta: «✔ Dejar como Depósito»", S.ccOpcionesDecision(reg("d", "DEPOSITO"), ctx)[0].etiqueta === "✔ Dejar como Depósito");
+const etiquetaDejar = r => S.ccOpcionesDecision(r, ctx)[0].etiqueta;
+assert("la etiqueta: «✔» y el nombre de 📒 («✔ Ingreso de dinero», «✔ Salida de dinero»)",
+  etiquetaDejar(reg("d", "DEPOSITO", { subcategoria: "COSTE_BASE" })) === "✔ Ingreso de dinero" &&
+  etiquetaDejar(reg("w", "RETIRADA", { subcategoria: "GPP_RETIRADA", origen: W, destino: T })) === "✔ Salida de dinero",
+  [etiquetaDejar(reg("d", "DEPOSITO", { subcategoria: "COSTE_BASE" })), etiquetaDejar(reg("w", "RETIRADA", { subcategoria: "GPP_RETIRADA", origen: W, destino: T }))]);
+assert("subcategoría que 📒 no conoce: el nombre de la categoría («✔ Depósito»)", etiquetaDejar(reg("d", "DEPOSITO")) === "✔ Depósito");
+assert("«Ingreso de dinero…» (antes «Dinero que recibí…»)",
+  S.ccOpcionesDecision(reg("r", "REVISAR"), ctx).find(o => o.id === "dinero").etiqueta === "Ingreso de dinero…");
 const rarUsdt = reg("r", "REVISAR");
-assert("USDT que entra sin regla (REVISAR): Dinero que recibí, Neutro y Spam (sin Sugerida)",
+assert("USDT que entra sin regla (REVISAR): Ingreso de dinero, Neutro y Spam (sin Sugerida)",
   JSON.stringify(ids(rarUsdt)) === JSON.stringify(["dinero", "neutro", "spam"]), ids(rarUsdt));
 const salidaInm = reg("s", "REVISAR", { contrato: INM, inmueble: "Cáceres 8", simbolo: "RCAC8", origen: W, destino: T, importe_usdt: null });
 assert("salida de un inmueble: Es una venta, Neutro y Spam",
