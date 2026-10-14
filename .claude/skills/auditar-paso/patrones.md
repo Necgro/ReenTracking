@@ -94,6 +94,9 @@ como antes? Hacer → editar → ¿se conservan los campos que no se editaron?
   borrador abierto en una pisa lo guardado en la otra, y pasa de una cache
   a otra.
 - Menús u opciones abiertas sobre una fila que ya no se ve.
+- Algo fijo arriba (una fila de botones que no se mueve al bajar) tapa lo
+  que otro salto lleva a la vista si ese salto no cuenta con su alto; y al
+  imprimir queda como una franja vacía.
 - Un filtro que se aplica a cada tecla descarta lo elegido: al teclear el
   año de una fecha, el campo pasa por «0002-…» y el cobro elegido dejaba de
   estarlo.
