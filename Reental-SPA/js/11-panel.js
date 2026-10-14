@@ -40,7 +40,7 @@ function pnFilasCatalogo(cache) {
   const spam = cache ? apartadosCache(cache, "tokens") : new Set(); // js/14
   return Object.entries(catalogo)
     .filter(([, e]) => e && typeof e === "object")
-    .sort((a, b) => (a[1].primera_aparicion || "9999").localeCompare(b[1].primera_aparicion || "9999"))
+    .sort((a, b) => String(a[1].primera_aparicion || "9999").localeCompare(String(b[1].primera_aparicion || "9999"))) // un número escrito a mano no rompe 🔍
     .map(([addr, e]) => {
       const estado = estadoCatalogo(e); // una errata sale con dudas
       return { addr, entrada: e, estado: estado === "CANDIDATA" && spam.has(normalizarDireccion(addr)) ? "SPAM" : estado };

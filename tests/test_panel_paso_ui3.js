@@ -68,6 +68,10 @@ const confirmadaEnSpam = { catalogo_propiedades: { [C]: { estado: "CONFIRMADA" }
 assert("una CONFIRMADA no cambia aunque su token esté en el spam (gana el inmueble)",
   S.pnFilasCatalogo(confirmadaEnSpam)[0].estado === "CONFIRMADA");
 assert("sin cache: ninguna fila", S.pnFilasCatalogo(null).length === 0);
+/* Auditoría de la tanda P (A11): una fecha escrita a mano como número no deja 🔍 sin tarjetas. */
+let conNumero = null;
+try { conNumero = S.pnFilasCatalogo({ catalogo_propiedades: { [A]: { primera_aparicion: "2024-01-01" }, [B]: {}, [C]: { primera_aparicion: 20230101 } } }); } catch (e) { conNumero = String(e); }
+assert("A11: con primera_aparicion numérica, las filas salen igual (sin lanzar)", Array.isArray(conNumero) && conNumero.length === 3, conNumero);
 
 console.log("== 2. HTML del catálogo ==");
 // El token del spam (SPAM) no se pinta nunca (pnPartirCatalogo lo deja fuera): su hueco queda vacío.
