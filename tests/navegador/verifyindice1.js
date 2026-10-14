@@ -119,6 +119,13 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   });
   assert("P5: el enlace del aviso abre el catálogo sin cambiar de pestaña", aviso.abierto && aviso.hash === "#revision", aviso);
 
+  /* A10: al imprimir no salen el índice ni «ⓘ Qué es cada cosa» (🔍 y 📒). */
+  await page.emulateMediaType("print");
+  const impreso = await page.evaluate(() => [...document.querySelectorAll("#ccIndice, .card>.cc-que-es")].map(e => getComputedStyle(e).display));
+  await page.emulateMediaType(null);
+  assert("A10: al imprimir, ni el índice ni «ⓘ Qué es cada cosa» (en 🔍 y en 📒)",
+    impreso.length === 3 && impreso.every(d => d === "none"), impreso);
+
   assert("0 errores", errores.length === 0, errores);
   await browser.close();
   console.log("\n" + ok + "/" + (ok + fallos) + " comprobaciones OK" + (fallos ? " -> " + fallos + " FALLOS" : " -> TODO VERDE"));
