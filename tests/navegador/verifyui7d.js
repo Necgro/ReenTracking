@@ -241,17 +241,17 @@ const arrNumTxNodo = c => Object.values(c.transacciones || {}).reduce((a, x) => 
   assert("sin API key: «Tus datos» pide solo la API key", /API key/.test(d1d) && !/wallet/.test(d1d), d1f);
 
   /* ============ E) primera vez ============ */
-  console.log("\nE) Primera vez: tus datos y «🔄 Actualizar» (ALMACEN-1)");
+  console.log("\nE) Primera vez: tus datos y la descarga empieza sola (ALMACEN-1, P6)");
   await page.evaluate(instalarDobles);
   await limpiarToasts();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.click("#arrPreparar"); await esperar(250);
   const e0 = await page.evaluate(() => ({ apagado: document.getElementById("arrPreparar").disabled, tx: arrNumTx(state.cache), orden: window.__orden.join(",") }));
   assert("sin API key «🔄 Actualizar» está apagado y no descarga nada", e0.apagado && e0.tx === 0 && e0.orden === "", e0);
-  await page.type("#cfgEthKey", "TEST_SINTETICA"); await page.keyboard.press("Tab"); await esperar(80);
   await limpiarToasts();
   await page.evaluate(() => { window.__writes = 0; window.scrollTo(0, 0); });
-  await page.click("#arrPreparar");
+  // Al poner la API key, sin pulsar «🔄 Actualizar».
+  await page.type("#cfgEthKey", "TEST_SINTETICA"); await page.keyboard.press("Tab"); await esperar(80);
   await esperarFlujo(); await esperar(300);
   const e1 = await page.evaluate(() => ({
     orden: window.__orden.join(","), tx: arrNumTx(state.cache), registros: state.registros ?? null, dirty: state.cacheDirty, writes: window.__writes,
