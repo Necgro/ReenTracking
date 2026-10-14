@@ -95,6 +95,10 @@ como antes? Hacer → editar → ¿se conservan los campos que no se editaron?
 
 - Lo escrito a medias se borra al repintar.
 - Algo cambia mientras el usuario escribe y al aplicar se pisa sin aviso.
+- Un diálogo con una lista congelada al abrirlo: se abre otro encima (Tab
+  + Intro en un botón de debajo) o se deshace algo por debajo, y al
+  guardar el viejo decide sobre lo que ya cambió (unas compras pasaban a
+  regalo).
 - Dos pestañas que editan lo mismo (la nota personal en 📒 y 💰): un
   borrador abierto en una pisa lo guardado en la otra, y pasa de una cache
   a otra.
@@ -224,6 +228,11 @@ cambió?
 **Mirar:** cada recuento nuevo o tocado, con cada filtro pulsado y con el
 spam, lo apartado y lo «a revisar» dentro y fuera.
 
+- Una acción «para todos los de esta dirección» se lleva también lo que
+  la app ya clasificó bien (el principal que vuelve del staking pasaba a
+  premio; un swap, a compra bancaria): el filtro del bloque mira la
+  dirección y no si estaba por decidir.
+
 ## 7. Avisos vagos, incompletos o falsos
 
 - El aviso habla de un problema cuando hay dos.
@@ -340,6 +349,10 @@ textos que el usuario o un ajuste pueden cambiar.
   copiado de la cache propia para que «pareciera real»; con una dirección
   pública al lado llevaba a la wallet. La prueba de orden solo miraba
   direcciones, hashes e importes.
+- Datos de otra persona (un probador) como ejemplo en un test o un
+  comentario: lo que pagó, su asignación y la fecha de su reclamación,
+  copiados del plan. La prueba de orden solo vigila tus datos: lo de un
+  probador va a `otras_palabras.txt` en cuanto aparece en un plan.
 
 ## 11. Tests demasiado optimistas
 
