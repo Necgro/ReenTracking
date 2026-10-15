@@ -5,8 +5,10 @@
  *   y el día del pago (€ con el BCE de ese día).
  * - Los que llegan sueltos, sin USDT que salga: compras por transferencia en
  *   € → en 💶, lo pagado en €.
- * Luego una venta: el cálculo usa esos costes (FIFO) y el informe ya no
- * marca nada como coste supuesto («**»).
+ * Las pagadas en USD guardan además lo pagado (solo para la pantalla): 💶 las
+ * enseña en $ con sus € al lado y 📊 las cuenta en $. Luego una venta: el
+ * cálculo usa los costes en € (FIFO) y el informe ya no marca nada como coste
+ * supuesto («**»).
  *
  * DATOS 100% SINTÉTICOS. Ejecución (desde la raíz):
  *     node tests/test_compras_banco_usd_paso_p13.js
@@ -77,6 +79,8 @@ for (const r of delDia) {
 for (const r of sueltas) borrador[r.clave] = EUR[r.contrato];
 for (const r of bancarias()) {
   const cambios = sb.cbCambios(STATE.registros, cache.ajustes_usuario, borrador, r.clave, 100);
+  // Las del reparto, guardadas con «En USDT…» abierto: van con lo pagado en USD (como cbGuardar).
+  if (USD[r.contrato] && r.fecha.startsWith(MASIVO)) for (const c of cambios) c.usd = { importe: Number(USD[r.contrato]), fecha: "2023-07-03" };
   cache.ajustes_usuario = sb.cbAjustesConCostes(cache.ajustes_usuario, cambios, STATE.registros, 100, FECHA);
 }
 regs = clasificar();
@@ -85,6 +89,49 @@ assert("las del reparto, a lo pagado en USD con el BCE del día del pago (458,72
   JSON.stringify([coste(P2)[0], coste(P3)[0]]) === "[275.23,733.94]" && coste(P1).includes(458.72), [coste(P1), coste(P2), coste(P3)]);
 assert("las sueltas, a lo pagado en € (210 y 420 €)", coste(P4)[0] === 210 && coste(P1).includes(420), [coste(P4), coste(P1)]);
 assert("ninguna queda «por defecto»", sb.cbFilas(regs, cache.ajustes_usuario, 100).every(f => !f.supuesto));
+
+console.log("== 2b. Las pagadas en USD: en $ en 💶 y en 📊 (solo pantalla) ==");
+{
+  const aj = Object.values(cache.ajustes_usuario).filter(a => a.pagado_usd);
+  assert("3 ajustes con lo pagado en USD y el día del pago, reconocidos como «Coste puesto por ti»",
+    aj.length === 3 && aj.every(a => a.fecha_pago_usd === "2023-07-03" && sb.ccEsAjusteCoste(a)), aj);
+  assert("el registro no lo lleva (el motor solo ve el coste en €)", regs.every(r => !("pagado_usd" in r) && !("fecha_pago_usd" in r)));
+  const filas = sb.cbFilas(regs, cache.ajustes_usuario, 100);
+  const masivo = filas.filter(f => f.reg.fecha.startsWith(MASIVO));
+  const html = masivo.map(f => sb.cbHtmlFila(f, {})).join("");
+  assert("💶: las del reparto en $ con sus € al lado («500,00 $» y «458,72 €»)",
+    masivo.every(f => f.usd) && html.includes("500,00 $") && html.includes('<span class="cb-en-eur">458,72 €</span>'), html.slice(0, 300));
+  assert("💶: las sueltas, solo en €", filas.filter(f => !f.reg.fecha.startsWith(MASIVO)).every(f => !f.usd));
+  const inv = sb.dashDineroInvertido(regs, cache.tipos_bce, cache.ajustes_usuario);
+  assert("📊: € 630 (sueltas) / $ 1.600 (reparto), y la cifra 1.600 + 630 × 1,1 = 2.293 USD", inv.eurBanco === 630 && inv.usdStable === 1600 &&
+    Math.abs(inv.movimientos[inv.movimientos.length - 1].invertido - 2293) < 1e-6, [inv.eurBanco, inv.usdStable]);
+  // Guardar solo € quita lo pagado en USD.
+  const r3 = regs.find(r => r.contrato === P3 && r.via_compra === "BANCARIA");
+  const soloEur = sb.cbAjustesConCostes(cache.ajustes_usuario, [{ clave: r3.clave, valor: 700 }], regs, 100, FECHA);
+  const a3 = sb.ccBuscarAjuste(soloEur, r3.clave).ajuste;
+  assert("corregida en € sin «En USDT…»: ya no lleva lo pagado en USD", a3.coste_eur === 700 && !("pagado_usd" in a3) && !("fecha_pago_usd" in a3), a3);
+  // En una decisión de 🔍 (o un «mandado a revisar») también vale y sigue siendo suya.
+  const dec = { categoria: "COMPRA", subcategoria: "COSTE_BASE", via_compra: "BANCARIA", coste_eur: 10, revisar: false,
+    nota: "Decidido por ti en Revisión (2026-10-15): compra bancaria con su coste real", pagado_usd: 11, fecha_pago_usd: "2023-07-03" };
+  assert("una decisión con lo pagado en USD sigue siendo una decisión (se deshace en «Ya decididos»)", sb.ccEsAjusteDecision(dec));
+  const rev = { revisar: true, nota: "Mandado a revisar por ti (2026-10-15)", coste_eur: 10, pagado_usd: 11, fecha_pago_usd: "2023-07-03" };
+  assert("un «mandado a revisar» con coste en USD sigue siendo tuyo", sb.ccAjusteQuePideRevision(rev) === "revisar");
+  // Auditoría: lo pagado en USD no se pierde al pasar por 📒 ni por «✔ Dejar», y solo vale si cuadra con el €.
+  const r1 = regs.find(r => r.contrato === P2 && r.via_compra === "BANCARIA");
+  const conUsd = cache.ajustes_usuario;
+  const mandado = sb.txAjustesConRevisar(conUsd, r1.clave, "mirar", FECHA);
+  const am = sb.ccBuscarAjuste(mandado, r1.clave).ajuste;
+  assert("A1: «Mandar a revisar» en 📒 conserva lo pagado en USD y se puede quitar", am.pagado_usd === 300 &&
+    sb.txEstadoRevisar(Object.assign({}, r1, { revisar: true }), mandado) === "spa", am);
+  const quitado = sb.ccBuscarAjuste(sb.txAjustesSinRevisar(mandado, r1.clave, FECHA), r1.clave).ajuste;
+  assert("A2: «Quitar de revisar» lo devuelve con lo pagado en USD", quitado.pagado_usd === 300 && quitado.fecha_pago_usd === "2023-07-03" &&
+    sb.ccEsAjusteCoste(quitado), quitado);
+  const dejado = sb.ccBuscarAjuste(sb.ccAjustesConDecision(mandado, Object.assign({}, r1, { revisar: true }), "dejar", null, FECHA), r1.clave).ajuste;
+  assert("A3: «✔ Dejar como compra» lo conserva", dejado.pagado_usd === 300 && dejado.coste_eur === 275.23 && sb.ccEsAjusteDecision(dejado), dejado);
+  const aMano = Object.assign({}, sb.ccBuscarAjuste(conUsd, r1.clave).ajuste, { coste_eur: 5000 });
+  assert("A5: con el € cambiado a mano en el JSON, lo pagado en USD ya no vale (💶 y 📊 enseñan el €)",
+    sb.ccPagadoUsd(aMano, cache.tipos_bce) === null && sb.ccPagadoUsd(sb.ccBuscarAjuste(conUsd, r1.clave).ajuste, cache.tipos_bce).importe === 300);
+}
 
 console.log("== 3. La venta: 6 tokens de Alcazaba por 720 USD ==");
 const salida = regs.find(r => r.contrato === P1 && sb.normalizarDireccion(r.destino) === COMPRADOR);

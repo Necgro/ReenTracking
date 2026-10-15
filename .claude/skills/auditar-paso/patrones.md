@@ -214,6 +214,10 @@ mitad de la acción? ¿Y si se pulsa dos veces? ¿Y en el papel?
 llama a la función cambiada. Cada arreglo: ¿qué otra cosa usaba lo que
 cambió?
 
+- Un dato nuevo que va con otro (lo pagado en USD con su coste en €): las
+  funciones que copian el viejo de un ajuste a otro (mandar o quitar de
+  revisar, «✔ Dejar», deshacer) lo pierden si no se tocan todas.
+
 ## 6. Filtros y recuentos que no cuadran
 
 - Con un filtro pulsado, otro filtro o el selector cuentan otra cosa.

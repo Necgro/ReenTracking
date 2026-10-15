@@ -28,8 +28,10 @@
      se pisa: su coste se enseña sin «Editar», con una ⓘ.
    - «En USDT…» (P15), con la casilla abierta: lo pagado en USD y el día
      del pago (una compra pagada en USDT a Reental y entregada después);
-     al escribir, la casilla de € se rellena con el BCE de ese día y se
-     guarda como siempre.
+     al escribir, la casilla de € se rellena con el BCE de ese día. Al
+     guardar, el ajuste lleva también pagado_usd y fecha_pago_usd: la fila
+     dice «500,00 $» con los € al lado, y 📊 la cuenta en $. Guardar solo €
+     los quita. El motor solo usa el coste en €.
 
    Reglas:
    - Guardado con ccGuardarAjustesDecision de js/15 (marcarCacheDirty +
@@ -108,10 +110,15 @@ function cbCosteVisto(reg, ajustes, precio) {
   return ccEsNumeroPositivo(defecto) && cbEstadoCoste(reg, ajustes) !== "ajeno" ? defecto : Number(reg.coste_eur);
 }
 
-/* Las filas del editor: [{ reg, estado, coste, supuesto }]. */
+/* Lo pagado en USD de una compra («En USDT…»): { importe, fecha } o null. */
+function cbPagadoUsd(reg, ajustes) {
+  const h = ccBuscarAjuste(ajustes, reg && reg.clave);
+  return h ? ccPagadoUsd(h.ajuste, (state.cache && state.cache.tipos_bce) || {}, state.cache) : null;
+}
+/* Las filas del editor: [{ reg, estado, coste, supuesto, usd }]. */
 function cbFilas(registros, ajustes, precio) {
   return cbComprasBancarias(registros).map(reg => ({ reg, estado: cbEstadoCoste(reg, ajustes),
-    coste: cbCosteVisto(reg, ajustes, precio), supuesto: cbSupuesto(reg, ajustes) }));
+    coste: cbCosteVisto(reg, ajustes, precio), supuesto: cbSupuesto(reg, ajustes), usd: cbPagadoUsd(reg, ajustes) }));
 }
 
 /* Lo escrito, leído como número (NaN si está vacío o no se entiende). */
@@ -144,7 +151,7 @@ function cbCambios(registros, ajustes, borrador, soloClave, precio) {
 function cbAjustesConCostes(ajustes, cambios, registros, precio, fechaISO) {
   const copia = Object.assign({}, pdEsObjeto(ajustes) ? ajustes : {});
   const porClave = new Map((registros || []).map(r => [ccClaveAjuste(r.clave), r]));
-  for (const { clave, valor } of cambios || []) {
+  for (const { clave, valor, usd } of cambios || []) {
     const k = ccClaveAjuste(clave);
     const reg = porClave.get(k);
     if (!reg || !txEsCompraBancaria(reg)) throw new Error("Compra no encontrada.");
@@ -154,14 +161,20 @@ function cbAjustesConCostes(ajustes, cambios, registros, precio, fechaISO) {
     const h = ccBuscarAjuste(copia, clave);
     const estado = cbEstadoCoste(reg, copia);
     if (estado === "ajeno") throw new Error("Ya tiene un ajuste manual: se cambia en «✏️ Ajustes en JSON».");
+    // Lo pagado en USD va con él («En USDT…»); guardar solo € lo quita.
+    const conUsd = a => {
+      for (const c of CC_CAMPOS_USD) delete a[c];
+      if (usd && ccEsNumeroPositivo(usd.importe)) Object.assign(a, { pagado_usd: usd.importe, fecha_pago_usd: usd.fecha });
+      return a;
+    };
     if (estado === "decision") {
       // El importe se guarda aunque sea el de por defecto (así el informe
       // deja de marcarlo con «**»).
-      copia[h.clave] = Object.assign({}, h.ajuste, { coste_eur: v });
+      copia[h.clave] = conUsd(Object.assign({}, h.ajuste, { coste_eur: v }));
       continue;
     }
     if (h) delete copia[h.clave];
-    copia[k] = ccAjusteCoste(v, fechaISO);
+    copia[k] = conUsd(ccAjusteCoste(v, fechaISO));
   }
   return copia;
 }
@@ -172,7 +185,7 @@ function cbAjustesConCostes(ajustes, cambios, registros, precio, fechaISO) {
 function cbEurDeUsd(texto, fecha, tiposBce, cache) {
   const t = String(texto || "").trim();
   if (!t) return { error: "" };
-  const usd = ccLeerImporte(t);
+  const usd = cbRedondearCentimos(ccLeerImporte(t)); // a céntimos: lo mismo que se guarda
   if (!ccEsNumeroPositivo(usd)) return { error: ccAvisoImporte(t) };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(fecha || ""))) return { error: "Pon el día del pago." };
   const r = ccEurOrientativo(usd, fecha, tiposBce, cache);
@@ -211,8 +224,11 @@ function cbHtmlFila(f, borrador) {
   const texto = abierta ? String(borrador[r.clave]) : guardado;
   const valor = abierta ? cbValorEscrito(texto) : coste;
   let pagado, acciones = "";
+  // Pagada en USD: «500,00 $» y, al lado y más pequeño, sus €.
+  const fijo = f.usd ? '<span class="cb-fijo">' + ccEsc(numEs(f.usd.importe, 2)) + ' $</span> <span class="cb-en-eur">' + ccEsc(guardado) + " €</span>"
+    : '<span class="cb-fijo">' + ccEsc(guardado) + " €</span>";
   if (f.estado === "ajeno") {
-    pagado = '<span class="cb-fijo">' + ccEsc(guardado) + " €</span> " + ccInfo(CB_AYUDA_AJENO) +
+    pagado = fijo + " " + ccInfo(CB_AYUDA_AJENO) +
       (f.supuesto ? ' <span class="cb-defecto">por defecto</span>' : "");
   } else if (abierta) {
     const cambia = !cbMismoImporte(valor, coste);
@@ -222,7 +238,7 @@ function cbHtmlFila(f, borrador) {
       cbBoton("usdt", r.clave, "En USDT…");
   } else {
     // El de por defecto lo dice (en el informe lleva «**»).
-    pagado = '<span class="cb-fijo">' + ccEsc(guardado) + " €</span>" +
+    pagado = fijo +
       (f.supuesto ? ' <span class="cb-defecto">por defecto</span>' : "");
     acciones = cbBoton("editar", r.clave, "✏️ Editar");
   }
@@ -310,6 +326,9 @@ function cbAbrir(clave) {
   const reg = ccRegistrosSesion().find(r => r.clave === clave);
   if (!reg) return;
   cbBorrador[clave] = numEs(cbCosteVisto(reg, cbAjustesSesion(), cbPrecioSesion()), 2);
+  // Pagada en USD: «En USDT…» abierto con lo que pusiste.
+  const usd = cbPagadoUsd(reg, cbAjustesSesion());
+  if (usd) cbUsdt[clave] = { usd: numEs(usd.importe, 2), fecha: usd.fecha, antes: cbBorrador[clave] };
   renderCosteCompras();
   const input = cbCasilla(clave);
   if (input) { input.focus(); input.select(); }
@@ -348,6 +367,13 @@ async function cbGuardar(clave) {
   const registros = ccRegistrosSesion();
   const ajustes = cbAjustesSesion();
   const cambios = cbCambios(registros, ajustes, cbBorrador, clave, cbPrecioSesion());
+  // Con «En USDT…» abierto y la casilla en sus €: se guarda también lo pagado en USD.
+  const u = cbUsdt[clave], calc = u && cbEurDeUsd(u.usd, u.fecha, (state.cache && state.cache.tipos_bce) || {}, state.cache);
+  const usd = calc && calc.eur && cbMismoImporte(cbValorEscrito(cbBorrador[clave]), calc.eur)
+    ? { importe: cbRedondearCentimos(ccLeerImporte(u.usd)), fecha: u.fecha } : null;
+  const reg = registros.find(r => r.clave === clave), antes = reg && cbPagadoUsd(reg, ajustes);
+  if (!cambios.length && JSON.stringify(usd) !== JSON.stringify(antes)) cambios.push({ clave, valor: cbValorEscrito(cbBorrador[clave]) });
+  for (const c of cambios) c.usd = usd;
   if (!cambios.length) return cbCerrar(clave);
   let nuevos;
   try { nuevos = cbAjustesConCostes(ajustes, cambios, registros, cbPrecioSesion(), ahoraLocalISO()); }
@@ -443,6 +469,7 @@ function cbInyectarEstilos() {
     ".cb-tabla tbody tr:hover{background:var(--panel2)}",
     ".cb-tabla .num{text-align:right;font-variant-numeric:tabular-nums}",
     ".cb-defecto{color:var(--muted);font-size:12.5px;font-weight:400}",
+    ".cb-en-eur{color:var(--muted);font-size:12px;margin-left:4px}",
     ".cb-valor{width:120px;text-align:right;padding:6px 10px;font-size:13.5px}",
     ".cb-acciones{text-align:left}",
     ".cb-accion{font-size:13px;padding:5px 10px;border-radius:8px}",

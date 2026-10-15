@@ -152,7 +152,8 @@ function dashSerieMensual(movimientos) {
    { movimientos: [{ fecha, delta, invertido }] (con fecha, en orden),
    compras, ventas, sinImporte, sinCambio, sinFecha } y lo comprado en su
    moneda: eurBanco (por transferencia, en €) y usdStable (en USDT o USDC,
-   también desde el vault). */
+   también desde el vault, y las de transferencia pagadas en USD: el
+   pagado_usd de su ajuste, «En USDT…» de 💶, que cuenta tal cual). */
 const DASH_VIAS_COMPRA = ["BANCARIA", "ONCHAIN", "VAULT"];
 /* Antes de esto o más de un año en el futuro, la fecha es una
    errata (un ajuste a mano, un timeStamp 0) y alargaría el gráfico sin fin. */
@@ -172,7 +173,7 @@ function dashFechaDibujable(fecha) {
   return fecha.slice(0, 10) >= DASH_FECHA_MIN && fecha.slice(0, 10) <= tope;
 }
 
-function dashDineroInvertido(registros, tiposBce) {
+function dashDineroInvertido(registros, tiposBce, ajustes) {
   const positivo = ccEsNumeroPositivo;
   const lista = (registros || []).filter(Boolean);
   /* Cada compra «CANJE» se lleva una venta sin importe de su hash (la
@@ -180,6 +181,8 @@ function dashDineroInvertido(registros, tiposBce) {
   const canjes = new Map();
   for (const r of lista) if (r.categoria === "COMPRA" && r.via_compra === "CANJE") canjes.set(r.hash, (canjes.get(r.hash) || 0) + 1);
   const res = { movimientos: [], compras: 0, ventas: 0, sinImporte: 0, sinCambio: 0, sinFecha: 0, eurBanco: 0, usdStable: 0 };
+  const enUsd = new Map(Object.entries(ajustes || {}).map(([c, a]) => [ccClaveAjuste(c), ccPagadoUsd(a, tiposBce)])
+    .filter(([, u]) => u).map(([c, u]) => [c, u.importe]));
   for (const r of lista) {
     const compra = r.categoria === "COMPRA" && DASH_VIAS_COMPRA.includes(r.via_compra) &&
       !!String(r.inmueble || "").trim() && !STABLECOINS.has(normalizarDireccion(r.contrato || ""));
@@ -188,7 +191,9 @@ function dashDineroInvertido(registros, tiposBce) {
     if (venta && !positivo(r.importe_usdt) && canjes.get(r.hash) > 0) { canjes.set(r.hash, canjes.get(r.hash) - 1); continue; }
     if (!dashFechaDibujable(r.fecha)) { res.sinFecha++; continue; }
     let importe = null;
-    if (compra && r.via_compra === "BANCARIA") { // en €, como el motor
+    const usdBanco = compra && r.via_compra === "BANCARIA" ? enUsd.get(ccClaveAjuste(r.clave)) : undefined;
+    if (usdBanco) importe = usdBanco; // pagada en USD: lo pagado
+    else if (compra && r.via_compra === "BANCARIA") { // en €, como el motor
       if (positivo(r.coste_eur)) {
         const tipo = dashTipoBce(tiposBce, r.fecha.slice(0, 10));
         if (tipo === null) { res.sinCambio++; continue; }
@@ -197,7 +202,7 @@ function dashDineroInvertido(registros, tiposBce) {
     } else if (positivo(r.importe_usdt)) importe = r.importe_usdt;
     if (importe === null) { res.sinImporte++; continue; }
     res[compra ? "compras" : "ventas"]++;
-    if (compra && r.via_compra === "BANCARIA") res.eurBanco += r.coste_eur;
+    if (compra && r.via_compra === "BANCARIA" && !usdBanco) res.eurBanco += r.coste_eur;
     else if (compra) res.usdStable += importe;
     res.movimientos.push({ fecha: r.fecha, instante: r.instante, delta: compra ? importe : -importe });
   }
@@ -930,7 +935,7 @@ function renderDashboard() {
   };
   const FALLO = { fallo: true };
   const vaultSaldo = cache ? seguro(() => dashSaldoVault(cache, vault), null) : null;
-  const invertido = registros ? seguro(() => dashDineroInvertido(registros, cache && cache.tipos_bce), null) : null;
+  const invertido = registros ? seguro(() => dashDineroInvertido(registros, cache && cache.tipos_bce, cache && cache.ajustes_usuario), null) : null;
   const mensual = invertido ? seguro(() => dashSerieMensual(invertido.movimientos), []) : null;
   const rendimientos = csvOk ? seguro(() => dashRendimientosResumen(state.filasCsv, registros), null) : null;
   const categorias = registros ? seguro(() => dashCategoriasResumen(registros), null) : null;

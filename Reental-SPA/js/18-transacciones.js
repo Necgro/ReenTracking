@@ -835,9 +835,9 @@ function txTotalRecuento(registros, f, rel, spam) {
 /* ¿Es un ajuste escrito por «Mandar a revisar» de esta pestaña? Solo si
    tiene EXACTAMENTE revisar:true + nota con el marcador (así deshacer nunca
    borra información de otro origen), y como mucho el coste_eur de una
-   compra bancaria (deshacer lo conserva). */
+   compra bancaria y lo pagado en USD (deshacer los conserva). */
 function txEsAjusteMandarRevisar(ajuste) {
-  return ccSoloCampos(ajuste, ["revisar", "nota", "coste_eur"]) && ajuste.revisar === true &&
+  return ccSoloCampos(ajuste, ["revisar", "nota", "coste_eur", ...CC_CAMPOS_USD]) && ajuste.revisar === true &&
          typeof ajuste.nota === "string" && ccEmpiezaConMarca(ajuste.nota, TX_MARCA_REVISAR);
 }
 
@@ -876,7 +876,7 @@ function txAjustesConRevisar(ajustes, clave, motivo, fechaISO) {
   const copia = Object.assign({}, base);
   if (h) delete copia[h.clave];
   copia[k] = { revisar: true, nota: txNotaMandarRevisar(motivo, fechaISO) };
-  if (h) copia[k].coste_eur = h.ajuste.coste_eur;
+  if (h) ccConUsd(Object.assign(copia[k], { coste_eur: h.ajuste.coste_eur }), h.ajuste);
   return copia;
 }
 
@@ -893,7 +893,7 @@ function txAjustesSinRevisar(ajustes, clave, fechaISO) {
   const copia = Object.assign({}, base);
   delete copia[hallado.clave];
   if ("coste_eur" in hallado.ajuste) {
-    copia[hallado.clave] = ccAjusteCoste(hallado.ajuste.coste_eur, fechaISO);
+    copia[hallado.clave] = ccConUsd(ccAjusteCoste(hallado.ajuste.coste_eur, fechaISO), hallado.ajuste);
   }
   return copia;
 }

@@ -120,12 +120,17 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
     (await escrituras()) === w0 + 1, [aj, coste]);
   const u3 = await vista();
   assert("U3 -> la fila se cierra y la subfila se va", u3.casilla === null && !u3.sub, u3);
+  const pagado3 = await page.evaluate(c => [...document.querySelectorAll("#cbCuerpo tr.cb-fila")].find(f => f.getAttribute("data-clave") === c)
+    .cells[4].textContent.replace(/\s+/g, " ").trim(), clave);
+  assert("U3 -> guardada en USD: la fila dice «1.000,00 $» y sus € al lado (909,09 €)", pagado3 === "1.000,00 $ 909,09 €" &&
+    aj.pagado_usd === 1000 && aj.fecha_pago_usd === "2024-03-01", [pagado3, aj]);
 
   /* U4 */
   await page.click(sel('#cbCuerpo [data-cb="editar"]'));
-  await esperar(100);
-  await page.click(sel('#cbCuerpo [data-cb="usdt"]'));
   await esperar(150);
+  const u4o = await vista();
+  assert("U4 -> al editarla, «En USDT…» se abre con lo que pusiste (1.000,00 USD el 01/03/2024)",
+    u4o.sub && u4o.usd === "1.000,00" && u4o.fecha === "2024-03-01" && u4o.casilla === "909,09", u4o);
   await page.click(sel('#cbCuerpo [data-cb="usdt"]'));
   await esperar(150);
   const u4a = await vista();
@@ -140,9 +145,7 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   assert("U4 -> Esc cierra sin guardar", u4b.casilla === null && !u4b.sub && (await escrituras()) === w1 &&
     (await page.evaluate(c => state.cache.ajustes_usuario[c].coste_eur, clave)) === 909.09, u4b);
   /* U5) auditoría: borrar los USD, escribir los € a mano y el aviso sin tipo del BCE. */
-  await page.click(sel('#cbCuerpo [data-cb="editar"]'));
-  await esperar(100);
-  await page.click(sel('#cbCuerpo [data-cb="usdt"]'));
+  await page.click(sel('#cbCuerpo [data-cb="editar"]'));   // pagada en USD: «En USDT…» ya abierto
   await esperar(150);
   await escribirUsd("1");
   await page.focus("#cbCuerpo .cb-usd");
@@ -164,6 +167,29 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   const aviso5 = await page.evaluate(() => [...document.querySelectorAll("#toasts .toast")].map(t => t.textContent).join(" | "));
   assert("U5 -> Intro sin tipo del BCE ese día: ese es el aviso, y no guarda", aviso5.includes("Sin tipo del BCE para ese día.") &&
     (await escrituras()) === w5, aviso5);
+
+  /* U6) auditoría: lo pagado en USD se guarda a céntimos, y abrir y guardar sin tocar nada no lo cambia. */
+  await page.keyboard.press("Escape");
+  await esperar(150);
+  await page.click(sel('#cbCuerpo [data-cb="editar"]'));
+  await esperar(150);
+  await escribirUsd("1000,125");
+  await ponerDia("2024-03-01");
+  await page.focus("#cbCuerpo .cb-usd");
+  await page.keyboard.press("Enter");
+  await esperar(700);
+  const aj6 = await page.evaluate(c => state.cache.ajustes_usuario[c], clave);
+  assert("U6 -> «1000,125» USD se guarda a céntimos (1.000,13)", aj6.pagado_usd === 1000.13, aj6);
+  const w6 = await escrituras();
+  await page.click(sel('#cbCuerpo [data-cb="editar"]'));
+  await esperar(150);
+  await page.focus("#cbCuerpo .cb-usd");
+  await page.keyboard.press("Enter");
+  await esperar(500);
+  assert("U6 -> abrir y guardar sin tocar nada no escribe ni quita lo pagado en USD", (await escrituras()) === w6 &&
+    (await page.evaluate(c => state.cache.ajustes_usuario[c].pagado_usd, clave)) === 1000.13);
+  await page.click(sel('#cbCuerpo [data-cb="editar"]'));
+  await esperar(150);
 
   await page.evaluate(() => document.body.classList.add("dark"));
   await esperar(150);

@@ -2037,6 +2037,9 @@ function sellosAjustes(cache) {
    de los ajustes que siguieron a su movimiento, para que
    ejecutarClasificacion los cambie de clave en la cache, y con [clave,
    null] los que se quedaron sin él. */
+/* Datos de un ajuste que solo usa la pantalla (💶 y 📊: lo pagado en USD de
+   una compra por transferencia, P15): no pasan al registro ni al motor. */
+const AJUSTE_SOLO_PANTALLA = new Set(["pagado_usd", "fecha_pago_usd"]);
 function aplicarAjustesUsuario(registros, cache, silencioso, movidos) {
   // silencioso: sin avisos en el registro (la simulacion del formulario de
   // vinculos lo llama en cada tecla).
@@ -2088,6 +2091,8 @@ function aplicarAjustesUsuario(registros, cache, silencioso, movidos) {
           continue;
         }
         registro.nota = (registro.nota ? registro.nota + "; " : "") + valor;
+      } else if (AJUSTE_SOLO_PANTALLA.has(campo)) {
+        continue;
       } else if (campo === "__proto__") {
         // Cambiaría el prototipo del registro.
         avisar("AVISO: ajuste " + clave + ": campo '__proto__' no valido, se ignora", "warn");

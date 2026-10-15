@@ -546,10 +546,29 @@ function ccNotaMandarRevisar(motivo, fechaISO) {
 function ccAjusteCoste(coste, fechaISO) {
   return { coste_eur: coste, nota: CC_MARCA_COSTE + ccDiaNota(fechaISO) };
 }
-/* ¿Es un ajuste de «💶 Coste…»? Solo coste_eur y la nota con su marca
-   (js/20 y «Mandar a revisar» de js/18). */
+/* Lo pagado en USD de una compra por transferencia («En USDT…» de 💶):
+   puede ir con su coste_eur en cualquier ajuste que lo lleve. */
+const CC_CAMPOS_USD = ["pagado_usd", "fecha_pago_usd"];
+/* Lo pagado en USD va con su coste: quien copia el coste de un ajuste a
+   otro (mandar o quitar de revisar, «✔ Dejar», deshacer) lo copia también. */
+function ccConUsd(destino, origen) {
+  for (const c of CC_CAMPOS_USD) if (origen && c in origen) destino[c] = origen[c];
+  return destino;
+}
+/* Lo pagado en USD de un ajuste, { importe, fecha } o null: solo si sus €
+   con el BCE de ese día son su coste_eur (si alguien cambió el € a mano en
+   el JSON, ya no vale). Lo usan 💶 y 📊. */
+function ccPagadoUsd(ajuste, tiposBce, cache) {
+  if (!pdEsObjeto(ajuste) || !ccEsNumeroPositivo(ajuste.pagado_usd)) return null;
+  const fecha = String(ajuste.fecha_pago_usd || "");
+  const r = ccEurOrientativo(ajuste.pagado_usd, fecha, tiposBce || {}, cache);
+  const eur = r ? Math.round(r.eur * 100) / 100 : NaN;
+  return Number.isFinite(eur) && Math.abs(eur - Number(ajuste.coste_eur)) < 0.005 ? { importe: ajuste.pagado_usd, fecha } : null;
+}
+/* ¿Es un ajuste de «💶 Coste…»? Solo coste_eur (y lo pagado en USD) y la
+   nota con su marca (js/20 y «Mandar a revisar» de js/18). */
 function ccEsAjusteCoste(ajuste) {
-  return ccSoloCampos(ajuste, ["coste_eur", "nota"]) && typeof ajuste.nota === "string" &&
+  return ccSoloCampos(ajuste, ["coste_eur", "nota", ...CC_CAMPOS_USD]) && typeof ajuste.nota === "string" &&
     ajuste.nota.startsWith(CC_MARCA_COSTE);
 }
 function ccAjusteSacadoSpam(fechaISO) {
@@ -580,7 +599,7 @@ const CC_NOMBRE_CATEGORIA = {
   RENDIMIENTO: "Rendimiento", REWARD: "Recompensa DeFi", RETIRADA: "Retirada",
   COMISION: "Comisión de red", SPAM: "Spam",
 };
-const CC_CAMPOS_DECISION = ["categoria", "subcategoria", "revisar", "nota", "importe_usdt", "coste_eur", "via_compra"];
+const CC_CAMPOS_DECISION = ["categoria", "subcategoria", "revisar", "nota", "importe_usdt", "coste_eur", "via_compra", ...CC_CAMPOS_USD];
 
 function ccNombreCategoria(cat) {
   return CC_NOMBRE_CATEGORIA[cat] || categoriaAMostrar(cat);
@@ -607,7 +626,7 @@ function ccSoloCampos(ajuste, permitidos) {
    o lo pone «💶 Coste…»); sigue siendo tuyo y la decisión siguiente lo
    conserva. */
 function ccAjusteQuePideRevision(ajuste) {
-  if (!ccSoloCampos(ajuste, ["categoria", "subcategoria", "revisar", "nota", "coste_eur"]) || ajuste.revisar !== true ||
+  if (!ccSoloCampos(ajuste, ["categoria", "subcategoria", "revisar", "nota", "coste_eur", ...CC_CAMPOS_USD]) || ajuste.revisar !== true ||
       typeof ajuste.nota !== "string") return null;
   if (ccEmpiezaConMarca(ajuste.nota, CC_MARCA_REVISAR) && !("categoria" in ajuste)) return "revisar";
   if (ccEmpiezaConMarca(ajuste.nota, CC_MARCA_SACADO) && ajuste.categoria === "REVISAR" && !("coste_eur" in ajuste)) return "sacado";
@@ -841,7 +860,7 @@ function ccAjustesConDecision(ajustes, reg, id, valor, fechaISO) {
   const copia = Object.assign({}, base);
   if (h) delete copia[h.clave];
   copia[k] = ccAjusteDecision(reg, id, valor, fechaISO, antes, h && h.ajuste);
-  if (id === "dejar" && h && "coste_eur" in h.ajuste) copia[k].coste_eur = h.ajuste.coste_eur;
+  if (id === "dejar" && h && "coste_eur" in h.ajuste) ccConUsd(Object.assign(copia[k], { coste_eur: h.ajuste.coste_eur }), h.ajuste);
   return copia;
 }
 
@@ -867,6 +886,7 @@ function ccAjustesSinDecision(ajustes, clave, fechaISO) {
     copia[h.clave] = copia[h.clave]
       ? Object.assign(copia[h.clave], { coste_eur: h.ajuste.coste_eur })
       : ccAjusteCoste(h.ajuste.coste_eur, fechaISO);
+    ccConUsd(copia[h.clave], h.ajuste);
   }
   return copia;
 }
