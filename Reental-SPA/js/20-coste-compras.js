@@ -182,6 +182,8 @@ function cbAjustesConCostes(ajustes, cambios, registros, precio, fechaISO) {
 /* «En USDT…»: lo pagado en USD el día del pago, en € con el tipo del BCE
    de ese día (o el último anterior, como el motor): { eur, fecha } (la del
    tipo usado) o { error } (vacío mientras no hay nada escrito). */
+const CB_SIN_TIPO = "Sin tipo del BCE para ese día.";
+let cbEsperaBce = null;
 function cbEurDeUsd(texto, fecha, tiposBce, cache) {
   const t = String(texto || "").trim();
   if (!t) return { error: "" };
@@ -189,9 +191,24 @@ function cbEurDeUsd(texto, fecha, tiposBce, cache) {
   if (!ccEsNumeroPositivo(usd)) return { error: ccAvisoImporte(t) };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(fecha || ""))) return { error: "Pon el día del pago." };
   const r = ccEurOrientativo(usd, fecha, tiposBce, cache);
-  if (!r) return { error: "Sin tipo del BCE para ese día." };
+  if (!r) return { error: CB_SIN_TIPO };
   const eur = cbRedondearCentimos(r.eur);
   return eur > 0 ? { eur, fecha: r.fecha } : { error: "Escribe un importe mayor que 0." };
+}
+/* Un día sin tipo guardado (anterior a lo descargado): se pide al BCE en el
+   momento, una vez por día y sesión; desde el 04/01/1999 (el primer tipo)
+   y hasta ayer. Los 7 días de antes por si ese día no hubo tipo. Al
+   guardar la compra se guardan con la cache. true si trajo alguno. */
+const cbBceIntentado = new Set();
+async function cbBajarTipoBce(fecha) {
+  if (!esFechaBce(fecha) || fecha < "1999-01-04" || fecha >= hoyEspana() || cbBceIntentado.has(fecha) || !state.cache) return false;
+  cbBceIntentado.add(fecha);
+  let nuevos;
+  try { nuevos = await descargarTiposBce(sumarDias(fecha, -7), fecha); }
+  catch (e) { log("Tipo del BCE del " + fechaEs(fecha) + ": " + e.message, "warn"); return false; }
+  if (!Object.keys(nuevos).length) return false;
+  state.cache.tipos_bce = Object.assign(state.cache.tipos_bce || {}, nuevos);
+  return true;
 }
 /* Lo que dice al lado: «= 909,09 € (BCE del 01/03/2024)» o el error. */
 function cbTextoEurDeUsd(calc) {
@@ -419,6 +436,15 @@ function cbMontarEventos() {
     if (!casilla) return;
     casilla.value = calc.eur ? numEs(calc.eur, 2) : calc.error ? "" : u.antes;
     alEscribir(casilla);
+    // Sin tipo ese día: se pide al BCE (con una pausa: la fecha cambia
+    // con cada número que se escribe) y se recalcula si sigue ese día.
+    if (calc.error === CB_SIN_TIPO) {
+      clearTimeout(cbEsperaBce);
+      cbEsperaBce = setTimeout(async () => {
+        if (!(await cbBajarTipoBce(u.fecha)) || !sub.isConnected || sub.querySelector(".cb-usd-fecha").value !== u.fecha) return;
+        alEscribirUsd(input);
+      }, 400);
+    }
   };
   const esDe = (el, ...clases) => !!el.classList && clases.some(c => el.classList.contains(c));
   cont.addEventListener("input", e => {

@@ -1141,6 +1141,8 @@ function aniosDelInforme(fechas, hoy) {
    las fechas de los movimientos (no en UTC). Ayer y no hoy: el tipo de
    hoy puede no estar publicado y lo cubierto llega como mucho hasta ayer,
    asi que pedir hoy volveria a descargar toda la serie en cada ejecucion.
+   Tambien el dia de cada pago en USD de 💶 (puede ser anterior al primer
+   movimiento: una preventa pagada semanas antes de recibir los tokens).
    hoy: 'AAAA-MM-DD' (si no, el de hoy en Espana). */
 function fechasBceNecesarias(cache, filasCsv, hoy) {
   hoy = hoy || hoyEspana();
@@ -1148,6 +1150,10 @@ function fechasBceNecesarias(cache, filasCsv, hoy) {
   const anios = aniosDelInforme(fechas, hoy);
   if (anios.length) {
     for (let a = anios[0]; a < parseInt(hoy.slice(0, 4), 10); a++) fechas.add(a + "-12-31");
+  }
+  for (const a of Object.values(cache.ajustes_usuario || {})) {
+    const f = a && a.fecha_pago_usd;
+    if (esFechaBce(f) && f < hoy) fechas.add(f);
   }
   if (fechas.size) fechas.add(sumarDias(hoy, -1));
   return [...fechas];

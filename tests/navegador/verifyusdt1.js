@@ -10,6 +10,8 @@
  *  U3) «Guardar» guarda 909,09 € como su coste (una escritura) y cierra.
  *  U4) Esc en el importe cierra sin guardar; otra pulsación de «En USDT…»
  *      cierra la subfila; oscuro y 0 errores.
+ *  U7) un día sin tipo guardado: lo pide al BCE en el momento (simulado,
+ *      sin red), lo calcula y lo guarda con la cache; una vez por día.
  *
  * DATOS 100 % SINTÉTICOS. Ejecución (servidor en 8765 y NODE_PATH a
  * puppeteer-core):  node tests/navegador/verifyusdt1.js
@@ -58,6 +60,9 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
     const csv = cargarCsvRendimientos([cab, fila].join("\n"));
     state.filasCsv = csv.filas; state.indicePorHash = csv.indicePorHash; state.csvCargado = true;
     window.__writes = [];
+    // El BCE simulado (sin red): solo tiene el 15/06/2023.
+    window.__bce = [];
+    window.descargarTiposBce = async (a, b) => { window.__bce.push([a, b]); return a <= "2023-06-15" && "2023-06-15" <= b ? { "2023-06-15": 1.08 } : {}; };
     window.escribirArchivoNavegador = async c => { window.__writes.push(JSON.stringify(c)); };
     ejecutarClasificacion();
   });
@@ -190,6 +195,34 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   await esperar(500);
   assert("U6 -> abrir y guardar sin tocar nada no escribe ni quita lo pagado en USD", (await escrituras()) === w6 &&
     (await page.evaluate(c => state.cache.ajustes_usuario[c].pagado_usd, clave)) === 1000.13);
+
+  /* U7) un día anterior a lo descargado: se pide al BCE en el momento. */
+  await page.click(sel('#cbCuerpo [data-cb="editar"]'));
+  await esperar(150);
+  await escribirUsd("1.080");
+  await ponerDia("2023-06-15");
+  const u7a = await vista();
+  await esperar(700);
+  const u7 = await vista();
+  assert("U7 -> sin tipo guardado, primero lo dice y luego lo trae del BCE: 1.080 USD → 1.000,00 €",
+    u7a.texto === "Sin tipo del BCE para ese día." && u7.texto === "= 1.000,00 € (BCE del 15/06/2023)" && u7.casilla === "1.000,00", [u7a, u7]);
+  assert("U7 -> pide los 7 días de antes hasta ese día", JSON.stringify(await page.evaluate(() => window.__bce.at(-1))) === '["2023-06-08","2023-06-15"]',
+    await page.evaluate(() => window.__bce));
+  const n7 = await page.evaluate(() => window.__bce.length);
+  await ponerDia("2020-01-01");
+  await esperar(600);
+  await ponerDia("2020-01-01");
+  await esperar(600);
+  // El 01/01/2020 ya se pidió (vacío) en U5.
+  assert("U7 -> un día que el BCE no tiene: sigue el aviso y no lo vuelve a pedir", (await vista()).texto === "Sin tipo del BCE para ese día." &&
+    (await page.evaluate(() => window.__bce.length)) === n7, await page.evaluate(() => window.__bce));
+  await ponerDia("2023-06-15");
+  await page.focus("#cbCuerpo .cb-usd");
+  await page.keyboard.press("Enter");
+  await esperar(700);
+  const aj7 = await page.evaluate(c => [state.cache.ajustes_usuario[c], JSON.parse(window.__writes.at(-1)).tipos_bce["2023-06-15"]], clave);
+  assert("U7 -> guardado: 1.000 € de coste, 1.080 USD el 15/06/2023 y el tipo en la cache guardada",
+    aj7[0].coste_eur === 1000 && aj7[0].pagado_usd === 1080 && aj7[0].fecha_pago_usd === "2023-06-15" && aj7[1] === 1.08, aj7);
   await page.click(sel('#cbCuerpo [data-cb="editar"]'));
   await esperar(150);
 

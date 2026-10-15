@@ -67,5 +67,13 @@ assert("con «En USDT…» abierto: la subfila con lo pagado, el día y el resul
   conUsdt.includes("= 909,09 € (BCE del 01/03/2024)") && conUsdt.includes('colspan="7"'), conUsdt);
 assert("la subfila no sale si la casilla está cerrada", !S.cbHtmlFila(Object.assign({}, f, { usdt: { usd: "", fecha: "" } }), {}).includes("cb-usdt"));
 
+console.log("== 3. «Actualizar» también baja el día de cada pago en USD ==");
+vm.runInContext(fs.readFileSync(path.join(BASE, "22-informe-renta.js"), "utf8"), S, { filename: "22-informe-renta.js" });
+const nec = S.fechasBceNecesarias({ transacciones: { wallet_tokens: [] }, ajustes_usuario: {
+  a: { coste_eur: 1000, pagado_usd: 1080, fecha_pago_usd: "2023-06-15" }, b: { coste_eur: 5 }, c: { pagado_usd: 1, fecha_pago_usd: "2026-07-01" },
+  d: { pagado_usd: 1, fecha_pago_usd: "15/06/2023" } } }, [], "2026-06-10");
+assert("el día del pago entra (no los de hoy en adelante ni los mal escritos)", nec.includes("2023-06-15") && !nec.includes("2026-07-01") &&
+  !nec.includes("15/06/2023") && nec.includes("2026-06-09"), nec);
+
 console.log("\n" + ok + " OK, " + fallos + " FALLOS");
 process.exit(fallos ? 1 : 0);
