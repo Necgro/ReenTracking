@@ -173,7 +173,7 @@ function dashFechaDibujable(fecha) {
   return fecha.slice(0, 10) >= DASH_FECHA_MIN && fecha.slice(0, 10) <= tope;
 }
 
-function dashDineroInvertido(registros, tiposBce, ajustes) {
+function dashDineroInvertido(registros, tiposBce, ajustes, cache) {
   const positivo = ccEsNumeroPositivo;
   const lista = (registros || []).filter(Boolean);
   /* Cada compra «CANJE» se lleva una venta sin importe de su hash (la
@@ -181,7 +181,7 @@ function dashDineroInvertido(registros, tiposBce, ajustes) {
   const canjes = new Map();
   for (const r of lista) if (r.categoria === "COMPRA" && r.via_compra === "CANJE") canjes.set(r.hash, (canjes.get(r.hash) || 0) + 1);
   const res = { movimientos: [], compras: 0, ventas: 0, sinImporte: 0, sinCambio: 0, sinFecha: 0, eurBanco: 0, usdStable: 0 };
-  const enUsd = new Map(Object.entries(ajustes || {}).map(([c, a]) => [ccClaveAjuste(c), ccPagadoUsd(a, tiposBce)])
+  const enUsd = new Map(Object.entries(ajustes || {}).map(([c, a]) => [ccClaveAjuste(c), ccPagadoUsd(a, tiposBce, cache)]) // con la cache, como 💶
     .filter(([, u]) => u).map(([c, u]) => [c, u.importe]));
   for (const r of lista) {
     const compra = r.categoria === "COMPRA" && DASH_VIAS_COMPRA.includes(r.via_compra) &&
@@ -935,7 +935,7 @@ function renderDashboard() {
   };
   const FALLO = { fallo: true };
   const vaultSaldo = cache ? seguro(() => dashSaldoVault(cache, vault), null) : null;
-  const invertido = registros ? seguro(() => dashDineroInvertido(registros, cache && cache.tipos_bce, cache && cache.ajustes_usuario), null) : null;
+  const invertido = registros ? seguro(() => dashDineroInvertido(registros, cache && cache.tipos_bce, cache && cache.ajustes_usuario, cache), null) : null;
   const mensual = invertido ? seguro(() => dashSerieMensual(invertido.movimientos), []) : null;
   const rendimientos = csvOk ? seguro(() => dashRendimientosResumen(state.filasCsv, registros), null) : null;
   const categorias = registros ? seguro(() => dashCategoriasResumen(registros), null) : null;

@@ -38,7 +38,8 @@ function fechasConMovimientoRnt(cache) {
 }
 /* Los días (hora española) con movimiento de RNT: Map día -> true si a
    todos sus movimientos ya les vale el precio guardado de su día UTC (de
-   antes de la hora española; js/21 lo usa): ese día no hace falta. */
+   antes de la hora española; js/21 lo usa): ese día no hace falta. Solo
+   los de más de 365 días: los otros CoinGecko los da (el de su día manda). */
 function diasConMovimientoRnt(cache) {
   const txs = [];
   for (const nombreSerie of ["wallet_tokens", "vault_tokens"]) {
@@ -52,7 +53,8 @@ function diasConMovimiento(txs, precios) {
     const f = fechaDeTx(tx);
     if (!f) continue;
     const utc = diaUtcSiOtro(fmtFechaHora(enHoraEspanola(aUtcNaive(tx.timeStamp))));
-    dias.set(f, (dias.has(f) ? dias.get(f) : true) && !!utc && precioValido(precios[utc]));
+    const viejo = diasDesdeFechaRnt(f, coingeckoRitmo.ahora()) > CG_DIAS_MAX_PLAN_GRATUITO;
+    dias.set(f, (dias.has(f) ? dias.get(f) : true) && viejo && !!utc && precioValido(precios[utc]));
   }
   return dias;
 }

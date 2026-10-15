@@ -150,5 +150,43 @@ assert("A3: 0,004 € no se guarda (dice que tiene que ser mayor que 0)", guarda
 assert("A3: 0,005 € se guarda como 0,01 €", guardar(0.005).b1 && guardar(0.005).b1.coste_eur === 0.01, guardar(0.005));
 assert("A3: 450 € se guarda", guardar(450).b1 && guardar(450).b1.coste_eur === 450, guardar(450));
 
+console.log("\n== A7 y A8: precio de las filas del buscador ==");
+{
+  const SAL = reg(H(1), P1, W, T, 4, "VENTA", { clave: "s1", simbolo: "RC1" });
+  const ord = (cobros, ya, asignados) => g("ccOrdenarSugerencias")(cobros, SAL, 110,
+    { salidasVinculadas: new Map(ya ? [["s1", ["v1"]]] : []), cobrosAsignados: new Map(asignados || []) },
+    { pagos_diferidos: { ventas: ya ? [{ id: "v1", estado: "CONFIRMADO", asignaciones: [{ id: "a1", cantidad_asignada: ya }] }] : [] } });
+  const fila = f => g("ccHtmlFilaCobro")(f.c, false, SAL, f.sen, 110, f.importe, f.como);
+  const precio = html => (/class="cc-dlg-precio[^"]*"(?: title="([^"]*)")?>([^<]*)/.exec(html) || []).slice(1);
+  for (const cant of [null, NaN, "440", 0, -5]) {
+    for (const ya of [0, 200]) {
+      const f = ord([reg(H(3), USDC, T, W, cant, "DEPOSITO", { clave: "cx", simbolo: "USDC" })], ya)[0];
+      const [titulo, texto] = precio(fila(f));
+      assert("A7: cobro con cantidad " + JSON.stringify(cant) + (ya ? " y 200 ya cobrados" : "") + ": sin precio, ni 💲 ni burbuja",
+        texto === "" && titulo === undefined && !f.sen.includes("precio") && f.importe === undefined, { titulo, texto, f });
+    }
+  }
+  const C = reg(H(4), USDC, T, W, 440, "DEPOSITO", { clave: "c4", simbolo: "USDC" });
+  let [titulo, texto] = precio(fila(ord([C], 0, [["c4", { asignado: 40 }]])[0]));
+  assert("A8: sin nada cobrado y 40 de este cobro en otra venta: «Lo que queda de este cobro», 100,00 USD/token",
+    titulo === "Lo que queda de este cobro ÷ tokens de la venta" && texto === "100,00 USD/token", [titulo, texto]);
+  [titulo, texto] = precio(fila(ord([C], 200)[0]));
+  assert("A8: con 200 ya cobrados: «(Ya cobrado + este cobro)», 160,00", titulo === "(Ya cobrado + este cobro) ÷ tokens de la venta" &&
+    texto === "160,00 USD/token", [titulo, texto]);
+  [titulo, texto] = precio(fila(ord([C], 200, [["c4", { asignado: 40 }]])[0]));
+  assert("A8: con los dos: «(Ya cobrado + lo que queda de este cobro)», 150,00",
+    titulo === "(Ya cobrado + lo que queda de este cobro) ÷ tokens de la venta" && texto === "150,00 USD/token", [titulo, texto]);
+  [titulo] = precio(fila(ord([C], 0)[0]));
+  assert("A8: el cobro entero y nada cobrado: «Cobro ÷ tokens de la venta»", titulo === "Cobro ÷ tokens de la venta", titulo);
+  [titulo, texto] = precio(fila(ord([C], 0, [["c4", { asignado: 500 }]])[0]));
+  assert("A8: asignado más de lo que llegó: lo que queda es 0, no negativo", texto === "0,00 USD/token", [titulo, texto]);
+  [titulo, texto] = precio(fila(ord([C], 200, [["c4", { asignado: 200 }]])[0]));
+  assert("A8 (auditoría O1): 200 ya cobrados + 240 que quedan suman 440 como el cobro, y la burbuja lo dice igual",
+    titulo === "(Ya cobrado + lo que queda de este cobro) ÷ tokens de la venta" && texto === "110,00 USD/token", [titulo, texto]);
+  [titulo, texto] = precio(fila(ord([C], -100)[0]));
+  assert("A8 (auditoría O2): una asignación negativa (escrita a mano) no cuenta como cobrada, como en el motor",
+    titulo === "Cobro ÷ tokens de la venta" && texto === "110,00 USD/token", [titulo, texto]);
+}
+
 console.log("\n" + ok + " OK, " + fallos + " fallos");
 process.exit(fallos ? 1 : 0);

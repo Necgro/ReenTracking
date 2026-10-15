@@ -63,7 +63,16 @@ assert("sin ningún precio: hace falta el 02/03", json(S.fechasConMovimientoRnt(
 c = cache([tx("2025-03-01T23:30:00Z"), tx("2025-03-02T11:00:00Z")], { "2025-03-01": 0.05 });
 assert("con otro movimiento el 02/03 a mediodía, ese día sí hace falta", json(S.fechasConMovimientoRnt(c)) === '["2025-03-02"]', S.fechasConMovimientoRnt(c));
 
-const regPol = { contrato: "pol", fecha: "2025-03-02 00:30:00", categoria: "DEPOSITO", subcategoria: "COSTE_BASE" };
+// Auditoría O5: solo vale para fechas de más de 365 días; en las recientes
+// CoinGecko da el precio de su día y se pide (si no, el precio dependería
+// de cómo se fue sincronizando).
+const haceDias = n => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+const reciente = haceDias(30), antesReciente = haceDias(31);
+c = cache([tx(antesReciente + "T23:30:00Z")], { [antesReciente]: 0.05 });
+assert("O5: un movimiento de hace 30 días a las 00:30 pide su día aunque el día UTC tenga precio",
+  json(S.fechasConMovimientoRnt(c)) === json([reciente]), S.fechasConMovimientoRnt(c));
+
+const regPol ={ contrato: "pol", fecha: "2025-03-02 00:30:00", categoria: "DEPOSITO", subcategoria: "COSTE_BASE" };
 assert("POL: un depósito sin coste de las 00:30 con el precio de su día UTC no se pide",
   json(S.pnFechasSinPrecioPol({ precios_pol: { "2025-03-01": 0.3 } }, [regPol], lejos)) === "[]");
 assert("POL: sin él, se pide el 02/03", S.pnFechasSinPrecioPol({ precios_pol: {} }, [regPol], lejos)[0][0] === "2025-03-02");

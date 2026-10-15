@@ -197,7 +197,7 @@ assert("4.11 NO añade $('id') globales nuevos (los derivados usan clases cc-dlg
   [...fuente.matchAll(/\$\("([A-Za-z0-9_-]+)"\)/g)].map(m => m[1])
     .every(id => id === "estiloCorrecciones15" || id === "view-revision" || id.startsWith("cc")));
 assert("ccHtmlFilaCobro recibe la salida como 3er parámetro (contexto)",
-  /function ccHtmlFilaCobro\(reg, elegida, salida(, senales(, precioCompra(, importeTotal)?)?)?\)/.test(fuente));
+  /function ccHtmlFilaCobro\(reg, elegida, salida(, senales(, precioCompra(, importeTotal(, como = \{ ya: true \})?)?)?)?\)/.test(fuente));
 assert("ccDlgActualizar resuelve la salida por clave y la pasa a la fila",
   /const salidaReg = registros\.find\(r => r\.clave === ccDlg\.salida\)/.test(fuente) &&
   /ccHtmlFilaCobro\((f\.)?c, ccDlg\.elegidos\.includes\((f\.)?c\.clave\), salidaReg[,)]/.test(fuente));

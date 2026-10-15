@@ -61,9 +61,10 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
     const csv = cargarCsvRendimientos([cab, fila].join("\n"));
     state.filasCsv = csv.filas; state.indicePorHash = csv.indicePorHash; state.csvCargado = true;
     window.__writes = [];
-    // El BCE simulado (sin red): solo tiene el 15/06/2023.
+    // El BCE simulado (sin red): tiene el 15/06/2023 y el 10/02/2022.
     window.__bce = [];
-    window.descargarTiposBce = async (a, b) => { window.__bce.push([a, b]); return a <= "2023-06-15" && "2023-06-15" <= b ? { "2023-06-15": 1.08 } : {}; };
+    window.descargarTiposBce = async (a, b) => { window.__bce.push([a, b]);
+      return Object.fromEntries([["2023-06-15", 1.08], ["2022-02-10", 1.14]].filter(([d]) => a <= d && d <= b)); };
     window.escribirArchivoNavegador = async c => { window.__writes.push(JSON.stringify(c)); };
     ejecutarClasificacion();
   });
@@ -232,6 +233,19 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   const aj7 = await page.evaluate(c => [state.cache.ajustes_usuario[c], JSON.parse(window.__writes.at(-1)).tipos_bce["2023-06-15"]], clave);
   assert("U7 -> guardado: 1.000 € de coste, 1.080 USD el 15/06/2023 y el tipo en la cache guardada",
     aj7[0].coste_eur === 1000 && aj7[0].pagado_usd === 1080 && aj7[0].fecha_pago_usd === "2023-06-15" && aj7[1] === 1.08, aj7);
+
+  /* U8) auditoría O4: los € escritos a mano mientras llega el tipo del BCE no se pisan. */
+  await page.click(sel('#cbCuerpo [data-cb="editar"]'));
+  await esperar(150);
+  await ponerDia("2022-02-10");
+  await page.$eval("#cbCuerpo .cb-valor", el => { el.value = ""; el.focus(); });
+  await page.type("#cbCuerpo .cb-valor", "700");
+  await esperar(900);
+  const u8 = await vista();
+  assert("U8 -> el tipo del 10/02/2022 se pidió, pero los 700 € escritos a mano se quedan",
+    JSON.stringify(await page.evaluate(() => window.__bce.at(-1))) === '["2022-02-03","2022-02-10"]' && u8.casilla === "700" && u8.texto === "", u8);
+  await page.keyboard.press("Escape");
+  await esperar(150);
   await page.click(sel('#cbCuerpo [data-cb="editar"]'));
   await esperar(150);
 

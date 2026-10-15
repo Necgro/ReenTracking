@@ -64,5 +64,17 @@ assert("auditoría F6: lo que redondea a 0,00 no sale («$ 500,00», sin «€ 0
   S.dashDesgloseInvertido({ eurBanco: 0.004, usdStable: 500 }));
 assert("sin nada: sin desglose", S.dashDesgloseInvertido(S.dashDineroInvertido([], tipos)) === "");
 
+console.log("== 2. Auditoría S4: con la cache, como 💶 ==");
+{
+  // Pascua: el último tipo es del jueves 17/04/2025 y lo descargado llega al lunes 21; el pago es del martes 22.
+  const pascua = reg("2025-04-25 10:00:00", "COMPRA", "COSTE_BASE", { via_compra: "BANCARIA", coste_eur: 909.09 });
+  const aj = { [pascua.clave]: { coste_eur: 909.09, nota: "Coste puesto por ti (2025-04-25)", pagado_usd: 1000, fecha_pago_usd: "2025-04-22" } };
+  const t = { "2025-04-17": 1.1, "2025-04-25": 1.13 };
+  const cache = { tipos_bce: t, bce_cobertura: { inicio: "2025-01-01", fin: "2025-04-21" } };
+  const conCache = S.dashDineroInvertido([pascua], t, aj, cache);
+  assert("pagada en USD el día de después de la Pascua: el Dashboard la pone en $ (como 💶)",
+    Math.abs(conCache.usdStable - 1000) < 1e-9 && conCache.eurBanco === 0, conCache);
+}
+
 console.log("\n" + ok + " OK, " + fallos + " FALLOS");
 process.exit(fallos ? 1 : 0);

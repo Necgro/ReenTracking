@@ -190,26 +190,48 @@ function cbEurDeUsd(texto, fecha, tiposBce, cache) {
   const usd = cbRedondearCentimos(ccLeerImporte(t)); // a céntimos: lo mismo que se guarda
   if (!ccEsNumeroPositivo(usd)) return { error: ccAvisoImporte(t) };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(fecha || ""))) return { error: "Pon el día del pago." };
+  // Pasado lo descargado (un pago de ayer o de hoy), el último tipo
+  // guardado no vale: el del día aún no se ha pedido (o no está publicado).
+  const cob = cache && cache.bce_cobertura;
+  if (cob && esFechaBce(cob.fin) && fecha > cob.fin && !ccEsNumeroPositivo(Number((tiposBce || {})[fecha]))) return { error: CB_SIN_TIPO };
   const r = ccEurOrientativo(usd, fecha, tiposBce, cache);
   if (!r) return { error: CB_SIN_TIPO };
   const eur = cbRedondearCentimos(r.eur);
   return eur > 0 ? { eur, fecha: r.fecha } : { error: "Escribe un importe mayor que 0." };
 }
-/* Un día sin tipo guardado (anterior a lo descargado): se pide al BCE en el
-   momento, una vez por día y sesión; desde el 04/01/1999 (el primer tipo)
-   y hasta ayer. Los 7 días de antes por si ese día no hubo tipo. Al
-   guardar la compra se guardan con la cache. true si trajo alguno. */
+/* Un día sin tipo guardado (fuera de lo descargado): se pide al BCE en el
+   momento, una vez por día y cache (si falla la red, otra vez al volver a
+   escribirlo); desde el 04/01/1999 (el primer tipo) y hasta ayer. Los 7
+   días de antes por si ese día no hubo tipo, y hasta lo ya descargado
+   (bce_cobertura), sin hueco, que pasa a contar como descargado: si no,
+   otro pago de esos días tomaría el tipo de este (y «Actualizar» lo
+   cambiaría después). Al guardar la compra se guardan con la cache. true
+   si trajo alguno. */
 const cbBceIntentado = new Set();
 async function cbBajarTipoBce(fecha) {
-  if (!esFechaBce(fecha) || fecha < "1999-01-04" || fecha >= hoyEspana() || cbBceIntentado.has(fecha) || !state.cache) return false;
+  const cache = state.cache;
+  if (cbBceIntentado.cache !== cache) { cbBceIntentado.clear(); cbBceIntentado.cache = cache; }
+  if (!esFechaBce(fecha) || fecha < "1999-01-04" || fecha >= hoyEspana() || cbBceIntentado.has(fecha) || !cache) return false;
   cbBceIntentado.add(fecha);
+  const cob = cache.bce_cobertura, hayCob = !!cob && esFechaBce(cob.inicio) && esFechaBce(cob.fin);
+  let desde = sumarDias(fecha, -7), hasta = fecha;
+  if (hayCob && cob.inicio > hasta) hasta = cob.inicio;
+  if (hayCob && cob.fin < desde) desde = cob.fin;
   let nuevos;
-  try { nuevos = await descargarTiposBce(sumarDias(fecha, -7), fecha); }
-  catch (e) { log("Tipo del BCE del " + fechaEs(fecha) + ": " + e.message, "warn"); return false; }
+  try { nuevos = await descargarTiposBce(desde, hasta); }
+  catch (e) { cbBceIntentado.delete(fecha); log("Tipo del BCE del " + fechaEs(fecha) + ": " + e.message, "warn"); return false; }
   if (!Object.keys(nuevos).length) return false;
-  state.cache.tipos_bce = Object.assign(state.cache.tipos_bce || {}, nuevos);
-  return true;
+  cache.tipos_bce = Object.assign(cache.tipos_bce || {}, nuevos);
+  if (hayCob) cache.bce_cobertura = { inicio: desde < cob.inicio ? desde : cob.inicio, fin: hasta > cob.fin ? hasta : cob.fin };
+  return cache === state.cache; // otra cache abierta mientras llegaba: nada que recalcular
 }
+/* Lo pagado en USD que se guardaría con lo escrito ({ importe, fecha }):
+   con «En USDT…» abierto (u), su cuenta (calc) bien y la casilla de € con
+   esos €; si no, null. Lo usan «Guardar» y si se activa su botón. */
+function cbUsdEscrito(u, calc, valor) {
+  return u && calc && calc.eur && cbMismoImporte(valor, calc.eur) ? { importe: cbRedondearCentimos(ccLeerImporte(u.usd)), fecha: u.fecha } : null;
+}
+const cbMismoUsd = (a, b) => JSON.stringify(a || null) === JSON.stringify(b || null);
 /* Lo que dice al lado: «= 909,09 € (BCE del 01/03/2024)» o el error. */
 function cbTextoEurDeUsd(calc) {
   return calc && ccEsNumeroPositivo(calc.eur) ? "= " + numEs(calc.eur, 2) + " € (BCE del " + fechaEs(calc.fecha) + ")" : (calc && calc.error) || "";
@@ -247,7 +269,8 @@ function cbHtmlFila(f, borrador) {
   if (f.estado === "ajeno") {
     pagado = fijo + " " + ccInfo(CB_AYUDA_AJENO);
   } else if (abierta) {
-    const cambia = !cbMismoImporte(valor, coste);
+    // También cambia si solo cambia lo pagado en USD (mismos €).
+    const cambia = !cbMismoImporte(valor, coste) || !cbMismoUsd(cbUsdEscrito(f.usdt, f.usdt && f.usdt.calc, valor), f.usd);
     pagado = '<input type="text" inputmode="decimal" class="cb-valor" data-clave="' + ccEsc(r.clave) + '" value="' +
       ccEsc(texto) + '" aria-label="' + ccEsc("Pagado en € · " + nombre + " · " + (fecha || "")) + '"> €';
     acciones = cbBoton("guardar", r.clave, "Guardar", !cambia && !f.supuesto) + cbBoton("cancelar", r.clave, "Cancelar") +
@@ -379,15 +402,16 @@ function cbCerrar(clave) {
    solo la cierra. */
 async function cbGuardar(clave) {
   if (!state.cache) return toast(CC_SIN_CACHE, "warn");
+  // Ya guardada (un segundo Intro o clic mientras se guarda): nada que hacer.
+  if (!Object.prototype.hasOwnProperty.call(cbBorrador, clave)) return;
   const registros = ccRegistrosSesion();
   const ajustes = cbAjustesSesion();
   const cambios = cbCambios(registros, ajustes, cbBorrador, clave, cbPrecioSesion());
   // Con «En USDT…» abierto y la casilla en sus €: se guarda también lo pagado en USD.
   const u = cbUsdt[clave], calc = u && cbEurDeUsd(u.usd, u.fecha, (state.cache && state.cache.tipos_bce) || {}, state.cache);
-  const usd = calc && calc.eur && cbMismoImporte(cbValorEscrito(cbBorrador[clave]), calc.eur)
-    ? { importe: cbRedondearCentimos(ccLeerImporte(u.usd)), fecha: u.fecha } : null;
+  const usd = cbUsdEscrito(u, calc, cbValorEscrito(cbBorrador[clave]));
   const reg = registros.find(r => r.clave === clave), antes = reg && cbPagadoUsd(reg, ajustes);
-  if (!cambios.length && JSON.stringify(usd) !== JSON.stringify(antes)) cambios.push({ clave, valor: cbValorEscrito(cbBorrador[clave]) });
+  if (!cambios.length && !cbMismoUsd(usd, antes)) cambios.push({ clave, valor: cbValorEscrito(cbBorrador[clave]) });
   for (const c of cambios) c.usd = usd;
   if (!cambios.length) return cbCerrar(clave);
   let nuevos;
@@ -419,7 +443,11 @@ function cbMontarEventos() {
     const celda = fila && fila.querySelector(".cb-por-token");
     if (reg && celda) celda.textContent = cbTextoPorToken(cbValorEscrito(input.value), reg.cantidad);
     const btn = fila && fila.querySelector('[data-cb="guardar"]');
-    if (btn) btn.disabled = cbCambios(registros, cbAjustesSesion(), cbBorrador, clave, cbPrecioSesion()).length === 0;
+    if (btn) {
+      const u = cbUsdt[clave], calc = u && cbEurDeUsd(u.usd, u.fecha, (state.cache && state.cache.tipos_bce) || {}, state.cache);
+      btn.disabled = cbCambios(registros, cbAjustesSesion(), cbBorrador, clave, cbPrecioSesion()).length === 0 &&
+        cbMismoUsd(cbUsdEscrito(u, calc, cbValorEscrito(input.value)), reg && cbPagadoUsd(reg, cbAjustesSesion()));
+    }
   };
   // «En USDT…»: lo pagado y el día → la casilla de €.
   const alEscribirUsd = input => {
@@ -440,8 +468,12 @@ function cbMontarEventos() {
     // con cada número que se escribe) y se recalcula si sigue ese día.
     if (calc.error === CB_SIN_TIPO) {
       clearTimeout(cbEsperaBce);
+      const dia = u.fecha;
       cbEsperaBce = setTimeout(async () => {
-        if (!(await cbBajarTipoBce(u.fecha)) || !sub.isConnected || sub.querySelector(".cb-usd-fecha").value !== u.fecha) return;
+        // Si mientras tanto cambió el día o escribiste los € a mano (eso
+        // borra el aviso), no se toca lo tuyo.
+        if (!(await cbBajarTipoBce(dia)) || !sub.isConnected || sub.querySelector(".cb-usd-fecha").value !== dia ||
+            sub.querySelector(".cb-usd-eur").textContent !== CB_SIN_TIPO) return;
         alEscribirUsd(input);
       }, 400);
     }

@@ -228,20 +228,27 @@ function ccOrdenarSugerencias(cobros, salida, precioCompra, ctx, cache) {
     if (!v || !ventaIds.includes(v.id)) continue;
     for (const a of ccAsignacionesValidas(v)) {
       const c = Number(a.cantidad_asignada);
-      if (Number.isFinite(c)) yaCobrado += c;
+      if (Number.isFinite(c) && c > 0) yaCobrado += c; // como el motor: una asignación de 0 o negativa no vale
     }
   }
   const pYa = yaCobrado > 0 ? ccPrecioPorTokenImplicito(yaCobrado, salida && salida.cantidad) : null;
   const lejania = p => Math.abs(p / precioCompra - 1);
   const filas = cobros.map((c, orden) => {
     const info = ctx && ctx.cobrosAsignados ? ctx.cobrosAsignados.get(c.clave) : null;
-    const resto = Number.isFinite(c.cantidad) ? c.cantidad - (info ? info.asignado : 0) : c.cantidad;
+    // Sin cantidad legible no hay precio que enseñar (ni el de lo ya cobrado).
+    const legible = ccEsNumeroPositivo(c.cantidad);
+    const resto = legible ? Math.max(0, c.cantidad - (info && Number.isFinite(info.asignado) ? info.asignado : 0)) : null;
     const dias = ccDiasEntreFechas(c, salida);
-    const importe = yaCobrado + resto;
-    const pTotal = ccPrecioPorTokenImplicito(importe, salida && salida.cantidad);
+    const importe = legible ? yaCobrado + resto : null;
+    const pTotal = legible ? ccPrecioPorTokenImplicito(importe, salida && salida.cantidad) : null;
     const acerca = pYa === null || !(precioCompra > 0) || (pTotal !== null && lejania(pTotal) < lejania(pYa));
     const sen = ccSenalesCobro(c, salida, precioCompra, importe).filter(x => acerca || x !== "precio");
-    return { c, orden, sen, importe: importe === c.cantidad ? undefined : importe,
+    // como: qué suma el precio de la fila, para su burbuja.
+    // Sin importe aparte solo si es el cobro entero y nada ya cobrado (no
+    // si la suma da lo mismo por casualidad).
+    const entero = yaCobrado === 0 && resto === c.cantidad;
+    return { c, orden, sen, importe: !legible || entero ? undefined : importe,
+      como: { ya: yaCobrado > 0, parte: legible && resto !== c.cantidad },
       dist: dias === null ? Infinity : Math.abs(dias) };
   });
   return filas.sort((a, b) => b.sen.length - a.sen.length || a.dist - b.dist || a.orden - b.orden);
@@ -860,7 +867,12 @@ function ccAjustesConDecision(ajustes, reg, id, valor, fechaISO) {
   const copia = Object.assign({}, base);
   if (h) delete copia[h.clave];
   copia[k] = ccAjusteDecision(reg, id, valor, fechaISO, antes, h && h.ajuste);
-  if (id === "dejar" && h && "coste_eur" in h.ajuste) ccConUsd(Object.assign(copia[k], { coste_eur: h.ajuste.coste_eur }), h.ajuste);
+  if (h && "coste_eur" in h.ajuste) {
+    if (id === "dejar") copia[k].coste_eur = h.ajuste.coste_eur;
+    // Lo pagado en USD va con la decisión, para devolverlo al deshacer (con
+    // otro coste, ccPagadoUsd no lo da por bueno).
+    ccConUsd(copia[k], h.ajuste);
+  }
   return copia;
 }
 
@@ -878,7 +890,7 @@ function ccAjustesSinDecision(ajustes, clave, fechaISO) {
   if (h.ajuste.nota.includes(CC_ANTES.revisar)) {
     const a = ccLeerColaAntes(h.ajuste.nota, "revisar");
     copia[h.clave] = { revisar: true, nota: ccNotaMandarRevisar(a.motivo, a.fecha || fechaISO) };
-    if (a.coste !== null) copia[h.clave].coste_eur = a.coste; // el coste que tenía, sea cual sea la decisión
+    if (a.coste !== null) ccConUsd(Object.assign(copia[h.clave], { coste_eur: a.coste }), h.ajuste); // el coste que tenía (y su USD), sea cual sea la decisión
   } else if (h.ajuste.nota.includes(CC_ANTES.sacado)) {
     copia[h.clave] = ccAjusteSacadoSpam(ccLeerColaAntes(h.ajuste.nota, "sacado").fecha || fechaISO);
   }
@@ -2138,11 +2150,14 @@ function ccHtmlLeyenda(precioCompra, yaCobrado, tokens) {
    falte el dato, para que las filas queden alineadas. senales: las de
    ccSenalesCobro; precioCompra, el de ccPrecioCompraUsd; importeTotal, el de
    ccOrdenarSugerencias si no es el cobro entero (lo ya cobrado + lo que
-   queda de este cobro), para que el % sea el que decide el 💲. */
-function ccHtmlFilaCobro(reg, elegida, salida, senales, precioCompra, importeTotal) {
+   queda de este cobro), para que el % sea el que decide el 💲; como, su
+   { ya, parte } (hay algo ya cobrado / de este cobro solo cuenta lo que le
+   queda), para decirlo en la burbuja. */
+function ccHtmlFilaCobro(reg, elegida, salida, senales, precioCompra, importeTotal, como = { ya: true }) {
   const dias = ccDiasEntreFechas(reg, salida);
   const total = importeTotal !== undefined;
-  const precio = ccPrecioPorTokenImplicito(total ? importeTotal : reg.cantidad, salida && salida.cantidad);
+  // Un cobro sin cantidad legible (0, negativa, un texto) no tiene precio.
+  const precio = ccEsNumeroPositivo(reg.cantidad) ? ccPrecioPorTokenImplicito(total ? importeTotal : reg.cantidad, salida && salida.cantidad) : null;
   const sen = senales || [];
   const textoDesfase = dias === null ? ""
     : (dias > 0 ? "+" + dias + " d" : dias < 0 ? "\u2212" + Math.abs(dias) + " d" : "0 d");
@@ -2161,7 +2176,7 @@ function ccHtmlFilaCobro(reg, elegida, salida, senales, precioCompra, importeTot
     '<span class="cc-dlg-fecha">📅 ' + (ccFechaVer(reg) || "sin fecha") + "</span>" +
     '<span class="cc-dlg-amt" title="' + ccEsc(exacto) + '">' + ccEsc(importe) + "</span>" +
     '<span class="cc-dlg-desfase" title="Días entre la venta y el cobro">' + ccEsc(textoDesfase) + "</span>" +
-    '<span class="cc-dlg-precio' + (sen.includes("precio") ? " ok" : "") + '" title="' + (total ? "(Ya cobrado + este cobro) ÷ tokens de la venta" : "Cobro ÷ tokens de la venta") + '">' +
+    '<span class="cc-dlg-precio' + (sen.includes("precio") ? " ok" : "") + '"' + (precio === null ? "" : ' title="' + ccTituloPrecioFila(total, como) + '"') + ">" +
       ccEsc(textoPrecio) + (pct ? "<b>" + ccEsc(pct) + "</b>" : "") + "</span>" +
     '<span class="cc-dlg-dir" title="' + ccTituloRuta(reg) + '">' + ccTextoRuta(reg) + "</span>" +
     '<span class="cc-dlg-hash">' + ccEnlaceHash(reg.hash) + "</span>" +
@@ -2172,6 +2187,13 @@ function ccHtmlFilaCobro(reg, elegida, salida, senales, precioCompra, importeTot
     '" title="' + (elegida ? "Quitar" : "Añadir") + '">' +
     (elegida ? "✔" : "➕") + "</button>" +
     "</div>";
+}
+
+/* La burbuja del precio de una fila: qué se divide entre los tokens. */
+function ccTituloPrecioFila(total, como) {
+  if (!total) return "Cobro ÷ tokens de la venta";
+  const este = como && como.parte ? "lo que queda de este cobro" : "este cobro";
+  return (como && como.ya ? "(Ya cobrado + " + este + ")" : este.charAt(0).toUpperCase() + este.slice(1)) + " ÷ tokens de la venta";
 }
 
 function ccLeerConsultaDlg() {
@@ -2272,11 +2294,11 @@ function ccDlgActualizar() {
       ? '<div class="cc-dlg-instr"><b>Instrucciones:</b> pulsa ➕ en el cobro que corresponde y luego «Vincular cobro…».' +
         (nEleg ? " · <b>" + nEleg + (nEleg === 1 ? " elegido" : " elegidos") + "</b>" : "") + "</div>" +
         ccHtmlLeyenda(precioCompra, buscador.venta ? ccAsignacionesValidas(buscador.venta)
-          .reduce((t, a) => t + (Number.isFinite(Number(a.cantidad_asignada)) ? Number(a.cantidad_asignada) : 0), 0) : 0,
+          .reduce((t, a) => t + (Number(a.cantidad_asignada) > 0 && Number.isFinite(Number(a.cantidad_asignada)) ? Number(a.cantidad_asignada) : 0), 0) : 0,
           salidaReg && salidaReg.cantidad)
       : "");
   ccDlg.refs.resultados.innerHTML = mostrados.length
-    ? filas.map(f => ccHtmlFilaCobro(f.c, ccDlg.elegidos.includes(f.c.clave), salidaReg, f.sen, precioCompra, f.importe)).join("")
+    ? filas.map(f => ccHtmlFilaCobro(f.c, ccDlg.elegidos.includes(f.c.clave), salidaReg, f.sen, precioCompra, f.importe, f.como)).join("")
     : "";
 }
 

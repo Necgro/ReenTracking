@@ -122,12 +122,15 @@ function indexarPorHash(serie) {
   }
   return indice;
 }
+/* La primera llegada de cada token, con su hora española
+   («AAAA-MM-DD HH:MM:SS»): con la hora, registrarInmueble ve si lo
+   guardado es su día UTC (de antes de la hora española). */
 function primerasApariciones(cache) {
   const primeras = {};
   for (const nombreSerie of ["wallet_tokens", "vault_tokens"]) {
     for (const tx of (cache.transacciones[nombreSerie] || [])) {
       const ca = normalizarDireccion(tx.contractAddress);
-      const fecha = fechaDeTx(tx);
+      const fecha = fmtFechaHora(enHoraEspanola(aUtcNaive(tx.timeStamp)));
       if (!ca || !fecha) continue;
       if (!(ca in primeras) || fecha < primeras[ca]) primeras[ca] = fecha;
     }
@@ -142,6 +145,10 @@ const REFUERZOS_QUE_CONFIRMAN = ["cruce_csv", "nombre_csv"];
 const confirmaAlguno = refuerzos => (refuerzos || []).some(r => REFUERZOS_QUE_CONFIRMAN.includes(r));
 function registrarInmueble(catalogo, addr, nombreEtherscan, simbolo, via, primeraAparicion, nombreReental, refuerzos) {
   refuerzos = [...refuerzos];
+  // Lo guardado es el día de la primera llegada en UTC (cache de antes de la
+  // hora española, de 00:00 a 02:00): pasa a su día español.
+  const utcViejo = typeof diaUtcSiOtro === "function" ? diaUtcSiOtro(primeraAparicion) : null;
+  primeraAparicion = typeof primeraAparicion === "string" ? primeraAparicion.slice(0, 10) : primeraAparicion;
   const entrada = catalogo[addr];
   if (!entrada) {
     catalogo[addr] = {
@@ -165,7 +172,8 @@ function registrarInmueble(catalogo, addr, nombreEtherscan, simbolo, via, primer
     entrada.estado = "CONFIRMADA";
     resultado = "confirmada";
   }
-  if (primeraAparicion && (!entrada.primera_aparicion || primeraAparicion < entrada.primera_aparicion))
+  if (primeraAparicion && (!entrada.primera_aparicion || primeraAparicion < entrada.primera_aparicion ||
+      (utcViejo && entrada.primera_aparicion === utcViejo)))
     entrada.primera_aparicion = primeraAparicion;
   return resultado;
 }
