@@ -12,6 +12,7 @@
  *      cierra la subfila; oscuro y 0 errores.
  *  U7) un día sin tipo guardado: lo pide al BCE en el momento (simulado,
  *      sin red), lo calcula y lo guarda con la cache; una vez por día.
+ *      «Guardar» antes de que llegue: aviso y no guarda; al llegar, se rellena.
  *
  * DATOS 100 % SINTÉTICOS. Ejecución (servidor en 8765 y NODE_PATH a
  * puppeteer-core):  node tests/navegador/verifyusdt1.js
@@ -202,6 +203,14 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   await escribirUsd("1.080");
   await ponerDia("2023-06-15");
   const u7a = await vista();
+  // «Guardar» antes de que llegue el tipo: el aviso, no guarda y la fila sigue abierta.
+  await page.evaluate(() => document.querySelectorAll("#toasts .toast").forEach(t => t.remove()));
+  const w7 = await escrituras();
+  await page.click(sel('#cbCuerpo [data-cb="guardar"]'));
+  await esperar(100);
+  const aviso7 = await page.evaluate(() => [...document.querySelectorAll("#toasts .toast")].map(t => t.textContent).join(" | "));
+  assert("U7 -> «Guardar» antes de que llegue el tipo: el aviso, no guarda y la fila sigue abierta",
+    aviso7.includes("Sin tipo del BCE para ese día.") && (await escrituras()) === w7 && (await vista()).sub, aviso7);
   await esperar(700);
   const u7 = await vista();
   assert("U7 -> sin tipo guardado, primero lo dice y luego lo trae del BCE: 1.080 USD → 1.000,00 €",
