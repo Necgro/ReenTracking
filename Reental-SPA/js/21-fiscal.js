@@ -289,8 +289,9 @@ function fiscValidarRegistro(registro) {
    si no esta o no es un numero mayor que 0. */
 function fiscPrecioDelDia(precios, fecha) {
   const ok = pyVerdad(fecha) && pdEsObjeto(precios);
-  const precio = ok && fiscTiene(precios, fecha.slice(0, 10)) ? precios[fecha.slice(0, 10)] : null;
-  return fiscEsNumero(precio) && precio > 0 ? precio : null;
+  const delDia = dia => { const p = ok && dia && fiscTiene(precios, dia) ? precios[dia] : null; return fiscEsNumero(p) && p > 0 ? p : null; };
+  // Sin el de su día, el de su día UTC (guardado antes de la hora española).
+  return delDia(ok && fecha.slice(0, 10)) || delDia(ok && diaUtcSiOtro(fecha));
 }
 
 /* Una salida (venta o retirada) necesita una cantidad mayor que 0: con 0,

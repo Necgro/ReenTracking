@@ -34,30 +34,37 @@ const coingeckoRitmo = {
 };
 
 function fechasConMovimientoRnt(cache) {
-  const fechas = new Set();
+  return [...diasConMovimientoRnt(cache)].filter(([, cubierto]) => !cubierto).map(([f]) => f);
+}
+/* Los días (hora española) con movimiento de RNT: Map día -> true si a
+   todos sus movimientos ya les vale el precio guardado de su día UTC (de
+   antes de la hora española; js/21 lo usa): ese día no hace falta. */
+function diasConMovimientoRnt(cache) {
+  const txs = [];
   for (const nombreSerie of ["wallet_tokens", "vault_tokens"]) {
-    for (const tx of cache.transacciones[nombreSerie]) {
-      if (normalizarDireccion(tx.contractAddress) === RNT) {
-        const f = fechaDeTx(tx);
-        if (f) fechas.add(f);
-      }
-    }
+    for (const tx of cache.transacciones[nombreSerie]) if (normalizarDireccion(tx.contractAddress) === RNT) txs.push(tx);
   }
-  return [...fechas];
+  return diasConMovimiento(txs, preciosLeidos(cache, "precios_rnt"));
+}
+function diasConMovimiento(txs, precios) {
+  const dias = new Map();
+  for (const tx of txs) {
+    const f = fechaDeTx(tx);
+    if (!f) continue;
+    const utc = diaUtcSiOtro(fmtFechaHora(enHoraEspanola(aUtcNaive(tx.timeStamp))));
+    dias.set(f, (dias.has(f) ? dias.get(f) : true) && !!utc && precioValido(precios[utc]));
+  }
+  return dias;
 }
 /* Fechas con entrada o salida de POL nativo de la wallet (las de
    movimientosPol de js/14, sin el gas ni los traspasos con tu vault): las
    que pueden necesitar precio de POL. */
 function fechasConMovimientoPol(cache) {
-  const fechas = new Set();
-  for (const txs of movimientosPol(cache).values()) {
-    for (const tx of txs) {
-      if (esDelVault(tx.from) || esDelVault(tx.to)) continue;
-      const f = fechaDeTx(tx);
-      if (f) fechas.add(f);
-    }
+  const txs = [];
+  for (const deHash of movimientosPol(cache).values()) {
+    for (const tx of deHash) if (!esDelVault(tx.from) && !esDelVault(tx.to)) txs.push(tx);
   }
-  return [...fechas];
+  return [...diasConMovimiento(txs, preciosLeidos(cache, "precios_pol"))].filter(([, cubierto]) => !cubierto).map(([f]) => f);
 }
 /* Un precio que el motor fiscal acepta: un número de verdad mayor que 0,
    no un texto ni true. */

@@ -324,9 +324,11 @@ function pnFechasSinPrecioRnt(cache, ahoraMs) {
   if (!cache) return [];
   const precios = cache.precios_rnt || {};
   const motivos = Object.assign({}, cache.precios_rnt_no_disponibles || {});
-  if (typeof fechasConMovimientoRnt === "function" && cache.transacciones) {
-    for (const f of fechasConMovimientoRnt(cache)) {
-      if (!(f in motivos) && diasDesdeFechaRnt(f, ahoraMs) > CG_DIAS_MAX_PLAN_GRATUITO) motivos[f] = MOTIVO_RNT_FUERA_365;
+  if (typeof diasConMovimientoRnt === "function" && cache.transacciones) {
+    for (const [f, cubierto] of diasConMovimientoRnt(cache)) {
+      // Con el precio de su día UTC (de antes de la hora española) no se pide.
+      if (cubierto) delete motivos[f];
+      else if (!(f in motivos) && diasDesdeFechaRnt(f, ahoraMs) > CG_DIAS_MAX_PLAN_GRATUITO) motivos[f] = MOTIVO_RNT_FUERA_365;
     }
   }
   return Object.entries(motivos).filter(([f]) => !(f in precios)).sort((a, b) => a[0].localeCompare(b[0]));
@@ -357,7 +359,7 @@ function pnFechasSinPrecioPol(cache, registros, ahoraMs) {
     const necesita = (r.categoria === "DEPOSITO" && !conCoste) ||
       (r.categoria === "RETIRADA" && r.subcategoria === "GPP_RETIRADA");
     const f = r.fecha.slice(0, 10);
-    if (!necesita || precioValido(precios[f])) continue;
+    if (!necesita || precioValido(precios[f]) || precioValido(precios[diaUtcSiOtro(r.fecha)])) continue;
     motivos[f] = diasDesdeFechaRnt(f, ahoraMs) > CG_DIAS_MAX_PLAN_GRATUITO ? MOTIVO_RNT_FUERA_365 : "se pedirá a CoinGecko al actualizar";
   }
   return Object.entries(motivos).sort((a, b) => a[0].localeCompare(b[0]));

@@ -240,6 +240,16 @@ function fechaDosHoras(valor, instante = null) {
   const utc = instanteValido(valor, instante) || utcDeHoraEspanola(d);
   return fechaEs(valor, true) + ", hora española · " + fechaEs(utc, true) + " UTC";
 }
+/* El día UTC de una fecha en hora española («AAAA-MM-DD HH:MM:SS») si
+   es otro (de las 00:00 a la 01:00 o las 02:00); si no, o sin hora, null.
+   Los precios de RNT y POL guardados antes de pasar las fechas a la hora
+   española van por el día UTC: valen para esos movimientos (js/08, js/11
+   y js/21). */
+function diaUtcSiOtro(fecha) {
+  const d = typeof fecha === "string" && /\d{2}:\d{2}/.test(fecha) && ZONA_FECHAS !== "UTC" ? fechaIso(fecha.trim()) : null;
+  const dia = d ? fmtFecha(utcDeHoraEspanola(d)) : null;
+  return dia && dia !== fecha.slice(0, 10) ? dia : null;
+}
 /* El instante UTC de una hora española sin zona (Date con los campos en
    Madrid -> Date en UTC). En la hora repetida de octubre, la de después. */
 function utcDeHoraEspanola(d) {
