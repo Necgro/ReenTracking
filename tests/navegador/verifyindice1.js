@@ -3,6 +3,7 @@
  * de los bloques de la página (① inmuebles, ② direcciones, ③ por decidir,
  * ④ coste, RNT, POL y ya decididos); copia los números y ⚠ de cada título al
  * cambiar; al pulsar, baja al bloque (sin quedar debajo del índice) y lo abre.
+ * Al salir de 🔍 (y al recargar) todo queda plegado.
  *
  * Sin datos (relleno solo en pantalla). Ejecución (servidor en 8765 y
  * NODE_PATH a puppeteer-core):  node tests/navegador/verifyindice1.js
@@ -142,6 +143,27 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   await page.emulateMediaType(null);
   assert("A10: al imprimir, ni el índice ni «ⓘ Qué es cada cosa» (en 🔍 y en 📒)",
     impreso.length === 3 && impreso.slice(0, 2).every(d => d === "none") && impreso[2] === "dentro", impreso);
+
+  /* A11) al salir de 🔍 se pliega todo; un enlace a un bloque lo abre igual. */
+  const abiertas = () => page.evaluate(() => [...document.querySelectorAll("#view-revision details[open]")].map(d => d.id));
+  await page.evaluate(() => { location.hash = "#revision"; });
+  await esperar(200);
+  await page.evaluate(() => ["rvCatalogo", "cbCoste", "rvPreciosRnt", "ccResueltos"].forEach(id => { document.getElementById(id).open = true; }));
+  await page.evaluate(() => { location.hash = "#dashboard"; });
+  await esperar(200);
+  await page.evaluate(() => { location.hash = "#revision"; });
+  await esperar(200);
+  const alVolver = await abiertas();
+  await page.evaluate(() => { location.hash = "#dashboard"; });
+  await esperar(200);
+  await page.evaluate(() => irAFechasSinPrecio());
+  await esperar(400);
+  const conEnlace = await abiertas();
+  assert("A11: al volver a 🔍 todo plegado; «fechas sin precio» abre su bloque", alVolver.length === 0 &&
+    JSON.stringify(conEnlace) === '["rvPreciosRnt"]', { alVolver, conEnlace });
+  await page.reload({ waitUntil: "networkidle0" });
+  await esperar(300);
+  assert("A11: al recargar, todo plegado", (await abiertas()).length === 0, await abiertas());
 
   assert("0 errores", errores.length === 0, errores);
   await browser.close();

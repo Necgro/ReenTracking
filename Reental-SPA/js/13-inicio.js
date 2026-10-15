@@ -19,6 +19,11 @@ function routing() {
   // Un hash que no es una pestaña («Saltar al contenido»)
   // no cambia la que se ve.
   const vista = $("view-" + hash) || document.querySelector(".view.active") || $("view-dashboard");
+  // Al salir de 🔍 Revisión se pliega todo: al volver (o al recargar) se ve
+  // plegada. Al salir y no al entrar: los enlaces que llevan a un bloque
+  // (irAFechasSinPrecio, ccIrAVinculo…) lo abren después de cambiar.
+  const rev = $("view-revision");
+  if (rev && rev.classList.contains("active") && vista !== rev) rev.querySelectorAll("details[open]").forEach(d => { d.open = false; });
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v === vista));
   if (rutaSubir) { rutaSubir = false; window.scrollTo({ top: 0, behavior: "instant" }); }
   document.querySelectorAll("#navPrincipal a").forEach(a =>

@@ -227,6 +227,8 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   await page.screenshot({ path: path.join(OUT, "cap_44_movimiento.png") });
   await page.evaluate(() => { location.hash = "#revision"; });
   await esperar(400);
+  // Al volver a 🔍 todo está plegado: se abre «Ya decididos».
+  await page.evaluate(() => { document.getElementById("ccResueltos").open = true; });
   await clickCentrado('#ccListaResueltos [data-accion="ver-movimiento"][data-clave="' + claveSalida + '"]');
   await esperar(300);
   r = await page.evaluate(k => {
