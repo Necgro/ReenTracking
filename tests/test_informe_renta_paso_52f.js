@@ -86,7 +86,7 @@ vm.runInContext(`
 `, S);
 vm.runInContext("pasoBce()", S).then(() => {
   const pedidas = vm.runInContext("__pedidas", S);
-  const ayer = S.sumarDias(new Date().toISOString().slice(0, 10), -1);
+  const ayer = S.sumarDias(vm.runInContext("hoyEspana()", S), -1); // ayer en España, como la app
   assert("pasoBce pide el 31/12/2024 y el de ayer", Array.isArray(pedidas) &&
     pedidas.includes("2024-05-01") && pedidas.includes("2024-12-31") && pedidas.includes(ayer), pedidas);
 

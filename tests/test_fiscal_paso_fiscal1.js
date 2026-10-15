@@ -66,7 +66,8 @@ console.log("== 1. js/09: la última sincronización en la cache ==");
   S.actualizarTransacciones = async () => ({});
   await S.pasoEtherscan();
   const u = ST.cache.ultima_sincronizacion;
-  assert("pasoEtherscan que va bien: la fecha de hoy (UTC) y sin fallo", u.fecha === new Date().toISOString().slice(0, 10) && u.etherscan_fallo === false);
+  // El día en España, como la app (entre las 00:00 y las 02:00 no es el de UTC).
+  assert("pasoEtherscan que va bien: la fecha de hoy (en España) y sin fallo", u.fecha === vm.runInContext("hoyEspana()", S) && u.etherscan_fallo === false, u);
 
   console.log("== 2. Hasta qué día llegan los datos ==");
   const cache = (sinc, ...fechas) => ({ ultima_sincronizacion: sinc, transacciones: { wallet_tokens: fechas.map(f => ({ timeStamp: ts(f) })), vault_tokens: [] } });
