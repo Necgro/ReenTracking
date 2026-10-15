@@ -104,7 +104,7 @@ assert("a fin de mes, con los meses sin movimientos rellenos",
 const tInv = S.dashTarjetaInvertido(inv, mens);
 assert("tarjeta: «💼 Dinero invertido», lo de hoy, meses, compras y ventas",
   tInv.includes("<h3>💼 Dinero invertido</h3>") && tInv.includes('dash-value-lg">580,50&nbsp;USD') &&
-  tInv.includes("A fin de mes · feb 2024 – abr 2024 · 3 compras y 1 venta"), tInv.slice(0, 400));
+  tInv.includes(">feb 2024 – abr 2024 · 3 compras y 1 venta") && !tInv.includes("A fin de mes"), tInv.slice(0, 400));
 assert("tarjeta: lo que queda fuera, dicho",
   tInv.includes("⚠ 2 compras o ventas sin importe: fuera del gráfico.") && tInv.includes("⚠ 1 compra en € sin tipo del BCE: fuera del gráfico.") &&
   tInv.includes("⚠ 1 compra o venta sin fecha: fuera del gráfico."));

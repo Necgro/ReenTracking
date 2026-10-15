@@ -107,6 +107,8 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   assert("U2 -> 1.000 USD el 01/03/2024 → la casilla dice 909,09 y lo explica",
     u2.casilla === "909,09" && u2.texto === "= 909,09 € (BCE del 01/03/2024)", u2);
   assert("U2 -> € por token recalculado (101,01 €) y «Guardar» activo", u2.porToken === "101,01 €" && u2.guardar === false, u2);
+  const cabe = await page.evaluate(() => { const c = document.querySelector("#cbCuerpo .cb-caja"); return [c.scrollWidth, c.clientWidth]; });
+  assert("U2 -> editando con «En USDT…» abierto, la tabla cabe sin barra de desplazamiento (1366 px)", cabe[0] <= cabe[1], cabe);
   await page.screenshot({ path: path.join(OUT, "cap_usdt1_editor.png") });
 
   /* U3 */

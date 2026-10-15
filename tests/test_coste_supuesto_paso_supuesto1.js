@@ -158,7 +158,7 @@ console.log("== A1 y A2: «💶 Coste…» confirma el de por defecto como tuyo 
     const cambios = cbCambios([__c], {}, { c0: "300,00" }, "c0", 100);
     return [filaAntes, cambios, cbAjustesConCostes({}, cambios, [__c], 100, "2026-10-10T10:00:00")];
   })()`, sb);
-  assert("A2: la fila dice «por defecto»", filaAntes.includes('class="cb-defecto">por defecto<'));
+  assert("A2: la fila, solo el importe (el «por defecto» lo dice la explicación de 💶)", filaAntes.includes("300,00 €") && !filaAntes.includes("por defecto"));
   assert("A1: guardar 300 € (los mismos 3 × 100) es un cambio y se guarda", cambios.length === 1 && ajustes.c0.coste_eur === 300, ajustes);
   const r = correr([banco("c0", "2025-01-10 10:00:00", 3)], JSON.parse(JSON.stringify(ajustes)));
   assert("A1: y el informe ya no lo marca", !("coste_supuesto" in r.inf.inversiones_activas.inmuebles.filas[0]) && !r.pdf.includes("**"),

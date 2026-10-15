@@ -228,8 +228,7 @@ function cbHtmlFila(f, borrador) {
   const fijo = f.usd ? '<span class="cb-fijo">' + ccEsc(numEs(f.usd.importe, 2)) + ' $</span> <span class="cb-en-eur">' + ccEsc(guardado) + " €</span>"
     : '<span class="cb-fijo">' + ccEsc(guardado) + " €</span>";
   if (f.estado === "ajeno") {
-    pagado = fijo + " " + ccInfo(CB_AYUDA_AJENO) +
-      (f.supuesto ? ' <span class="cb-defecto">por defecto</span>' : "");
+    pagado = fijo + " " + ccInfo(CB_AYUDA_AJENO);
   } else if (abierta) {
     const cambia = !cbMismoImporte(valor, coste);
     pagado = '<input type="text" inputmode="decimal" class="cb-valor" data-clave="' + ccEsc(r.clave) + '" value="' +
@@ -237,9 +236,8 @@ function cbHtmlFila(f, borrador) {
     acciones = cbBoton("guardar", r.clave, "Guardar", !cambia && !f.supuesto) + cbBoton("cancelar", r.clave, "Cancelar") +
       cbBoton("usdt", r.clave, "En USDT…");
   } else {
-    // El de por defecto lo dice (en el informe lleva «**»).
-    pagado = fijo +
-      (f.supuesto ? ' <span class="cb-defecto">por defecto</span>' : "");
+    // El de por defecto ya no lo dice la fila (lo dice la explicación de arriba; en el informe lleva «**»).
+    pagado = fijo;
     acciones = cbBoton("editar", r.clave, "✏️ Editar");
   }
   return '<tr class="cb-fila' + (abierta ? " abierta" : "") + '" data-clave="' + ccEsc(r.clave) + '">' +
@@ -462,9 +460,9 @@ function cbInyectarEstilos() {
     ".cb-caja{overflow-x:auto}",
     /* Como la tabla de 📒 Transacciones: sin
        cuadrícula, solo una raya fina entre filas, y algo más alta. */
-    ".cb-tabla{max-width:720px;font-size:13.5px}",
-    ".cb-tabla td,.cb-tabla th{padding:11px 10px;border:0;border-bottom:1px solid color-mix(in srgb,var(--border) 80%,var(--border2));vertical-align:middle;white-space:nowrap}",
-    ".cb-tabla th{border-bottom:1px solid var(--border2);font-size:13.5px}",
+    ".cb-tabla{width:auto;margin:0 auto;font-size:13.5px}",
+    ".cb-tabla td,.cb-tabla th{padding:11px 14px;border:0;border-bottom:1px solid color-mix(in srgb,var(--border) 80%,var(--border2));vertical-align:middle;white-space:nowrap}",
+    ".cb-tabla th,.cb-tabla th.num{border-bottom:1px solid var(--border2);font-size:13.5px;text-align:center}",
     ".cb-tabla tbody td{height:50px;padding-top:6px;padding-bottom:6px}", // la misma altura con casilla o sin ella
     ".cb-tabla tbody tr:hover{background:var(--panel2)}",
     ".cb-tabla .num{text-align:right;font-variant-numeric:tabular-nums}",
@@ -472,6 +470,8 @@ function cbInyectarEstilos() {
     ".cb-en-eur{color:var(--muted);font-size:12px;margin-left:4px}",
     ".cb-valor{width:120px;text-align:right;padding:6px 10px;font-size:13.5px}",
     ".cb-acciones{text-align:left}",
+    // Editando caben sus tres botones en una línea (la tabla no se sale a 1366 px).
+    ".cb-tabla td.cb-acciones{padding-left:8px;padding-right:8px}",
     ".cb-accion{font-size:13px;padding:5px 10px;border-radius:8px}",
     ".cb-accion+.cb-accion{margin-left:6px}",
     ".cb-tabla tr.cb-usdt td{height:auto;padding:4px 10px 12px;text-align:right;color:var(--muted)}",

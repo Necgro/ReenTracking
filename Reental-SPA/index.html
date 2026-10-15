@@ -352,8 +352,14 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 .rv-interruptor input:checked+.rv-interruptor-pista::after{left:16px}
 .rv-interruptor input:focus-visible+.rv-interruptor-pista{outline:2px solid var(--accent);outline-offset:2px}
 .rv-tabla tr.rv-sin-tokens td{opacity:.5}
-.cc-indice{position:sticky;top:var(--alto-topbar,0px);z-index:6;display:flex;flex-wrap:wrap;gap:6px;margin:10px -22px 0;padding:8px 22px;background:var(--panel);border-bottom:1px solid var(--border)}
-.cc-indice button{font-size:13px;padding:5px 11px;min-height:0}
+/* Precios de RNT y POL: pocas columnas, la tabla a su medida y centrada. */
+.rv-tabla.rv-estrecha{width:auto;min-width:420px;margin:0 auto}
+.rv-tabla.rv-estrecha td,.rv-tabla.rv-estrecha th{padding-left:18px;padding-right:18px}
+.cc-indice{position:sticky;top:var(--alto-topbar,0px);z-index:6;display:grid;grid-template-columns:1fr;gap:6px;margin:10px -22px 0;padding:12px 22px;background:var(--panel);border-bottom:1px solid var(--border)}
+.cc-indice-botones{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.cc-indice button{font-size:15px;padding:7px 12px;min-height:0}
+.cc-indice>.cc-que-es{justify-self:end;position:relative;display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:600;color:var(--muted);cursor:help;white-space:nowrap}
+.cc-indice>.cc-que-es .cc-burbuja{right:0;left:auto}
 .cc-indice .rv-aviso{margin-left:5px}
 /* En el móvil la tabla scrollea en su caja; en ancho completo no hace
    falta, y así las burbujas de los botones no se recortan. */
@@ -475,10 +481,12 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 <section id="view-revision" class="view">
   <div class="card">
     <h2>🔍 Revisión</h2>
-    <span data-que-es></span>
     <!-- Índice fijo arriba (js/15, ccPintarIndice): en el orden en que
-         conviene resolver; copia los números y ⚠ de cada título. -->
+         conviene resolver; copia los números y ⚠ de cada título. Encima,
+         a la derecha, «ⓘ Qué es cada cosa» (también al bajar). -->
     <nav id="ccIndice" class="cc-indice" aria-label="Bloques de la revisión">
+      <span data-que-es></span>
+      <div class="cc-indice-botones">
       <button type="button" data-ir="rvCatalogo">① 🏠 Inmuebles<span class="rv-aviso" data-copia="rvCatalogoAviso"></span></button>
       <button type="button" data-ir="rvContratos">② 🧭 Direcciones</button>
       <button type="button" data-ir="ccLista">③ Por decidir (<span data-copia="ccNavRevision">0</span>)</button>
@@ -486,6 +494,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
       <button type="button" data-ir="rvPreciosRnt">🪙 RNT<span class="rv-aviso" data-copia="rvPreciosRntAviso"></span></button>
       <button type="button" data-ir="rvPreciosPol">⛽ POL<span class="rv-aviso" data-copia="rvPreciosPolAviso"></span></button>
       <button type="button" data-ir="ccResueltos">✅ Ya decididos (<span data-copia="ccResueltosCount">0</span>)</button>
+      </div>
     </nav>
     <!-- Cada bloque en su tarjeta
          plegable, cerrada por defecto; js/11 abre el catálogo si hay tokens
@@ -525,7 +534,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
          (js/20-coste-compras.js). -->
     <details id="cbCoste" class="cc-resueltos cb-coste">
       <summary>💶 Coste de las compras por transferencia bancaria (<span id="cbCount">0</span>)</summary>
-      <p class="help rv-explica">Lo pagado en € por cada compra. Si no lo pones: 100 € por token.</p>
+      <p class="help rv-explica">Coste de tokens pagado por transferencia (€ o $), la compra no se registra en la blockchain. Por defecto 1 token: 100 €.</p>
       <div id="cbCuerpo"><p class="help">Sin compras por transferencia bancaria.</p></div>
     </details>
     <details id="rvPreciosRnt" class="cc-resueltos rv-plegable">
@@ -538,9 +547,9 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
       <p class="help">Las fechas sin precio se ponen a mano; cada una enlaza a su precio en <a href="https://www.coingecko.com/en/coins/reental" target="_blank" rel="noopener">CoinGecko ↗</a></p>
       <div id="rvRntFaltantes" hidden>
         <h4 class="small">⚠ Fechas sin precio (<span id="nPreciosRntFaltantes">0</span>)</h4>
-        <div class="rv-caja"><table class="rv-tabla"><thead><tr><th>Fecha</th><th>Motivo</th><th>Precio USD</th><th></th></tr></thead><tbody id="tablaPreciosRntFaltantes"></tbody></table></div>
+        <div class="rv-caja"><table class="rv-tabla rv-estrecha"><thead><tr><th>Fecha</th><th>Motivo</th><th>Precio USD</th><th></th></tr></thead><tbody id="tablaPreciosRntFaltantes"></tbody></table></div>
       </div>
-      <div class="rv-caja"><table class="rv-tabla"><thead><tr><th>Fecha</th><th class="num">Precio USD</th><th></th></tr></thead><tbody id="tablaPreciosRnt"></tbody></table></div>
+      <div class="rv-caja"><table class="rv-tabla rv-estrecha"><thead><tr><th>Fecha</th><th class="num">Precio USD</th><th></th></tr></thead><tbody id="tablaPreciosRnt"></tbody></table></div>
     </details>
     <details id="rvPreciosPol" class="cc-resueltos rv-plegable">
       <summary>⛽ Precios de POL (USD) (<span id="nPreciosPol">0</span>)<span id="rvPreciosPolAviso" class="rv-aviso"></span></summary>
@@ -551,9 +560,9 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
       <p class="help">Las fechas sin precio se ponen a mano; cada una enlaza a su precio en <a href="https://www.coingecko.com/en/coins/polygon-ecosystem-token" target="_blank" rel="noopener">CoinGecko ↗</a></p>
       <div id="rvPolFaltantes" hidden>
         <h4 class="small">⚠ Fechas sin precio (<span id="nPreciosPolFaltantes">0</span>)</h4>
-        <div class="rv-caja"><table class="rv-tabla"><thead><tr><th>Fecha</th><th>Motivo</th><th>Precio USD</th><th></th></tr></thead><tbody id="tablaPreciosPolFaltantes"></tbody></table></div>
+        <div class="rv-caja"><table class="rv-tabla rv-estrecha"><thead><tr><th>Fecha</th><th>Motivo</th><th>Precio USD</th><th></th></tr></thead><tbody id="tablaPreciosPolFaltantes"></tbody></table></div>
       </div>
-      <div class="rv-caja"><table class="rv-tabla"><thead><tr><th>Fecha</th><th class="num">Precio USD</th><th></th></tr></thead><tbody id="tablaPreciosPol"></tbody></table></div>
+      <div class="rv-caja"><table class="rv-tabla rv-estrecha"><thead><tr><th>Fecha</th><th class="num">Precio USD</th><th></th></tr></thead><tbody id="tablaPreciosPol"></tbody></table></div>
     </details>
     <details id="ccResueltos" class="cc-resueltos">
       <summary>✅ Movimientos ya decididos (<span id="ccResueltosCount">0</span>)</summary>

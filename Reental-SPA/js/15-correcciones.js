@@ -3084,7 +3084,7 @@ function ccInyectarEstilos() {
     ".cc-que-es .cc-info{margin:0}",
     ".cc-que-es:hover,.cc-que-es:focus{color:var(--accent)}",
     ".cc-que-es:focus{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}",
-    ".cc-que-es .cc-burbuja{display:none;position:absolute;top:calc(100% + 8px);right:0;width:max-content;max-width:min(440px,80vw);background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:9px 12px;font-size:12.5px;font-weight:400;line-height:1.6;z-index:400;text-align:left;white-space:normal;cursor:auto}",
+    ".cc-que-es .cc-burbuja{display:none;position:absolute;top:calc(100% + 8px);right:0;width:max-content;max-width:min(540px,80vw);background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 18px;font-size:13.5px;font-weight:400;line-height:1.7;z-index:400;text-align:left;white-space:normal;cursor:auto}",
     ".cc-que-es:hover .cc-burbuja,.cc-que-es:focus .cc-burbuja{display:block}",
     "@media print{.card>.cc-que-es,.cc-indice{display:none}}",
     "#ccLista .cc-cat{margin-left:auto;display:inline-flex;align-items:center;font-size:13.5px;font-weight:700;color:var(--muted)}",

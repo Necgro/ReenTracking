@@ -136,10 +136,12 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
 
   /* A10: al imprimir no salen el índice ni «ⓘ Qué es cada cosa» (🔍 y 📒). */
   await page.emulateMediaType("print");
-  const impreso = await page.evaluate(() => [...document.querySelectorAll("#ccIndice, .card>.cc-que-es")].map(e => getComputedStyle(e).display));
+  // En 🔍 «ⓘ» va dentro del índice (se oculta con él); en 📒, en su tarjeta.
+  const impreso = await page.evaluate(() => [...document.querySelectorAll("#ccIndice, .card>.cc-que-es")].map(e => getComputedStyle(e).display)
+    .concat(document.querySelector("#ccIndice .cc-que-es") ? ["dentro"] : []));
   await page.emulateMediaType(null);
   assert("A10: al imprimir, ni el índice ni «ⓘ Qué es cada cosa» (en 🔍 y en 📒)",
-    impreso.length === 3 && impreso.every(d => d === "none"), impreso);
+    impreso.length === 3 && impreso.slice(0, 2).every(d => d === "none") && impreso[2] === "dentro", impreso);
 
   assert("0 errores", errores.length === 0, errores);
   await browser.close();

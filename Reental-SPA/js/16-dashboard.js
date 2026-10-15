@@ -712,7 +712,7 @@ function dashTarjetaInvertido(invertido, mensual) {
     dashSerieInvertido = mensual;
     const s = mensual, ultimo = s[s.length - 1].valor;
     // Los meses como en el bocadillo («mar 2024»), no «03/2024».
-    const hint = "A fin de mes · " + dashEsc(dashNombrePeriodo(s[0].etiqueta)) + " – " + dashEsc(dashNombrePeriodo(s[s.length - 1].etiqueta)) +
+    const hint = dashEsc(dashNombrePeriodo(s[0].etiqueta)) + " – " + dashEsc(dashNombrePeriodo(s[s.length - 1].etiqueta)) +
       " · " + dashCuantos(invertido.compras, "compra", "compras") + " y " + dashCuantos(invertido.ventas, "venta", "ventas");
     const aria = "Gráfico de línea: dinero invertido de " + dashNombrePeriodo(s[0].etiqueta) + " (" + dashNum(s[0].valor, 2) +
       " USD) a " + dashNombrePeriodo(s[s.length - 1].etiqueta) + " (" + dashNum(ultimo, 2) + " USD).";
@@ -1114,7 +1114,7 @@ function dashInyectarEstilos() {
     "#tarjetaMetricas .dash-head h3{font-size:14px;font-weight:700;color:var(--text)}",
     "#tarjetaMetricas .dash-hint{font-size:13px;color:var(--muted);margin-top:3px}",
     "#tarjetaMetricas .dash-value-lg{font-size:24px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--text)}",
-    "#tarjetaMetricas .dash-desglose{font-size:16px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}",
+    "#tarjetaMetricas .dash-desglose{font-size:18px;color:var(--muted);margin-top:2px;padding-bottom:8px;margin-bottom:6px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums}",
     "#tarjetaMetricas .dash-desglose-sep{margin:0 10px}",
     "#tarjetaMetricas .dash-subhead{font-size:13px;font-weight:700;color:var(--muted);margin:14px 0 2px;text-transform:uppercase;letter-spacing:.05em}",
     "#tarjetaMetricas .dash-value-k{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}",

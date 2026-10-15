@@ -53,7 +53,7 @@ assert("la tarjeta: gráfico enfocable con su bocadillo y su zona para el lector
 {
   const html = fs.readFileSync(path.join(SPA, "index.html"), "utf8");
   assert("REVISION-3: los meses de la tarjeta como en el bocadillo (T5) y los textos de la barra lateral (T6, T9)",
-    tarjeta.includes("A fin de mes · mar 2024 – may 2024 · 2 compras y 0 ventas") &&
+    tarjeta.includes(">mar 2024 – may 2024 · 2 compras y 0 ventas") &&
     // El pie dice «Datos solo en este navegador» (verifymenu1.js).
     html.includes(">Datos solo en este navegador<") &&
     html.includes('title="Plegar el menú (solo iconos)"') && !html.includes("para dar más sitio"), tarjeta.slice(0, 300));

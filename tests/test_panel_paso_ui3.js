@@ -158,7 +158,7 @@ assert("ccResueltos sin explicación debajo del título",
   !/<details id="ccResueltos"[^>]*>\s*<summary>(?:(?!<details)[\s\S])*?<\/summary>\s*<p class="help rv-explica">/.test(pagina));
 assert("cada apartado de 🔍 Revisión lleva su explicación breve, justo debajo del título",
   ["cbCoste", "rvCatalogo", "rvPreciosRnt", "rvPreciosPol", "rvContratos"].every(id =>
-    new RegExp('<details id="' + id + '"[^>]*>\\s*<summary>(?:(?!<details)[\\s\\S])*?</summary>\\s*<p class="help rv-explica">[^<]{20,110}</p>').test(pagina)) &&
+    new RegExp('<details id="' + id + '"[^>]*>\\s*<summary>(?:(?!<details)[\\s\\S])*?</summary>\\s*<p class="help rv-explica">[^<]{20,130}</p>').test(pagina)) &&
   /Correcciones a mano de movimientos concretos\. ⚠ Un error cambia lo que sale en todas las pestañas\./.test(pagina));
 assert("las fechas sin precio, ocultas hasta que haya alguna",
   /<div id="rvRntFaltantes" hidden>/.test(pagina));

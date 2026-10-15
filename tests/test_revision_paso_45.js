@@ -196,8 +196,8 @@ assert("10 líneas, con compra bancaria, canje y gas", nombresQueEs.length === 1
   ["Compra bancaria", "Canje de contrato", "Comisión de red (gas)", "Movimiento neutro", "Spam"].every(n => nombresQueEs.includes(n)), nombresQueEs);
 assert("con teclado (tabindex) y el texto entero en el aria-label", /^<span class="cc-que-es" tabindex="0" aria-label="Qué es cada cosa\. Compra \/ Venta: /.test(queEs));
 const indexHtml = fs.readFileSync(path.join(__dirname, "..", "Reental-SPA", "index.html"), "utf8");
-assert("un hueco en cada pestaña, justo bajo su título",
-  /<h2>🔍 Revisión<\/h2>\s*<span data-que-es><\/span>/.test(indexHtml) && /<h2>📒 Transacciones<\/h2>\s*<span data-que-es><\/span>/.test(indexHtml) &&
+assert("un hueco en cada pestaña: en 🔍, encima de los botones de su índice fijo (se ve al bajar); en 📒, bajo su título",
+  /<nav id="ccIndice"[^>]*>\s*<span data-que-es><\/span>\s*<div class="cc-indice-botones">/.test(indexHtml) && /<h2>📒 Transacciones<\/h2>\s*<span data-que-es><\/span>/.test(indexHtml) &&
   (indexHtml.match(/data-que-es/g) || []).length === 2);
 
 console.log("== P5. Con tokens con dudas, el aviso encima de las tarjetas ==");

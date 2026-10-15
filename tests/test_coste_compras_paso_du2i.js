@@ -159,8 +159,9 @@ assert("abierta y sin cambio, su «Guardar» desactivado",
   /data-cb="guardar" data-clave="d" disabled>/.test(S.cbHtmlEditor(S.cbFilas([D], { d: propio }), { d: "450,00" }, 100)));
 assert("SUPUESTO-1 A1: sin coste tuyo, «Guardar» activo aunque no cambie (lo confirma)",
   /data-cb="guardar" data-clave="b">/.test(S.cbHtmlEditor(S.cbFilas([B], {}), { b: "400,00" }, 100)));
-assert("SUPUESTO-1 A2: «por defecto» en la de sin coste tuyo, no en la tuya",
-  cerrado.includes('400,00 €</span> <span class="cb-defecto">por defecto</span>') &&
+// Desde el retoque de UI (15/10/2026) la fila no dice «por defecto»: lo dice la explicación del apartado.
+assert("SUPUESTO-1 A2: la fila solo con el importe (sin «por defecto»); la marca sigue en la fila (supuesto)",
+  cerrado.includes('400,00 €</span>') && !cerrado.includes("por defecto") && S.cbFilas([B], {}, 100)[0].supuesto === true &&
   !S.cbHtmlEditor(S.cbFilas([D], { d: propio }), {}, 100).includes("por defecto"));
 assert("sin compras: «Sin compras por transferencia bancaria.»",
   S.cbHtmlEditor([], {}, 100) === '<p class="help">Sin compras por transferencia bancaria.</p>');
