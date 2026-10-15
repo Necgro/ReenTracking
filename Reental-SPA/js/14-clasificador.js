@@ -56,8 +56,8 @@ const NOTA_TRASPASO_INMUEBLE = "traspaso de tokens entre tus cuentas (siguen sie
 /* Nota del spam por una direccion que imita la tuya y de lo que
    mandaste al spam con «Toda la direccion» o «Todo el token»;
    js/18 las usa para decir el motivo del spam. */
-const NOTA_IMITA_DIRECCION = "direccion que imita la tuya (envenenamiento de direcciones)";
-const NOTA_SPAM_DIRECCION = "direccion mandada al spam por ti";
+const NOTA_IMITA_DIRECCION = "dirección que imita la tuya (envenenamiento de direcciones)";
+const NOTA_SPAM_DIRECCION = "dirección mandada al spam por ti";
 const NOTA_SPAM_TOKEN = "token mandado al spam por ti";
 function imitaDireccionPropia(addr) {
   addr = normalizarDireccion(addr || "");
@@ -357,18 +357,18 @@ function regla2Rendimientos(h, filas, txs, consumidos, diario, contexto,
    blockchain: el aviso de 🚀 Puesta en marcha (js/19) los busca
    en los registros. Las notas se escriben enteras más abajo (las pruebas
    las comprueban letra a letra): si cambian, cambiar también esto. */
-const NOTA_CSV_MAS_NUEVO = "puede que el archivo de Reental sea mas nuevo que la cache";
-const NOTA_RENDIMIENTO_HUERFANO = "rendimiento huerfano no cubierto por el archivo de Reental";
+const NOTA_CSV_MAS_NUEVO = "puede que el archivo de Reental sea más nuevo que la cache";
+const NOTA_RENDIMIENTO_HUERFANO = "rendimiento huérfano no cubierto por el archivo de Reental";
 function rendimientosSinTransferencia(filasCsv, filasEmitidas, diario, contexto) {
   const hayVault = !!vaultConfig();
   let nota = "sin transferencia descargada para este hash: importe tomado del " +
              "archivo de Reental";
   if (hayVault) {
-    nota += "; con el vault configurado la transferencia deberia estar " +
+    nota += "; con el vault configurado la transferencia debería estar " +
             "descargada: comprobar el hash en Polygonscan o volver a " +
-            "descargar (puede que el archivo de Reental sea mas nuevo que la cache)";
+            "descargar (puede que el archivo de Reental sea más nuevo que la cache)";
   } else {
-    nota += " (sin vault no hay con que contrastarlo)";
+    nota += " (sin vault no hay con qué contrastarlo)";
   }
   for (const fila of filasCsv) {
     if (filasEmitidas.has(fila.linea_csv) || !fila.hashes.length) continue;
@@ -415,7 +415,7 @@ function rendimientosSinHash(filasCsv, filasEmitidas, diario, contexto) {
     if (!movido && fila.distributed <= 0) continue;
     filasEmitidas.add(fila.linea_csv);
     const nota = movido
-      ? "fila del archivo de Reental con importe y sin ningun " +
+      ? "fila del archivo de Reental con importe y sin ningún " +
         "hash: comprobar en Reental donde fue ese dinero"
       : "rendimiento pendiente (ni reclamado ni reinvertido): " +
         "sin hash, datos tomados del archivo de Reental";
@@ -445,7 +445,7 @@ function emitirRendimientoCsv(h, fila, txCobro, nota, revisar, diario, contexto)
     nota = (nota ? nota + "; " : "") +
       "la fila " + fila.linea_csv + " del archivo de Reental trae " + fila.hashes.length +
       " hashes (reinvertida o reclamada en varias veces): un solo " +
-      "registro, comprobar las transferencias de los demas hashes";
+      "registro, comprobar las transferencias de los demás hashes";
     revisar = true;
   }
   if (walletConfig() && fila.wallet && fila.wallet !== walletConfig() && fila.wallet !== vaultConfig()) {
@@ -458,7 +458,7 @@ function emitirRendimientoCsv(h, fila, txCobro, nota, revisar, diario, contexto)
   if (!fila.fecha_reparto) {
     // Sin fecha no se sabe en qué año se declara.
     nota = (nota ? nota + "; " : "") +
-      "la fila no trae la fecha del reparto: no se sabe en que ano se declara";
+      "la fila no trae la fecha del reparto: no se sabe en qué año se declara";
     revisar = true;
   }
   const reinvested = Number(fila.reinvested);
@@ -524,9 +524,9 @@ function pendientesYaCobrados(registros) {
       hu.subcategoria = "PENDIENTE";
       hu.revisar = true;
       hu.nota = "cobro del rendimiento " + igual.periodo_fiscal + " " + NOTA_PENDIENTE_COBRADO +
-        ": ya se declara con la fila; carga un archivo de Reental mas nuevo";
+        ": ya se declara con la fila; carga un archivo de Reental más nuevo";
       anadir(igual, "ya cobrado el " + hu.fecha.slice(0, 10) + " (hash " + hu.hash +
-        "): carga un archivo de Reental mas nuevo");
+        "): carga un archivo de Reental más nuevo");
       continue;
     }
     anadir(hu, "puede ser un rendimiento " + NOTA_PENDIENTE_COBRADO + " (" +
@@ -534,8 +534,8 @@ function pendientesYaCobrados(registros) {
     for (const p of anteriores) {
       if (!p.revisar) {
         p.revisar = true;
-        anadir(p, "puede que ya este cobrado: el " + hu.fecha.slice(0, 10) +
-          " llego un rendimiento que no esta en el archivo de Reental; carga uno mas nuevo");
+        anadir(p, "puede que ya esté cobrado: el " + hu.fecha.slice(0, 10) +
+          " llegó un rendimiento que no está en el archivo de Reental; carga uno más nuevo");
       }
     }
   }
@@ -561,7 +561,7 @@ function importePatas(patas) {
   return { importe: cantidades.reduce((s, c) => s + (c || 0), 0), revisar };
 }
 function notaPatas(patas, revisar) {
-  if (revisar) return "; algun pago del hash no se puede leer: comprobar el importe";
+  if (revisar) return "; algún pago del hash no se puede leer: comprobar el importe";
   if (patas.length > 1) return "; cobrada en " + patas.length + " pagos en el hash";
   return "";
 }
@@ -657,7 +657,7 @@ function correlacionarVentas(h, txs, consumidos, diario, contexto) {
         fecha: fechaHoraDeTx(txBurn), token: txBurn.tokenName, simbolo: txBurn.tokenSymbol,
         cantidad: cantidadTx(txBurn), inmueble: inmueble, importe_usdt: importe,
         origen: txBurn.from, destino: BURN,
-        nota: "liquidacion via settlement " + normalizarDireccion(txLeg.from) +
+        nota: "liquidación vía settlement " + normalizarDireccion(txLeg.from) +
           notaPatas(settlementLegs, revisar),
         revisar: revisar,
       });
@@ -667,7 +667,7 @@ function correlacionarVentas(h, txs, consumidos, diario, contexto) {
       diario.emitir(h, txBurn.contractAddress, "VENTA", "GPP_INMUEBLE", {
         fecha: fechaHoraDeTx(txBurn), token: txBurn.tokenName, simbolo: txBurn.tokenSymbol,
         cantidad: cantidadTx(txBurn), inmueble: inmueble, origen: txBurn.from, destino: BURN,
-        nota: "burn sin contraprestacion localizada en el hash",
+        nota: "burn sin contraprestación localizada en el hash",
         revisar: true,
       });
     }
@@ -706,7 +706,7 @@ function correlacionarVentas(h, txs, consumidos, diario, contexto) {
       diario.emitir(h, txOut.contractAddress, "REVISAR", "PENDIENTE", {
         fecha: fechaHoraDeTx(txOut), token: txOut.tokenName, simbolo: txOut.tokenSymbol,
         cantidad: cantidadTx(txOut), inmueble: inmueble, origen: txOut.from, destino: txOut.to,
-        nota: "envio de tokens de un inmueble sin contraprestacion en el hash",
+        nota: "envío de tokens de un inmueble sin contraprestación en el hash",
         revisar: true,
       });
     }
@@ -841,7 +841,7 @@ function correlacionarDefi(h, txs, consumidos, diario, contexto) {
     const entraSlp = slpPool.some(([, tx]) =>
       clasificarDireccion(tx.to || "", contexto) === "PROPIA");
     const nota = entraSlp
-      ? "aportacion de liquidez al pool"
+      ? "aportación de liquidez al pool"
       : "retirada de liquidez del pool";
     const slpIdx = new Set(slpPool.map(p => p[0]));
     const legs = pendientes.filter(([i, tx]) => {
@@ -1041,8 +1041,8 @@ function correlacionarPol(h, legsPol, txs, consumidos, diario, contexto) {
     diario.emitir(h, "pol", "DEPOSITO", "COSTE_BASE", {
       cantidad: polIn, fecha: fechaHoraDeTx(txRef), token: "POL", simbolo: "POL",
       origen: txRef.from, destino: txRef.to,
-      nota: "deposito de POL para gas: coste puesto a mano " +
-            "o, si no, al precio de POL del dia",
+      nota: "depósito de POL para gas: coste puesto a mano " +
+            "o, si no, al precio de POL del día",
     });
   }
   if (polOut > 0) {
@@ -1084,13 +1084,13 @@ function clasificarIndividual(tx, diario, contexto) {
     }
     if (contexto.descartadas.has(contrato)) {
       diario.emitir(h, contrato, "SPAM", "NEUTRO", Object.assign({}, comunes, {
-        nota: "token descartado por el usuario en el catalogo",
+        nota: "token descartado por el usuario en el catálogo",
       }));
       return;
     }
     if (nombreTokenSospechoso(nombre, simbolo)) {
       diario.emitir(h, contrato, "SPAM", "NEUTRO", Object.assign({}, comunes, {
-        nota: "senales de spam en el nombre del token",
+        nota: "señales de spam en el nombre del token",
       }));
       return;
     }
@@ -1153,7 +1153,7 @@ function clasificarIndividual(tx, diario, contexto) {
         contexto.hashesCsv && contexto.hashesCsv[normalizarDireccion(h)]) {
       diario.emitir(h, contrato, "REVISAR", "PENDIENTE", Object.assign({}, comunes, {
         importe_usdt: cantidad,
-        nota: "transferencia de un reparto que esta en el archivo de " +
+        nota: "transferencia de un reparto que está en el archivo de " +
               "Reental pero no cuadra con su fila: ya se declara con " +
               "la fila; comprobar",
         revisar: true,
@@ -1164,8 +1164,8 @@ function clasificarIndividual(tx, diario, contexto) {
       if (tipoOrigen === "DISTRIBUIDOR") {
         diario.emitir(h, contrato, "RENDIMIENTO", "RCM_REINVERTIDO", Object.assign({}, comunes, {
           importe_usdt: cantidad,
-          nota: "rendimiento huerfano no cubierto por el archivo de " +
-                "Reental: verificar (el archivo deberia haberlo incluido)",
+          nota: "rendimiento huérfano no cubierto por el archivo de " +
+                "Reental: verificar (el archivo debería haberlo incluido)",
           revisar: true,
         }));
         return;
@@ -1195,8 +1195,8 @@ function clasificarIndividual(tx, diario, contexto) {
     if (tipoOrigen === "DISTRIBUIDOR" && normalizarDireccion(destino) === walletConfig()) {
       diario.emitir(h, contrato, "RENDIMIENTO", "RCM_RECLAMADO", Object.assign({}, comunes, {
         importe_usdt: cantidad,
-        nota: "rendimiento huerfano no cubierto por el archivo de " +
-              "Reental: verificar (el archivo deberia haberlo incluido)",
+        nota: "rendimiento huérfano no cubierto por el archivo de " +
+              "Reental: verificar (el archivo debería haberlo incluido)",
         revisar: true,
       }));
       return;
@@ -1293,7 +1293,7 @@ function registrosGas(cache, diario) {
         diario.emitir(tx.hash || "", "gas", "COMISION", "NEUTRO", {
           fecha: fechaHoraDeTx(tx), token: "POL", simbolo: "POL",
           cantidad: gas, origen: origen, destino: destino,
-          nota: fallida ? "gas de transaccion fallida" : "gas",
+          nota: fallida ? "gas de transacción fallida" : "gas",
           revisar: gas === null,
         });
       }
@@ -1819,7 +1819,7 @@ function pdEfectoSalida(registro, vid, suma, desglose, liquidacion, faltan, fech
   registro.importe_usdt = suma;
   registro.pago_diferido = { venta_id: vid, rol: "salida" };
   const conservar = pdFragmentosNota(registro.nota)
-    .filter(f => !f.includes("sin contraprestacion") && !f.startsWith("sin regla aplicable"));
+    .filter(f => !/sin contraprestaci[oó]n/.test(f) && !f.startsWith("sin regla aplicable")); // con o sin tilde (notas de antes de la 1.2)
   const motivosRestantes = Boolean(registro.revisar) && conservar.length > 0;
   const cuando = fechasPago && fechasPago.length ? " el " + fechasPago.join(" y ") : "";
   let texto = desglose.size ? PD_COBRADA + cuando + ": " + pdImportesEs(desglose) : PD_SIN_COBRAR;
@@ -2068,7 +2068,7 @@ function aplicarAjustesUsuario(registros, cache, silencioso, movidos) {
       registro = (porBase.get(baseClave(k)) || []).find(r => selloCasa(r, sello));
       if (!registro) {
         noAplicados.push(clave);
-        avisar("AVISO: el movimiento del ajuste " + clave + " ya no esta: no se aplica", "warn");
+        avisar("AVISO: el movimiento del ajuste " + clave + " ya no está: no se aplica", "warn");
         if (Array.isArray(movidos)) movidos.push([clave, null]);
         continue;
       }
@@ -2087,7 +2087,7 @@ function aplicarAjustesUsuario(registros, cache, silencioso, movidos) {
       if (campo === "nota") {
         // Solo un texto (null saldría «null» y 5.0 saldría «5»).
         if (typeof valor !== "string") {
-          avisar("AVISO: ajuste " + clave + ": la nota no es un texto, no se anade", "warn");
+          avisar("AVISO: ajuste " + clave + ": la nota no es un texto, no se añade", "warn");
           continue;
         }
         registro.nota = (registro.nota ? registro.nota + "; " : "") + valor;
@@ -2095,11 +2095,11 @@ function aplicarAjustesUsuario(registros, cache, silencioso, movidos) {
         continue;
       } else if (campo === "__proto__") {
         // Cambiaría el prototipo del registro.
-        avisar("AVISO: ajuste " + clave + ": campo '__proto__' no valido, se ignora", "warn");
+        avisar("AVISO: ajuste " + clave + ": campo '__proto__' no válido, se ignora", "warn");
       } else if (campo !== "clave") {
         if (!(campo in registro)) {
           avisar("AVISO: ajuste " + clave + ": campo '" + campo +
-              "' no existia en el registro, se anade", "warn");
+              "' no existía en el registro, se añade", "warn");
         }
         // Un codigo con su nombre antiguo (DIVIDENDO, RCM_VAULT...) vale
         // como el de hoy.

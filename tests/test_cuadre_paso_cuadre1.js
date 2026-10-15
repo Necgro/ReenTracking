@@ -61,7 +61,7 @@ function clasificar(filas, transfers) {
     __regs = clasificarTransacciones(__cache, __r.filas, __r.indicePorHash, __config, {});`, sb);
   return sb.__regs;
 }
-const NOTA = "rendimiento huerfano no cubierto por el archivo de Reental";
+const NOTA = "rendimiento huérfano no cubierto por el archivo de Reental";
 const delHash = (regs, x) => regs.filter(r => r.hash === x);
 const rend = regs => regs.filter(r => r.categoria === "RENDIMIENTO");
 
@@ -92,7 +92,7 @@ console.log("== 3. Avisos de la Puesta en marcha (js/19) ==");
 const A = nuevoSandbox(["01-constantes.js", "02-utilidades.js", "04-config.js", "14-clasificador.js", "19-arranque.js"]);
 const mk = (cat, nota, revisar = true) => ({ categoria: cat, nota, revisar });
 const dc = A.arrDescuadres([
-  mk("RENDIMIENTO", "sin transferencia descargada ...(puede que el archivo de Reental sea mas nuevo que la cache)"),
+  mk("RENDIMIENTO", "sin transferencia descargada ...(puede que el archivo de Reental sea más nuevo que la cache)"),
   mk("RENDIMIENTO", NOTA + ": verificar"), mk("RENDIMIENTO", NOTA + ": verificar; Mandado a revisar desde la SPA (x)"),
   mk("RENDIMIENTO", NOTA, false), mk("REVISAR", NOTA), mk("RENDIMIENTO", "otra cosa")]);
 assert("cuenta solo lo marcado a revisar: 1 del archivo sin descargar y 2 sin archivo",

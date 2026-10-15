@@ -120,10 +120,10 @@ const CONFIG = { wallet: W, vault: V };
    Cobros: c1 USDC 300 DEPOSITO (caso «verificar origen»), c3 RENDIMIENTO 400 y
    c4 REWARD 12 (contraparte explicada: solo con la casilla), c5 USDT 60
    REVISAR (sin contraparte). */
-const s1 = reg(H(1), P1, W, T, 250, "REVISAR", { simbolo: "RALC1", revisar: true, inmueble: "Prueba Alcazaba 1", nota: "envio de tokens de un inmueble sin contraprestacion en el hash", clave: "s1" });
-const s2 = reg(H(2), P2, W, T, 100, "REVISAR", { simbolo: "RBRE2", revisar: true, inmueble: "Prueba Brezo 2", nota: "envio de tokens de un inmueble sin contraprestacion en el hash", clave: "s2" });
+const s1 = reg(H(1), P1, W, T, 250, "REVISAR", { simbolo: "RALC1", revisar: true, inmueble: "Prueba Alcazaba 1", nota: "envío de tokens de un inmueble sin contraprestación en el hash", clave: "s1" });
+const s2 = reg(H(2), P2, W, T, 100, "REVISAR", { simbolo: "RBRE2", revisar: true, inmueble: "Prueba Brezo 2", nota: "envío de tokens de un inmueble sin contraprestación en el hash", clave: "s2" });
 const v1 = reg(H(7), P1, W, T, 40, "VENTA", { simbolo: "RALC1", fecha: "2026-08-02 12:00:00", inmueble: "Prueba Alcazaba 1", importe_usdt: 500, subcategoria: "GPP_INMUEBLE", nota: "venta con contraprestacion correlacionada en el hash", clave: "v1" });
-const v2 = reg(H(8), P1, W, BURN, 40, "VENTA", { simbolo: "RALC1", fecha: "2026-08-03 12:00:00", inmueble: "Prueba Alcazaba 1", subcategoria: "GPP_INMUEBLE", revisar: true, nota: "burn sin contraprestacion localizada en el hash", clave: "v2" });
+const v2 = reg(H(8), P1, W, BURN, 40, "VENTA", { simbolo: "RALC1", fecha: "2026-08-03 12:00:00", inmueble: "Prueba Alcazaba 1", subcategoria: "GPP_INMUEBLE", revisar: true, nota: "burn sin contraprestación localizada en el hash", clave: "v2" });
 const c1 = reg(H(3), USDC, T, W, 300, "DEPOSITO", { simbolo: "USDC", fecha: "2026-05-20 18:00:00", nota: "verificar origen (venta P2P, bridge o exchange)", clave: "c1" });
 const c3 = reg(H(4), USDT, D, V, 400, "RENDIMIENTO", { simbolo: "USDT", fecha: "2026-04-10 12:00:00", clave: "c3" });
 const c4 = reg(H(5), USDT, D, V, 12, "REWARD", { simbolo: "USDT", fecha: "2026-04-11 12:00:00", clave: "c4" });

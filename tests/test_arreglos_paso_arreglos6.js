@@ -239,7 +239,7 @@ console.log("== Pendiente ya cobrado (A1) ==");
     [tx(h(1), DISTRIBUIDOR, WALLET, 8.1, ts(2026, 9, 5))]);
   const p2 = r2.find(r => r.subcategoria === "RCM_PENDIENTE"), hu = r2.find(r => r.hash === h(1));
   assert("no casa por importe: los dos a revisar", p2.revisar && hu.revisar &&
-    p2.nota.includes("puede que ya este cobrado") && hu.nota.includes(NOTA), [p2.nota, hu.nota]);
+    p2.nota.includes("puede que ya esté cobrado") && hu.nota.includes(NOTA), [p2.nota, hu.nota]);
 
   const r3 = clasificar([filaCsv(1, "Prueba ES #8/2026", 10, 0, 0, 0)],
     [tx(h(1), DISTRIBUIDOR, VAULT, 10, ts(2026, 8, 1))]);

@@ -116,7 +116,7 @@ assert("imita: 3 y 3 sí; 2 y 3, la propia o vacía, no",
 }
 regs = clasificar([tx(h(7), IMITA, WALLET, 0.0001, ts(2026, 6, 19)), tx(h(8), NO_IMITA, WALLET, 0.0001, ts(2026, 6, 19))]);
 const [spam] = delHash(regs, h(7)), [dep] = delHash(regs, h(8));
-assert("de la imitación: SPAM con su nota", spam.categoria === "SPAM" && spam.nota.includes("direccion que imita la tuya"), spam);
+assert("de la imitación: SPAM con su nota", spam.categoria === "SPAM" && spam.nota.includes("dirección que imita la tuya"), spam);
 assert("de una que no imita: depósito", dep.categoria === "DEPOSITO", dep);
 
 console.log("== Tras la revisión: casos límite ==");

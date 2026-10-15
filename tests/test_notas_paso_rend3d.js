@@ -53,7 +53,7 @@ assert("pendiente: «rendimiento pendiente (ni reclamado ni reinvertido)… arch
     "rendimiento pendiente (ni reclamado ni reinvertido): sin hash, datos tomados del archivo de Reental", por("RCM_PENDIENTE"));
 assert("sin transferencia descargada: «importe tomado del archivo de Reental (sin vault…)»",
   por("RCM_REINVERTIDO") && por("RCM_REINVERTIDO").nota ===
-    "sin transferencia descargada para este hash: importe tomado del archivo de Reental (sin vault no hay con que contrastarlo)",
+    "sin transferencia descargada para este hash: importe tomado del archivo de Reental (sin vault no hay con qué contrastarlo)",
   por("RCM_REINVERTIDO"));
 assert("mixto: «rendimiento mixto reinvertido/reclamado»",
   por("RCM_MIXTO") && por("RCM_MIXTO").nota.endsWith("rendimiento mixto reinvertido/reclamado"), por("RCM_MIXTO"));

@@ -86,7 +86,7 @@ const CACHE = {
 
 const SALIDA = reg(H(1), P1, W, T, 250, "REVISAR", {
   simbolo: "RALC1", revisar: true, inmueble: "Prueba Alcazaba 1",
-  nota: "envio de tokens de un inmueble sin contraprestacion en el hash", clave: "s1" });
+  nota: "envío de tokens de un inmueble sin contraprestación en el hash", clave: "s1" });
 const COBRO = reg(H(2), USDC, T, W, 300, "DEPOSITO", {
   simbolo: "USDC", fecha: "2026-05-20 18:00:00",
   nota: "verificar origen (venta P2P, bridge o exchange)", clave: "c1" });

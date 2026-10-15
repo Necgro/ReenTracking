@@ -97,7 +97,7 @@ function escenarioRegistros() {
   // 1 salida REVISAR (motivo real del clasificador) + 1 cobro DEPOSITO
   const salida = registro(HASH_SALIDA_1, PROP, WALLET, RECEPTOR, 500.0,
                           "REVISAR", { revisar: true, simbolo: "P1",
-    nota: "envio de tokens de un inmueble sin contraprestacion en el hash" });
+    nota: "envío de tokens de un inmueble sin contraprestación en el hash" });
   salida.inmueble = "Prueba 1";
   const cobro = registro(HASH_PAGO, USDC, TERCERO, WALLET, 1000.0, "DEPOSITO",
                          { subcategoria: "COSTE_BASE", simbolo: "USDC",
@@ -163,7 +163,7 @@ console.log("1) Efectos sobre registros sinteticos (llamada directa)");
      salida.categoria === "VENTA" && salida.subcategoria === "GPP_INMUEBLE" &&
      salida.importe_usdt === 1000.0 && salida.revisar === false &&
      deepEqual(salida.pago_diferido, { venta_id: "pd_001", rol: "salida" }) &&
-     !salida.nota.includes("sin contraprestacion") &&
+     !salida.nota.includes("sin contraprestación") &&
      salida.nota === "Cobrada aparte el 20/05/2026: 1.000,00 USDC", salida); // nota en llano
   ok("cobro → DEPOSITO/COSTE_BASE sin revisar, importe independiente intacto",
      cobro.categoria === "DEPOSITO" && cobro.subcategoria === "COSTE_BASE" &&
@@ -223,7 +223,7 @@ console.log("1) Efectos sobre registros sinteticos (llamada directa)");
   const salida2 = registro(HASH_SALIDA_2, PROP, WALLET, RECEPTOR, 500.0,
                            "REVISAR", { revisar: true, simbolo: "P1",
     fecha: "2026-05-12 10:18:17",
-    nota: "envio de tokens de un inmueble sin contraprestacion en el hash" });
+    nota: "envío de tokens de un inmueble sin contraprestación en el hash" });
   salida2.inmueble = "Prueba 1";
   const regs = [salida2, ...escenarioRegistros()];
   const ref2 = referencia(HASH_SALIDA_2, PROP, WALLET, RECEPTOR, 500.0, DEC_PROP);
@@ -243,13 +243,13 @@ console.log("1) Efectos sobre registros sinteticos (llamada directa)");
 // --- Motivos ajenos al vinculo se conservan ---
 {
   const regs = escenarioRegistros();
-  regs[0].nota = "envio de tokens de un inmueble sin contraprestacion en el hash; otro motivo pendiente";
+  regs[0].nota = "envío de tokens de un inmueble sin contraprestación en el hash; otro motivo pendiente";
   aplicar(bloque(venta("pd_001", refSalida1(),
                        [asignacion("as_001", refPago(), 1000.0)])), regs);
   ok("otros motivos de revisar se conservan (COMPLETA + motivo ajeno)",
      regs[0].revisar === true &&
      regs[0].nota.includes("otro motivo pendiente") &&
-     !regs[0].nota.includes("sin contraprestacion"), regs[0].nota);
+     !regs[0].nota.includes("sin contraprestación"), regs[0].nota);
 }
 
 // --- Bloque vacio: nada cambia ---
@@ -401,7 +401,7 @@ const clasificar = cache =>
   ok("sin vinculos: comportamiento original (2 registros, REVISAR + DEPOSITO)",
      regs.length === 2 && salida && cobro &&
      salida.categoria === "REVISAR" && salida.revisar === true &&
-     salida.nota.includes("sin contraprestacion") &&
+     salida.nota.includes("sin contraprestación") &&
      salida.pago_diferido === undefined &&
      cobro.categoria === "DEPOSITO" && cobro.revisar === false &&
      cobro.pago_diferido === undefined,

@@ -149,7 +149,7 @@ console.log("== 3. Sin vault: los rendimientos salen del CSV ==");
   assert("varias filas con un solo hash: un registro por fila", reinv.length === 2 && reinv[0].clave !== reinv[1].clave);
   assert("sin vault: sin revisar y con la nota de que no hay contraste",
     reinv.every(r => !r.revisar && r.nota ===
-      "sin transferencia descargada para este hash: importe tomado del archivo de Reental (sin vault no hay con que contrastarlo)"),
+      "sin transferencia descargada para este hash: importe tomado del archivo de Reental (sin vault no hay con qué contrastarlo)"),
     reinv.map(r => r.nota));
   assert("sin transferencia: sin origen, destino ni fecha_cobro",
     reinv.every(r => r.origen === "" && r.destino === "" && r.fecha_cobro === null));
@@ -168,7 +168,7 @@ console.log("== 4. Con vault, el vault es el contraste ==");
   const d = rendimientos(regs);
   assert("falta la transferencia con vault: sale igual, a revisar", d.length === 2 && d.every(r => r.revisar));
   assert("con la nota que dice qué comprobar", d.every(r => r.nota ===
-    "sin transferencia descargada para este hash: importe tomado del archivo de Reental; con el vault configurado la transferencia deberia estar descargada: comprobar el hash en Polygonscan o volver a descargar (puede que el archivo de Reental sea mas nuevo que la cache)"));
+    "sin transferencia descargada para este hash: importe tomado del archivo de Reental; con el vault configurado la transferencia debería estar descargada: comprobar el hash en Polygonscan o volver a descargar (puede que el archivo de Reental sea más nuevo que la cache)"));
   const recl = d.find(r => r.hash === h(2));
   assert("y con su bruto y su retención", recl.integro_usdt === 10 && recl.retencion_usdt === 1.9);
 }
@@ -205,7 +205,7 @@ console.log("== 5. Una fila, un solo registro ==");
   const d = rendimientos(regs);
   assert("fila con dos hashes: un solo RENDIMIENTO, en el primero", d.length === 1 && d[0].hash === h(1), d.map(r => r.hash));
   assert("a revisar, con la nota de los varios hashes", d[0].revisar && d[0].nota ===
-    "importe del archivo de Reental no localizado en los transfers del hash; la fila 2 del archivo de Reental trae 2 hashes (reinvertida o reclamada en varias veces): un solo registro, comprobar las transferencias de los demas hashes", d[0].nota);
+    "importe del archivo de Reental no localizado en los transfers del hash; la fila 2 del archivo de Reental trae 2 hashes (reinvertida o reclamada en varias veces): un solo registro, comprobar las transferencias de los demás hashes", d[0].nota);
 }
 {
   const { regs } = ejecutar(
@@ -244,7 +244,7 @@ for (const conVault of [false, true]) {
   const reclamo = d.find(r => r.periodo_fiscal === "Prueba ES #5/2026");
   assert("con importe y sin hash: sale igual, a revisar" + et,
     movida.subcategoria === "RCM_REINVERTIDO" && movida.revisar &&
-    movida.nota === "fila del archivo de Reental con importe y sin ningun hash: comprobar en Reental donde fue ese dinero", movida);
+    movida.nota === "fila del archivo de Reental con importe y sin ningún hash: comprobar en Reental donde fue ese dinero", movida);
   assert("reclamo sin hash: a revisar, con su retención" + et,
     reclamo.subcategoria === "RCM_RECLAMADO" && reclamo.revisar && reclamo.retencion_usdt === 1.9 && reclamo.integro_usdt === 10);
   assert("seis rendimientos en total" + et, d.length === 6, d.length);
