@@ -2,6 +2,17 @@
 
 Lo más reciente, arriba. Una fila por versión o paso.
 
+## 1.2 — compras pagadas en dólares (15/10/2026)
+
+- **💶 Coste de las compras:** una compra por transferencia guardada con «En
+  USDT…» (pagada en dólares) se ve en $, con sus € al lado; al editarla,
+  «En USDT…» viene con lo que pusiste.
+- **📊 Dashboard:** esas compras cuentan en la parte en $ del dinero invertido.
+- **Cálculo:** no cambia; el coste de compra sigue en € (con el BCE del día del
+  pago).
+- **Pruebas:** dos casos completos con datos inventados (una preventa de RNT
+  entregada poco a poco y un reparto de inmuebles pagado en dólares).
+
 ## 1.1 — lo que salió de las primeras pruebas (15/10/2026)
 
 - **🚀 Puesta en marcha:** la primera descarga empieza sola al poner la
