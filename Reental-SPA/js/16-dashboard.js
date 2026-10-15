@@ -17,8 +17,9 @@
    3. 🏠 Inmuebles — los que más te han repartido, con «Ver todos».
    4. 🧱 Tu cartera — tokens de cada inmueble confirmado en tu wallet y tu
       vault, de las transferencias descargadas (por número de tokens).
-   5. 💼 Dinero invertido — lo pagado en compras de tokens de inmuebles
-      menos lo cobrado en sus ventas, acumulado mes a mes, de la
+   5. 💼 Dinero invertido — lo pagado por los tokens de inmuebles que
+      tienes (cada venta resta lo que costó lo vendido, FIFO), acumulado
+      mes a mes, de la
       clasificación (state.registros). El saldo del vault sigue en las
       métricas (serie on-chain con la semántica de serieSaldoVault() de
       js/09; el motor no se toca).
@@ -141,17 +142,19 @@ function dashSerieMensual(movimientos) {
    (desde la wallet, desde el vault —así entran los rendimientos
    reinvertidos, al gastarse— o por transferencia bancaria, en € pasados a
    USD con el tipo del BCE de ese día o el anterior más cercano) y baja con
-   lo cobrado en cada venta de un inmueble. Como el motor fiscal: una
+   lo que costaron los tokens de cada venta de un inmueble (sus compras más
+   antiguas primero), no con lo cobrado: así es lo pagado por lo que tienes
+   y la cifra cuadra con el desglose de debajo. Como el motor fiscal: una
    compra por transferencia vale su coste en € y las demás, su importe en
    USD; solo cuenta la compra de un inmueble, no un pago en stablecoin
    sin token (el motor no le abre lote). Los canjes de un token por
    otro (compra «CANJE» y su venta sin importe en el mismo hash) no
-   cuentan. Una compra o venta sin importe (p. ej. un pago conjunto por
+   cambian nada: lo que costaron pasa al token nuevo. Una compra o venta sin importe (p. ej. un pago conjunto por
    repartir), una compra en € sin tipo del BCE o una fecha que no existe o
    es imposible no se inventa: queda fuera y se cuenta. Devuelve
    { movimientos: [{ fecha, delta, invertido }] (con fecha, en orden),
-   compras, ventas, sinImporte, sinCambio, sinFecha } y lo comprado en su
-   moneda: eurBanco (por transferencia, en €) y usdStable (en USDT o USDC,
+   compras, ventas, sinImporte, sinCambio, sinFecha } y lo que queda, en la
+   moneda en que se pagó: eurBanco (por transferencia, en €) y usdStable (en USDT o USDC,
    también desde el vault, y las de transferencia pagadas en USD: el
    pagado_usd de su ajuste, «En USDT…» de 💶, que cuenta tal cual). */
 const DASH_VIAS_COMPRA = ["BANCARIA", "ONCHAIN", "VAULT"];
@@ -175,25 +178,62 @@ function dashFechaDibujable(fecha) {
 
 function dashDineroInvertido(registros, tiposBce, ajustes, cache) {
   const positivo = ccEsNumeroPositivo;
-  const lista = (registros || []).filter(Boolean);
-  /* Cada compra «CANJE» se lleva una venta sin importe de su hash (la
-     suya); otra venta sin importe del mismo hash sí se cuenta. */
+  // En orden de fecha (a igual hora, las compras antes): cada venta saca
+  // los tokens de las compras más antiguas de su inmueble (FIFO).
+  const esCompra = r => r.categoria === "COMPRA" ? 0 : 1;
+  const lista = ordenarPorFecha((registros || []).filter(Boolean).slice(), (a, b) => esCompra(a) - esCompra(b));
+  /* Los canjes de cada hash (compra «CANJE», los tokens nuevos): su venta
+     sin importe (el burn) pasa lo que costaron al token nuevo. */
   const canjes = new Map();
-  for (const r of lista) if (r.categoria === "COMPRA" && r.via_compra === "CANJE") canjes.set(r.hash, (canjes.get(r.hash) || 0) + 1);
+  for (const r of lista) if (r.categoria === "COMPRA" && r.via_compra === "CANJE") canjes.set(r.hash, (canjes.get(r.hash) || []).concat(r));
   const res = { movimientos: [], compras: 0, ventas: 0, sinImporte: 0, sinCambio: 0, sinFecha: 0, eurBanco: 0, usdStable: 0 };
   const enUsd = new Map(Object.entries(ajustes || {}).map(([c, a]) => [ccClaveAjuste(c), ccPagadoUsd(a, tiposBce, cache)]) // con la cache, como 💶
     .filter(([, u]) => u).map(([c, u]) => [c, u.importe]));
+  // Lo que queda de cada compra por inmueble: { cant, usd, eur } (eur: lo
+  // pagado en € por transferencia; si no, null). Sin cantidad, aparte.
+  const colas = new Map(), sinCantidad = [];
+  const cola = c => { const k = normalizarDireccion(c || ""); if (!colas.has(k)) colas.set(k, []); return colas.get(k); };
+  const sacar = (q, cantidad) => {
+    const trozos = [];
+    let falta = cantidad;
+    while (falta > 1e-12 && q.length) {
+      const l = q[0], todo = falta >= l.cant - 1e-12, f = todo ? 1 : falta / l.cant;
+      const t = { cant: l.cant * f, usd: l.usd * f, eur: l.eur === null ? null : l.eur * f };
+      if (todo) q.shift();
+      else { l.cant -= t.cant; l.usd -= t.usd; if (l.eur !== null) l.eur -= t.eur; }
+      trozos.push(t);
+      falta -= t.cant;
+    }
+    return trozos;
+  };
   for (const r of lista) {
     const compra = r.categoria === "COMPRA" && DASH_VIAS_COMPRA.includes(r.via_compra) &&
       !!String(r.inmueble || "").trim() && !STABLECOINS.has(normalizarDireccion(r.contrato || ""));
     const venta = r.categoria === "VENTA" && r.subcategoria === "GPP_INMUEBLE";
     if (!compra && !venta) continue;
-    if (venta && !positivo(r.importe_usdt) && canjes.get(r.hash) > 0) { canjes.set(r.hash, canjes.get(r.hash) - 1); continue; }
+    if (venta && !positivo(r.importe_usdt) && (canjes.get(r.hash) || []).length) {
+      const nuevo = canjes.get(r.hash).shift();
+      if (positivo(r.cantidad) && positivo(nuevo.cantidad)) {
+        const escala = nuevo.cantidad / r.cantidad;
+        for (const t of sacar(cola(r.contrato), r.cantidad)) cola(nuevo.contrato).push(Object.assign(t, { cant: t.cant * escala }));
+      }
+      continue;
+    }
     if (!dashFechaDibujable(r.fecha)) { res.sinFecha++; continue; }
+    if (venta) {
+      // Baja lo que costaron los tokens vendidos, no lo cobrado.
+      if (!positivo(r.cantidad)) { res.sinImporte++; continue; }
+      const trozos = sacar(cola(r.contrato), r.cantidad);
+      if (!trozos.length) continue; // su compra ya quedó fuera (y se dice)
+      res.ventas++;
+      res.movimientos.push({ fecha: r.fecha, instante: r.instante, delta: -trozos.reduce((s, t) => s + t.usd, 0) });
+      continue;
+    }
     let importe = null;
-    const usdBanco = compra && r.via_compra === "BANCARIA" ? enUsd.get(ccClaveAjuste(r.clave)) : undefined;
+    const usdBanco = r.via_compra === "BANCARIA" ? enUsd.get(ccClaveAjuste(r.clave)) : undefined;
+    const enEur = r.via_compra === "BANCARIA" && !usdBanco;
     if (usdBanco) importe = usdBanco; // pagada en USD: lo pagado
-    else if (compra && r.via_compra === "BANCARIA") { // en €, como el motor
+    else if (enEur) { // en €, como el motor
       if (positivo(r.coste_eur)) {
         const tipo = dashTipoBce(tiposBce, r.fecha.slice(0, 10));
         if (tipo === null) { res.sinCambio++; continue; }
@@ -201,10 +241,14 @@ function dashDineroInvertido(registros, tiposBce, ajustes, cache) {
       }
     } else if (positivo(r.importe_usdt)) importe = r.importe_usdt;
     if (importe === null) { res.sinImporte++; continue; }
-    res[compra ? "compras" : "ventas"]++;
-    if (compra && r.via_compra === "BANCARIA" && !usdBanco) res.eurBanco += r.coste_eur;
-    else if (compra) res.usdStable += importe;
-    res.movimientos.push({ fecha: r.fecha, instante: r.instante, delta: compra ? importe : -importe });
+    res.compras++;
+    const lote = { cant: r.cantidad, usd: importe, eur: enEur ? r.coste_eur : null };
+    if (positivo(r.cantidad)) cola(r.contrato).push(lote); else sinCantidad.push(lote);
+    res.movimientos.push({ fecha: r.fecha, instante: r.instante, delta: importe });
+  }
+  // Lo que queda, en la moneda en que se pagó.
+  for (const l of [].concat(...colas.values(), sinCantidad)) {
+    if (l.eur !== null) res.eurBanco += l.eur; else res.usdStable += l.usd;
   }
   ordenarPorFecha(res.movimientos);  // por el instante real
   let total = 0;
@@ -723,7 +767,7 @@ function dashTarjetaInvertido(invertido, mensual) {
       dashSvgLinea(s) + '<div class="dash-tip" hidden></div></div><div class="solo-lector" aria-live="polite"></div>' +
       dashAvisosInvertido(invertido);
   }
-  return dashTarjeta(titulo, "", cuerpo, true);
+  return dashTarjeta(titulo, "Lo pagado por los tokens que tienes", cuerpo, true);
 }
 
 /* Debajo de la cifra, como lo pone Reental: lo comprado en € (por

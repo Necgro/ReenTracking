@@ -52,10 +52,10 @@ assert("en la tarjeta, justo debajo de la cifra", /dash-value-lg">[^<]*&nbsp;USD
 console.log("== 2. Una sola moneda, ventas y casos raros ==");
 assert("solo USDT: «$ 1.000,00», sin €", S.dashDesgloseInvertido(S.dashDineroInvertido([usdt], tipos)) === '<div class="dash-desglose">$ 1.000,00</div>');
 assert("solo transferencia: «€ 2.000,00», sin $", S.dashDesgloseInvertido(S.dashDineroInvertido([banco1], tipos)) === '<div class="dash-desglose">€ 2.000,00</div>');
-const venta = reg("2024-05-01 10:00:00", "VENTA", "GPP_INMUEBLE", { importe_usdt: 500 });
-const conVenta = S.dashDineroInvertido([usdt, venta], tipos);
-assert("una venta no cambia lo comprado (solo la cifra grande)", conVenta.usdStable === 1000 &&
-  conVenta.movimientos[conVenta.movimientos.length - 1].invertido === 500, conVenta);
+const venta = reg("2024-05-01 10:00:00", "VENTA", "GPP_INMUEBLE", { importe_usdt: 650, cantidad: 5 });
+const conVenta = S.dashDineroInvertido([Object.assign({}, usdt, { cantidad: 10 }), venta], tipos);
+assert("vender 5 de 10 tokens resta lo que costaron (500), no lo cobrado (650), en la cifra y en el desglose",
+  conVenta.usdStable === 500 && conVenta.movimientos[conVenta.movimientos.length - 1].invertido === 500, conVenta);
 const sinTipo = reg("2023-01-01 10:00:00", "COMPRA", "COSTE_BASE", { via_compra: "BANCARIA", coste_eur: 999 });
 const fuera = S.dashDineroInvertido([sinTipo, usdt], tipos);
 assert("una compra en € sin tipo del BCE queda fuera también aquí (como en la cifra)", fuera.eurBanco === 0 && fuera.sinCambio === 1, fuera);

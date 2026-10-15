@@ -69,12 +69,12 @@ assert("BCE del día o del anterior más cercano; ninguno antes, null",
   S.dashTipoBce({ "2024-03-01": "x", "2024-03-02": 0 }, "2024-03-05") === null && S.dashTipoBce(null, "2024-03-05") === null);
 const canje = H(77);
 const regs = [
-  reg("2024-02-14 10:00:00", "COMPRA", "COSTE_BASE", { via_compra: "BANCARIA", coste_eur: 450, importe_usdt: null }),  // 450 € × 1,09
-  reg("2024-02-16 10:00:00", "COMPRA", "COSTE_BASE", { via_compra: "ONCHAIN", importe_usdt: 96 }), 
-  reg("2024-02-16 11:00:00", "VENTA", "GPP_INMUEBLE", { importe_usdt: 91 }), 
-  reg("2024-04-09 10:00:00", "COMPRA", "COSTE_BASE", { via_compra: "VAULT", importe_usdt: 85 }),                     // con lo reinvertido
-  Object.assign(reg("2024-06-01 10:00:00", "VENTA", "GPP_INMUEBLE", {}), { hash: canje }),                           // canje: fuera
-  Object.assign(reg("2024-06-01 10:00:01", "COMPRA", "COSTE_BASE", { via_compra: "CANJE" }), { hash: canje }),
+  reg("2024-02-14 10:00:00", "COMPRA", "COSTE_BASE", { via_compra: "BANCARIA", coste_eur: 450, importe_usdt: null, cantidad: 4.5 }),  // 450 € × 1,09
+  reg("2024-02-16 10:00:00", "COMPRA", "COSTE_BASE", { via_compra: "ONCHAIN", importe_usdt: 96, cantidad: 1 }), 
+  reg("2024-02-16 11:00:00", "VENTA", "GPP_INMUEBLE", { importe_usdt: 91, cantidad: 1 }),                           // resta lo que costó: 1 de los 4,5 del 14/02 (109)
+  reg("2024-04-09 10:00:00", "COMPRA", "COSTE_BASE", { via_compra: "VAULT", importe_usdt: 85, cantidad: 1 }),       // con lo reinvertido
+  Object.assign(reg("2024-06-01 10:00:00", "VENTA", "GPP_INMUEBLE", { cantidad: 1 }), { hash: canje }),             // canje: no cambia nada
+  Object.assign(reg("2024-06-01 10:00:01", "COMPRA", "COSTE_BASE", { via_compra: "CANJE", cantidad: 1 }), { hash: canje }),
   reg("2024-06-03 10:00:00", "COMPRA", "COSTE_BASE", { importe_usdt: 50 }),                                           // RNT o un swap: fuera
   reg("2024-06-04 10:00:00", "VENTA", "GPP_SWAP", { importe_usdt: 50 }),
   reg("2024-06-05 10:00:00", "RENDIMIENTO", "RCM_REINVERTIDO", { importe_usdt: 3 }),                                // ya va en la compra desde el vault
@@ -85,25 +85,39 @@ const regs = [
   null,
 ];
 const inv = S.dashDineroInvertido(regs.slice().reverse(), tipos);
-assert("compras de inmuebles, se paguen como se paguen; ventas restan; en orden",
+assert("compras de inmuebles, se paguen como se paguen; ventas restan lo que costó lo vendido (FIFO); en orden",
   JSON.stringify(inv.movimientos.map(m => [m.fecha.slice(0, 10), +m.delta.toFixed(2), m.invertido])) ===
-  JSON.stringify([["2024-02-14", 490.5], ["2024-02-16", 96], ["2024-02-16", -91], ["2024-04-09", 85]].map(([f, d], i, a) =>
+  JSON.stringify([["2024-02-14", 490.5], ["2024-02-16", 96], ["2024-02-16", -109], ["2024-04-09", 85]].map(([f, d], i, a) =>
     [f, d, a.slice(0, i + 1).reduce((t, x) => t + x[1], 0)])), inv.movimientos);
 assert("3 compras y 1 venta; fuera y contadas: 2 sin importe, 1 sin BCE, 1 sin fecha",
   inv.compras === 3 && inv.ventas === 1 && inv.sinImporte === 2 && inv.sinCambio === 1 && inv.sinFecha === 1, inv);
 {
-  const conVentaReal = regs.concat([Object.assign(reg("2024-06-01 10:00:02", "VENTA", "GPP_INMUEBLE", { importe_usdt: 20 }), { hash: canje })]);
+  const conVentaReal = regs.concat([Object.assign(reg("2024-06-01 10:00:02", "VENTA", "GPP_INMUEBLE", { importe_usdt: 20, cantidad: 1 }), { hash: canje })]);
   const r = S.dashDineroInvertido(conVentaReal, tipos);
   assert("en el hash de un canje, una venta con importe sí cuenta (solo sale la del canje, sin importe)",
-    r.ventas === 2 && r.sinImporte === 2 && r.movimientos.some(m => m.delta === -20), r);
+    r.ventas === 2 && r.sinImporte === 2 && r.movimientos.some(m => Math.abs(m.delta + 109) < 1e-9), r);
+  assert("lo que queda, en su moneda: 3,5 tokens del 14/02 (350 €) y los de 96 y 85 $; la cifra, lo mismo en USD",
+    Math.abs(inv.eurBanco - 350) < 1e-9 && Math.abs(inv.usdStable - 181) < 1e-9 && inv.movimientos.at(-1).invertido === 562.5, inv);
 }
 assert("sin registros: nada", S.dashDineroInvertido(null, tipos).movimientos.length === 0);
+{
+  // Un canje (el token viejo por uno nuevo) pasa lo que costó al nuevo: venderlo luego resta eso.
+  const NUEVO = "0x" + "cd".repeat(20), hc = H(88);
+  const r = S.dashDineroInvertido([
+    reg("2024-02-16 10:00:00", "COMPRA", "COSTE_BASE", { via_compra: "ONCHAIN", importe_usdt: 300, cantidad: 3 }),
+    Object.assign(reg("2024-05-01 10:00:00", "VENTA", "GPP_INMUEBLE", { cantidad: 3 }), { hash: hc }),
+    Object.assign(reg("2024-05-01 10:00:00", "COMPRA", "COSTE_BASE", { via_compra: "CANJE", cantidad: 3, contrato: NUEVO }), { hash: hc }),
+    reg("2024-06-01 10:00:00", "VENTA", "GPP_INMUEBLE", { importe_usdt: 250, cantidad: 2, contrato: NUEVO }),
+  ], tipos);
+  assert("canje: lo que costó pasa al token nuevo; vender 2 de 3 resta 200 y quedan 100 $", r.ventas === 1 &&
+    Math.abs(r.usdStable - 100) < 1e-9 && r.movimientos.at(-1).invertido === 100, r);
+}
 const mens = S.dashSerieMensual(inv.movimientos);
 assert("a fin de mes, con los meses sin movimientos rellenos",
-  JSON.stringify(mens) === JSON.stringify([{ etiqueta: "2024-02", valor: 495.5 }, { etiqueta: "2024-03", valor: 495.5 }, { etiqueta: "2024-04", valor: 580.5 }]), mens);
+  JSON.stringify(mens) === JSON.stringify([{ etiqueta: "2024-02", valor: 477.5 }, { etiqueta: "2024-03", valor: 477.5 }, { etiqueta: "2024-04", valor: 562.5 }]), mens);
 const tInv = S.dashTarjetaInvertido(inv, mens);
 assert("tarjeta: «💼 Dinero invertido», lo de hoy, meses, compras y ventas",
-  tInv.includes("<h3>💼 Dinero invertido</h3>") && tInv.includes('dash-value-lg">580,50&nbsp;USD') &&
+  tInv.includes("<h3>💼 Dinero invertido</h3>") && tInv.includes('dash-value-lg">562,50&nbsp;USD') &&
   tInv.includes(">feb 2024 – abr 2024 · 3 compras y 1 venta") && !tInv.includes("A fin de mes"), tInv.slice(0, 400));
 assert("tarjeta: lo que queda fuera, dicho",
   tInv.includes("⚠ 2 compras o ventas sin importe: fuera del gráfico.") && tInv.includes("⚠ 1 compra en € sin tipo del BCE: fuera del gráfico.") &&
@@ -112,7 +126,7 @@ assert("sin clasificar: «No disponible» con enlace", /No disponible[\s\S]*Sin 
 assert("sin compras: «No disponible»", S.dashTarjetaInvertido(S.dashDineroInvertido([], {}), []).includes("Sin compras de inmuebles con importe."));
 const svg = S.dashSvgLinea(mens);
 assert("eje con escalones redondos (0 … 600) y el bocadillo en USD (SUELTOS-1: ya no <title>)",
-  />600<\/text>/.test(svg) && />0<\/text>/.test(svg) && S.dashHtmlBocadilloInvertido(mens[mens.length - 1]).includes("580,50 USD") &&
+  />600<\/text>/.test(svg) && />0<\/text>/.test(svg) && S.dashHtmlBocadilloInvertido(mens[mens.length - 1]).includes("562,50 USD") &&
   !svg.includes("USDT"), svg.slice(0, 300));
 
 console.log("== 3b. Arreglos de la auditoría (dinero invertido) ==");
