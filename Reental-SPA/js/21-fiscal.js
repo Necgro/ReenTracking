@@ -1237,18 +1237,22 @@ function motorFiscal(registros, cache, config, opciones = {}) {
         // Tambien hereda de que compras viene (fecha de adquisicion).
         const [eur, usdLote] = conGas(coste, costeUsd);
         const trozos = venta !== undefined ? pyO(venta.lotes_consumidos, []) : [];
-        if (!trozos.length) {
+        // Sin cantidad recibida no se abre ningún lote: un solo aviso, no uno por trozo.
+        if (!trozos.length || !(fiscEsNumero(r.cantidad) && r.cantidad > 0)) {
           fiscAbrirLote(r, colas, r.contrato, r.cantidad, eur, "CANJE", { procedencia, coste_usd: usdLote });
           return;
         }
         // FIFO real: un lote por cada trozo del burn, con su coste, no uno con la media de todos.
-        // El gas se reparte por cantidad.
+        // El gas se reparte por cantidad. Cada trozo conserva su coste en USD
+        // aunque otro no lo tenga (una compra en USDT y otra por banco).
         const total = pySuma(trozos.map(t => t.cantidad));
+        const tipo = r.tipo_bce;
+        const gasUsd = fiscEsNumero(tipo) && tipo > 0 ? (eur - coste) * tipo : 0; // como conGas
         for (const t of trozos) {
           const parte = t.cantidad / total;
           const lote = fiscAbrirLote(r, colas, r.contrato, r.cantidad * parte, t.coste_eur + (eur - coste) * parte, "CANJE", {
             procedencia: procedenciaDeTrozos([t]),
-            coste_usd: fiscHay(costeUsd) && fiscHay(usdLote) ? t.coste_usd + (usdLote - costeUsd) * parte : null,
+            coste_usd: fiscHay(t.coste_usd) ? t.coste_usd + gasUsd * parte : null,
           });
           if (lote && t.coste_supuesto) lote.coste_supuesto = true;
         }

@@ -2,7 +2,9 @@
  * de la que viene (FIFO real), no la media de todas. Ejemplo:
  * 3 tokens a 100 € y 2 a 130 €, canjeados; vender 4 cuesta 430 € (con la
  * media serían 448 €). El total de toda la vida no cambia. Con una sola
- * compra, nada cambia.
+ * compra, nada cambia. Una compra en USDT y otra por banco: el lote de la
+ * de USDT conserva su coste en USD (A6). Sin cantidad recibida, un solo
+ * aviso (A7).
  *
  * DATOS 100% SINTETICOS.
  *
@@ -31,13 +33,13 @@ function reg(clave, fecha, categoria, subcategoria, contrato, cantidad, campos =
    pagadas en USDT (tipo 1); luego el canje de todo (con 'gas' POL de gas, a
    1 € el POL) y, si se pide, una venta de 'vender' tokens nuevos por
    'precio' USD. */
-function correr(compras, vender, precio, { gas = 0 } = {}) {
+function correr(compras, vender, precio, { gas = 0, recibida } = {}) {
   const regs = compras.map(([n, eur, usd], i) => reg("c" + i, "2025-01-1" + i + " 10:00:00", "COMPRA", "COSTE_BASE", VIEJO, n,
     usd ? { importe_usdt: usd } : { via_compra: "BANCARIA", coste_eur: eur }));
   const total = compras.reduce((s, [n]) => s + n, 0);
   if (gas) regs.unshift(reg("pol", "2025-01-05 10:00:00", "DEPOSITO", "COSTE_BASE", "pol", 10, { coste_eur: 10 }));
   regs.push(reg("canje", "2025-02-01 10:00:00", "VENTA", "GPP_INMUEBLE", VIEJO, total, { origen: WALLET, destino: BURN }));
-  regs.push(Object.assign(reg("canje", "2025-02-01 10:00:00", "COMPRA", "COSTE_BASE", NUEVO, total, { via_compra: "CANJE" }), { clave: "canje::1" }));
+  regs.push(Object.assign(reg("canje", "2025-02-01 10:00:00", "COMPRA", "COSTE_BASE", NUEVO, recibida === undefined ? total : recibida, { via_compra: "CANJE" }), { clave: "canje::1" }));
   if (gas) regs.push(Object.assign(reg("canje", "2025-02-01 10:00:00", "COMISION", "GAS", "pol", gas, { origen: WALLET, destino: "" }), { clave: "canje::gas" }));
   if (vender) regs.push(reg("v", "2025-03-01 10:00:00", "VENTA", "GPP_INMUEBLE", NUEVO, vender,
     { importe_usdt: precio, origen: WALLET, destino: COMPRADOR }));
@@ -75,6 +77,20 @@ console.log("== Con gas y pagadas en USDT: el gas se reparte por cantidad (audit
   const trozos = venta.lotes_consumidos;
   assert("cada trozo con su coste en USD (300,60 y 130,20)", trozos.length === 2 &&
     cerca(trozos[0].coste_usd, 300.6) && cerca(trozos[1].coste_usd, 130.2), trozos);
+}
+console.log("== Una en USDT y otra por banco: el lote de USDT conserva su coste en USD (auditoría A6) ==");
+{
+  const { lotes } = correr([[3, null, 300], [2, 260]], 0, 0);
+  assert("2 lotes: el de USDT a 100 $ el token, el del banco sin USD", lotes.length === 2 &&
+    cerca(lotes[0].coste_unitario_usd, 100) && lotes[1].coste_unitario_usd === null &&
+    cerca(lotes[0].coste_unitario_eur, 100) && cerca(lotes[1].coste_unitario_eur, 130), lotes);
+}
+console.log("== La llegada del canje sin cantidad: un solo aviso, no uno por compra (auditoría A7) ==");
+{
+  const { regs, lotes } = correr([[3, 300], [2, 260]], 0, 0, { recibida: null });
+  const canje = regs.find(r => r.clave === "canje::1");
+  assert("ningún lote, a revisar y «lote FIFO no creado» una sola vez", lotes.length === 0 && canje.revisar &&
+    (canje.nota.match(/lote FIFO no creado/g) || []).length === 1, canje.nota);
 }
 console.log("== Una sola compra (como tus datos): como antes, un lote ==");
 {
