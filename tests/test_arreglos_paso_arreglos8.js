@@ -195,6 +195,9 @@ console.log("A9 · añadir como contrato un token con dudas");
   assert("con dudas: se puede añadir y sale del catálogo", !v.error && v.quitarDelCatalogo.join() === POOL, v);
   assert("descartado: también", !sb.pnValidarContrato(cache, DESC, "LP", "DEFI_POOL").error);
   assert("un inmueble confirmado, no", /catálogo/.test(sb.pnValidarContrato(cache, CONF, "x", "DEFI_POOL").error || ""));
+  // «Infraestructura» ya no se elige al añadir (las que hay se quitan con ✕).
+  assert("«Infraestructura», ya no se elige", /Elige un tipo/.test(sb.pnValidarContrato(cache, DESC, "x", "INFRAESTRUCTURA").error || "") &&
+    sb.pnContratoQuitable("INFRAESTRUCTURA"));
   // El botón «Añadir»: guarda el contrato y quita la entrada del catálogo.
   const campos = { inpContratoDir: { value: POOL }, inpContratoNombre: { value: "Pool RNT/USDT" }, selContratoTipo: { value: "DEFI_POOL" } };
   sb.__campos = campos;

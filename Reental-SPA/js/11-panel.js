@@ -113,6 +113,10 @@ const PN_TIPOS_CONTRATO = {
   INFRAESTRUCTURA: "Infraestructura",
 };
 const PN_TIPOS_EDITABLES = ["DEFI_POOL", "DEFI_STAKING", "DEFI_FARMING", "DEFI_REWARDS", "INFRAESTRUCTURA"];
+/* Los que se eligen al añadir. «Infraestructura» ya no: solo mandaba a 🔍
+   el dinero que llega de ella (sin marcar es «Ingreso de dinero») y
+   confundía; las que ya hay se siguen viendo y se quitan con ✕. */
+const PN_TIPOS_ELEGIBLES = PN_TIPOS_EDITABLES.filter(r => r !== "INFRAESTRUCTURA");
 
 function pnEsSemillaDefi(rol, addr) {
   const semillas = SEMILLAS_DEFI[rol] || {};
@@ -194,7 +198,7 @@ function pnValidarContrato(cache, dir, nombre, rol) {
   const n = String(nombre || "").trim();
   if (!direccionValida(addr)) return { error: "La dirección debe ser 0x y 40 caracteres." };
   if (!n) return { error: "Ponle un nombre." };
-  if (!PN_TIPOS_EDITABLES.includes(rol)) return { error: "Elige un tipo." };
+  if (!PN_TIPOS_ELEGIBLES.includes(rol)) return { error: "Elige un tipo." };
   const propias = typeof walletConfig === "function" ? [walletConfig(), vaultConfig()] : [];
   if (propias.includes(addr)) return { error: "Esa dirección es tuya (wallet o vault)." };
   for (const [r, bloque] of Object.entries((cache && cache.contratos_aprendidos) || {})) {
@@ -619,7 +623,7 @@ function pnMontarEventos() {
     const b = ev.target.closest("button[data-volver]");
     if (b) pnVolverAPonerSemilla(b.dataset.volver);
   });
-  $("selContratoTipo").innerHTML = PN_TIPOS_EDITABLES.map(r =>
+  $("selContratoTipo").innerHTML = PN_TIPOS_ELEGIBLES.map(r =>
     '<option value="' + r + '">' + ccEsc(PN_TIPOS_CONTRATO[r]) + "</option>").join("");
   $("btnAddContrato").onclick = pnAñadirContrato;
 }

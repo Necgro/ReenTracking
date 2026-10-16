@@ -234,7 +234,7 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   }));
   assert("U4 -> las semillas DeFi, con ✕; tipos en llano y sin los de Reental",
     semillas.filas === 6 && semillas.quitar === 6 &&
-    JSON.stringify(semillas.tipos) === JSON.stringify(["Pool", "Staking", "Farming", "Recompensas", "Infraestructura"]), semillas);
+    JSON.stringify(semillas.tipos) === JSON.stringify(["Pool", "Staking", "Farming", "Recompensas"]), semillas);
   const w1 = await escrituras();
   await page.evaluate(() => { document.getElementById("inpContratoDir").value = "0x1234"; document.getElementById("inpContratoNombre").value = "Mal"; document.getElementById("btnAddContrato").click(); });
   await esperar(200);

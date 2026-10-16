@@ -119,13 +119,13 @@ const ida = c => JSON.parse(JSON.stringify(c));   // como guardar y volver a abr
   STATE.cache.contratos_aprendidos.DEFI_POOL = {};   // como quedó en el apartado 2
 
   console.log("== 5. Volver a añadirla ==");
-  Object.assign(campos, { inpContratoDir: { value: POOL }, inpContratoNombre: { value: "Mi pool" }, selContratoTipo: { value: "INFRAESTRUCTURA" } });
+  Object.assign(campos, { inpContratoDir: { value: POOL }, inpContratoNombre: { value: "Mi pool" }, selContratoTipo: { value: "DEFI_FARMING" } });
   await S.pnAñadirContrato();
   abierta = S.asegurarEstructuraCache(ida(STATE.cache));
   assert("con otro tipo: queda con ese tipo y no vuelve al suyo",
-    abierta.contratos_aprendidos.INFRAESTRUCTURA[POOL] === "Mi pool" && !(POOL in abierta.contratos_aprendidos.DEFI_POOL) &&
+    abierta.contratos_aprendidos.DEFI_FARMING[POOL] === "Mi pool" && !(POOL in abierta.contratos_aprendidos.DEFI_POOL) &&
     STATE.cache.semillas_quitadas.includes(POOL));
-  delete STATE.cache.contratos_aprendidos.INFRAESTRUCTURA[POOL];
+  delete STATE.cache.contratos_aprendidos.DEFI_FARMING[POOL];
   Object.assign(campos, { inpContratoDir: { value: STAKING }, inpContratoNombre: { value: "Staking" }, selContratoTipo: { value: "DEFI_STAKING" } });
   await S.pnAñadirContrato();
   assert("con su tipo: se olvida de la lista", JSON.stringify(STATE.cache.semillas_quitadas) === JSON.stringify([POOL]));
