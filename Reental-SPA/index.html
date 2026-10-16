@@ -358,10 +358,13 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 .rv-pista{color:var(--muted);font-size:14px}
 .rv-tareas{border:1px solid var(--btn-bd);border-radius:12px;background:var(--tarjeta);box-shadow:var(--tarj-sombra);overflow:hidden}
 .rv-tareas:has(>details[open]:not([hidden])){max-width:100%}
-/* Sin golpes: la caja se ensancha poco a poco y lo de dentro entra suave
-   (como las pestañas, con su misma animación). */
-.rv-tareas{transition:max-width .25s ease}
-.rv-tarea[open]::details-content,.rv-enlaces>details[open]::details-content{animation:fade 1.2s ease}
+/* Sin golpes (pedido por el usuario): la caja se ensancha poco a poco y
+   cada fila se despliega (alto de 0 a lo suyo) mientras lo de dentro entra
+   fundido. Donde el navegador no sabe animar el alto, solo el fundido. */
+.rv-tareas{transition:max-width .6s ease}
+.rv-tareas,.rv-enlaces{interpolate-size:allow-keywords}
+.rv-tarea::details-content,.rv-enlaces>details::details-content{height:0;overflow:clip;transition:height 1.2s ease,content-visibility 1.2s allow-discrete}
+.rv-tarea[open]::details-content,.rv-enlaces>details[open]::details-content{height:auto;animation:fade 1.2s ease}
 .rv-tarea{margin:0}
 .rv-tarea+.rv-tarea{border-top:2px solid var(--border2)}
 .rv-tarea>summary{position:relative;padding:12px 150px 12px 16px;cursor:pointer;font-weight:700;font-size:14.5px;line-height:24px;color:var(--text);list-style:none}
@@ -428,13 +431,18 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 .nav-n[hidden]{display:none}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
-  /* Lo más leve se queda: al cambiar de pestaña (0,4 s) o abrir una fila de
-     🔍 (1,2 s), aparece fundido, sin desplazar nada (si no, sale de golpe). */
+  /* Lo más leve se queda: al cambiar de pestaña (0,4 s) aparece fundido,
+     sin desplazar nada (si no, sale de golpe). Las filas de 🔍 se despliegan
+     igual (1,2 s; el usuario lo pidió con este ajuste puesto). */
+  .rv-tareas{transition:max-width .6s ease!important}
   .view.active{animation:fundido .4s ease!important}
   .rv-tarea[open]::details-content,.rv-enlaces>details[open]::details-content{animation:fundido 1.2s ease!important}
   @keyframes fundido{from{opacity:0}to{opacity:1}}
   html{scroll-behavior:auto}
 }
+/* En un navegador manejado por las pruebas (js/13), sin animaciones; más
+   fuerte que las de arriba, también con «menos movimiento». */
+html.sin-animaciones.sin-animaciones *,html.sin-animaciones.sin-animaciones *::before,html.sin-animaciones.sin-animaciones *::after,html.sin-animaciones.sin-animaciones ::details-content{animation:none!important;transition:none!important}
 /* ---------- impresión: solo contenido ---------- */
 @page{size:A4 landscape;margin:10mm}
 @media print{

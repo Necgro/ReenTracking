@@ -40,6 +40,9 @@ function init() {
   // Con el almacenamiento del navegador bloqueado, leerlo lanza y la app
   // no arrancaría.
   try { if (localStorage.getItem("reental_dark") === "1") document.body.classList.add("dark"); } catch (e) { /* bloqueado */ }
+  // Un navegador manejado por un programa (las pruebas): sin animaciones,
+  // que pulsa antes de que acaben y fallaría sin motivo.
+  if (navigator.webdriver) document.documentElement.classList.add("sin-animaciones");
   $("btnDark").textContent = document.body.classList.contains("dark") ? "☀️" : "🌙";
   $("btnDark").onclick = () => {
     document.body.classList.toggle("dark");
