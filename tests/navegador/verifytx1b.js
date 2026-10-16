@@ -303,6 +303,15 @@ const rgb = hex => "rgb(" + [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)
     return { igual, cambia: document.querySelector("#txCuerpo tr") !== fila };
   });
   assert("al volver a 📒 sin cambios, la misma tabla; con un cambio, otra", rehecha.igual && rehecha.cambia, rehecha);
+  /* Fuera de 📒, su tabla se guarda dibujada (content-visibility) pero no
+     ocupa sitio ni se puede llegar a ella. */
+  const oculta = await page.evaluate(async () => {
+    location.hash = "#dashboard"; await new Promise(r => setTimeout(r, 150));
+    const v = document.getElementById("view-transacciones"), b = document.getElementById("txBuscar");
+    b.focus();
+    return { alto: v.offsetHeight, foco: document.activeElement === b, guardada: getComputedStyle(v).contentVisibility };
+  });
+  assert("fuera de 📒: 0 de alto, sin foco dentro y la tabla guardada", oculta.alto === 0 && !oculta.foco && oculta.guardada === "hidden", oculta);
   const errs = errores();
   assert("0 errores de consola", errs.length === 0, errs);
 
