@@ -361,7 +361,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 /* Sin golpes: la caja se ensancha poco a poco y lo de dentro entra suave
    (como las pestañas, con su misma animación). */
 .rv-tareas{transition:max-width .25s ease}
-.rv-tarea[open]>:not(summary){animation:fade .4s ease}
+.rv-tarea[open]>:not(summary){animation:fade .6s ease}
 .rv-tarea{margin:0}
 .rv-tarea+.rv-tarea{border-top:1px solid var(--border2)}
 .rv-tarea>summary{position:relative;padding:12px 150px 12px 16px;cursor:pointer;font-weight:700;font-size:14.5px;line-height:24px;color:var(--text);list-style:none}
@@ -428,9 +428,10 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 .nav-n[hidden]{display:none}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
-  /* Lo más leve se queda: al cambiar de pestaña o abrir una fila de 🔍,
-     aparece fundido (0,4 s), sin desplazar nada (si no, todo sale de golpe). */
-  .view.active,.rv-tarea[open]>:not(summary){animation:fundido .4s ease!important}
+  /* Lo más leve se queda: al cambiar de pestaña (0,4 s) o abrir una fila de
+     🔍 (0,6 s), aparece fundido, sin desplazar nada (si no, sale de golpe). */
+  .view.active{animation:fundido .4s ease!important}
+  .rv-tarea[open]>:not(summary){animation:fundido .6s ease!important}
   @keyframes fundido{from{opacity:0}to{opacity:1}}
   html{scroll-behavior:auto}
 }
