@@ -2008,13 +2008,13 @@ function renderCorrecciones() {
   }
   /* Su fila en la lista de tareas (P21): en rojo y abierta si hay algo
      (también al volver a 🔍: js/13 la pliega al salir); sin movimientos,
-     abierta con «completa 🚀» y sin «Al día» en ninguna fila. */
+     cerrada (decidido por el usuario) y sin «Al día» en ninguna fila. */
   const fila = $("ccPorDecidir");
   if (fila) {
     $("ccPorDecidirAviso").textContent = cola.length ? numEs(cola.length, 0) + " por decidir" : "";
     fila.classList.toggle("rv-rojo", !!cola.length);
     fila.closest(".rv-tareas").classList.toggle("rv-sin-datos", !registros.length);
-    pnAbrirSiHace("ccPorDecidir", cola.length > 0 || !registros.length);
+    pnAbrirSiHace("ccPorDecidir", cola.length > 0);
   }
 
   if (!registros.length) {

@@ -6,7 +6,8 @@
  * con una fila abierta, ancha. «Ya decididos» y «Ajustes en JSON», enlaces
  * debajo. El aviso de tokens con dudas va arriba del todo de «Por decidir».
  * Al salir de 🔍 (y al recargar) todo queda plegado; al volver solo se
- * reabre «Por decidir» (A1 de la auditoría: el catálogo, no).
+ * reabre «Por decidir» (A1 de la auditoría: el catálogo, no). Sin datos,
+ * «Por decidir» cerrada (decidido por el usuario).
  *
  * Sin datos (relleno solo en pantalla). Ejecución (servidor en 8765 y
  * NODE_PATH a puppeteer-core):  node tests/navegador/verifytareas1.js
@@ -49,9 +50,9 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
     f0.map(f => f.num).join() === "1,2,3,4,,", f0);
   assert("sin movimientos: ninguna fila dice «Al día» ni va en rojo", f0.every(f => f.estado === "" && !f.rojo), f0);
   const pista = await page.evaluate(() => ({ abierta: document.getElementById("ccPorDecidir").open,
-    texto: document.getElementById("ccLista").innerText }));
-  assert("A2: sin movimientos, «Por decidir» abierta con «completa 🚀 Puesta en marcha»",
-    pista.abierta && pista.texto.includes("completa 🚀 Puesta en marcha"), pista);
+    html: document.getElementById("ccLista").textContent }));
+  assert("sin movimientos, «Por decidir» cerrada (decidido por el usuario), con «completa 🚀 Puesta en marcha» dentro",
+    !pista.abierta && /completa 🚀 Puesta en marcha/.test(pista.html), pista);
   const margenes = await page.evaluate(() => [...document.querySelectorAll(".rv-tarea")].map(d => getComputedStyle(d).marginTop));
   assert("A3: las filas sin margen de más arriba", margenes.every(m => m === "0px"), margenes);
   const enlaces = await page.evaluate(() => [...document.querySelectorAll(".rv-enlaces>details")].map(d => d.id).join());
@@ -179,7 +180,7 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   await page.reload({ waitUntil: "networkidle0" });
   await esperar(300);
   const alRecargar = await abiertas();
-  assert("al recargar (sin datos), todo plegado menos «Por decidir» con su «completa 🚀»", JSON.stringify(alRecargar) === '["ccPorDecidir"]', alRecargar);
+  assert("al recargar (sin datos), todo plegado", alRecargar.length === 0, alRecargar);
 
   assert("0 errores", errores.length === 0, errores);
   await browser.close();
