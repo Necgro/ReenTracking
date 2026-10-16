@@ -563,7 +563,9 @@ function renderPanel() {
   $("nCatalogo").textContent = lista.length;
   $("rvCatalogoTodosCaja").hidden = !sinTokens.size;
   $("rvCatalogoTodos").checked = pnVerTodos;
-  $("rvCatalogoTodosN").textContent = todas.length;
+  // Apagado, el título dice «activos» y el interruptor cuenta los inactivos.
+  $("rvCatalogoActivos").hidden = !sinTokens.size || pnVerTodos;
+  $("rvCatalogoTodosN").textContent = todas.filter(f => sinTokens.has(f.addr)).length;
   const dudas = lista.filter(f => f.estado === "CANDIDATA").length;
   $("rvCatalogoAviso").textContent = dudas ? "⚠ " + dudas + " con dudas" : "";
   pnAbrirSiHace("rvCatalogo", dudas > 0);

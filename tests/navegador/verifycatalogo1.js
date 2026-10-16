@@ -1,8 +1,8 @@
 /* Arnés del interruptor «Ver todos» del catálogo de 🔍 Revisión (P18), con
  * datos inventados: un inmueble que tienes y otro vendido entero.
  *
- *  K1) apagado: solo el que tienes; el título cuenta 1 y el interruptor dice
- *      «Ver todos (2)».
+ *  K1) apagado: solo el que tienes; el título dice «activos (1)» y el
+ *      interruptor «Ver también inactivos (1)».
  *  K2) encendido: salen los dos, el vendido en gris; apagarlo los vuelve a
  *      esconder. Con el teclado (espacio) también.
  *  K3) sin nada vendido, el interruptor no sale; oscuro y 0 errores.
@@ -60,6 +60,7 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   const vista = () => page.evaluate(() => ({
     filas: [...document.querySelectorAll("#tablaCatalogo tr[data-addr]")].map(r => r.cells[0].textContent + (r.classList.contains("rv-sin-tokens") ? " (gris)" : "")),
     n: document.getElementById("nCatalogo").textContent,
+    titulo: document.querySelector("#rvCatalogo summary").innerText.replace(/\s+/g, " ").trim(),
     interruptor: !document.getElementById("rvCatalogoTodosCaja").hidden && document.getElementById("rvCatalogoTodosCaja").offsetParent !== null,
     texto: document.getElementById("rvCatalogoTodosCaja").textContent,
     marcado: document.getElementById("rvCatalogoTodos").checked,
@@ -68,8 +69,9 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
 
   /* K1 */
   const k1 = await vista();
-  assert("K1 -> apagado: solo el que tienes, el título dice 1 y el interruptor «Ver todos (2)»",
-    JSON.stringify(k1.filas) === JSON.stringify(["Prueba Alcazaba 1"]) && k1.n === "1" && k1.interruptor && k1.texto === "Ver todos (2)" && !k1.marcado, k1);
+  assert("K1 -> apagado: solo el que tienes, «Catálogo de inmuebles activos (1)» y el interruptor «Ver también inactivos (1)»",
+    JSON.stringify(k1.filas) === JSON.stringify(["Prueba Alcazaba 1"]) && k1.n === "1" && k1.titulo.startsWith("🏠 Catálogo de inmuebles activos (1)") &&
+    k1.interruptor && k1.texto === "Ver también inactivos (1)" && !k1.marcado, k1);
   await page.evaluate(() => document.getElementById("rvCatalogo").scrollIntoView({ block: "start" }));
   await page.screenshot({ path: path.join(OUT, "cap_catalogo1_apagado.png") });
 
@@ -77,8 +79,9 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   await page.click("#rvCatalogoTodosCaja");
   await esperar(150);
   const k2 = await vista();
-  assert("K2 -> encendido: los dos, el vendido en gris; el título dice 2",
-    JSON.stringify(k2.filas) === JSON.stringify(["Prueba Alcazaba 1", "Prueba Bahía 2 (gris)"]) && k2.n === "2" && k2.marcado, k2);
+  assert("K2 -> encendido: los dos, el vendido en gris; «Catálogo de inmuebles (2)», sin «activos»",
+    JSON.stringify(k2.filas) === JSON.stringify(["Prueba Alcazaba 1", "Prueba Bahía 2 (gris)"]) && k2.n === "2" && k2.marcado &&
+    k2.titulo.startsWith("🏠 Catálogo de inmuebles (2)"), k2);
   assert("K2 -> el vendido, atenuado", k2.opacidad === "0.5", k2.opacidad);
   await page.screenshot({ path: path.join(OUT, "cap_catalogo1_encendido.png") });
   await page.click("#rvCatalogoTodosCaja");
@@ -94,7 +97,8 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   await page.evaluate(() => { state.cache.transacciones.wallet_tokens.pop(); renderPanel(); });
   await esperar(100);
   const k3 = await vista();
-  assert("K3 -> sin nada vendido, sin interruptor y los dos a la vista", !k3.interruptor && k3.filas.length === 2 && k3.n === "2", k3);
+  assert("K3 -> sin nada vendido, sin interruptor, los dos a la vista y sin «activos»", !k3.interruptor && k3.filas.length === 2 && k3.n === "2" &&
+    k3.titulo.startsWith("🏠 Catálogo de inmuebles (2)"), k3);
   await page.evaluate(() => { state.cache.transacciones.wallet_tokens.push({ blockNumber: "3", timeStamp: "1725181200",
     hash: "0x0003" + "ab".repeat(30), from: "0x" + "11".repeat(20), to: "0x" + "99".repeat(20), contractAddress: "0x" + "a2".repeat(20),
     value: (4n * 10n ** 18n).toString(), tokenName: "Reental RBAH2", tokenSymbol: "RBAH2", tokenDecimal: "18" });

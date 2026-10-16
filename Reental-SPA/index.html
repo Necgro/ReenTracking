@@ -535,10 +535,10 @@ html.sin-animaciones.sin-animaciones *,html.sin-animaciones.sin-animaciones *::b
     <p id="ccPorDecidirArriba" class="rv-arriba" hidden>⚠ Todavía hay <a href="#revision" data-ir="ccPorDecidir"></a>.</p>
     <div class="rv-tareas">
     <details id="rvCatalogo" class="rv-tarea">
-      <summary>🏠 Catálogo de inmuebles (<span id="nCatalogo">0</span>)<span id="rvCatalogoAviso" class="rv-aviso"></span></summary>
+      <summary>🏠 Catálogo de inmuebles<span id="rvCatalogoActivos" hidden> activos</span> (<span id="nCatalogo">0</span>)<span id="rvCatalogoAviso" class="rv-aviso"></span></summary>
       <p class="help rv-explica">Los tokens que la app cuenta como inmuebles.</p>
       <!-- Apagado, solo los que tienes (js/11, pnVerTodos) -->
-      <label id="rvCatalogoTodosCaja" class="rv-interruptor" hidden><input type="checkbox" role="switch" id="rvCatalogoTodos"><span class="rv-interruptor-pista" aria-hidden="true"></span><span>Ver todos (<span id="rvCatalogoTodosN">0</span>)</span></label>
+      <label id="rvCatalogoTodosCaja" class="rv-interruptor" hidden><input type="checkbox" role="switch" id="rvCatalogoTodos"><span class="rv-interruptor-pista" aria-hidden="true"></span><span>Ver también inactivos (<span id="rvCatalogoTodosN">0</span>)</span></label>
       <div class="rv-caja"><table class="rv-tabla rv-titulos-centro"><thead><tr><th>Inmueble</th><th>Token</th><th>1ª aparición</th><th>Contrato</th><th>Estado</th><th></th></tr></thead><tbody id="tablaCatalogo"></tbody></table></div>
     </details>
     <details id="rvContratos" class="rv-tarea">
