@@ -113,6 +113,7 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
       plegable: !!lista.querySelector("details.cc-cobros"),
       marcaCobro: !!lista.querySelector(".cc-cand.cobro"),
       cab: (lista.querySelector(".cc-cab") || {}).textContent || "",
+      porDecidir: document.getElementById("ccPorDecidirAviso").textContent,
       enlace: !!lista.querySelector('.cc-cab a[href="#transacciones"]'),
       ok: (lista.querySelector(".cc-todo-ok") || {}).textContent || "",
       chip: (document.getElementById("ccPendientes") || { textContent: "(quitado)" }).textContent,
@@ -148,9 +149,9 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
     f.yaClasificados.every(k => !f.domTodas.includes(k)));
   assert("hay menos cards que registros (" + f.domTodas.length + " de " + f.total + ")",
     f.domTodas.length === f.principales.length && f.domTodas.length < f.total);
-  // La cabecera es una línea, sin «Los otros…» ni enlace.
-  assert("cabecera: «N movimientos por decidir», sin «Los otros…» ni enlace",
-    f.cab.includes(f.domTodas.length + " movimientos por decidir") && !f.cab.includes("Los otros") && !f.enlace, f.cab);
+  // Cuántos, en su fila (P21); la cabecera, sin «Los otros…» ni enlace.
+  assert("fila: «N por decidir»; cabecera sin «Los otros…» ni enlace",
+    f.porDecidir === f.domTodas.length + " por decidir" && !f.cab.includes("Los otros") && !f.enlace, [f.porDecidir, f.cab]);
   await page.screenshot({ path: path.join(OUT, "cap_tx2_lista.png") });
   await page.evaluate(() => { location.hash = "#transacciones"; });
   await esperar(500);
@@ -266,7 +267,7 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   f = await foto();
 // Sin contador ni enlace a Transacciones en la cabecera.
   assert("con todo ya clasificado: «✅ Nada por decidir.», 0 cards y sin «0 movimientos por decidir»",
-    f.domTodas.length === 0 && f.ok.includes("Nada por decidir") && !f.cab.includes("por decidir") &&
+    f.domTodas.length === 0 && f.ok.includes("Nada por decidir") && !f.cab.includes("por decidir") && f.porDecidir === "" &&
     f.chip === "(quitado)", f);
   await page.screenshot({ path: path.join(OUT, "cap_tx2_nada.png") });
   await page.evaluate(() => { state.registros = window.__regs; renderCorrecciones(); });

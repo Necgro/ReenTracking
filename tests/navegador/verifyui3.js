@@ -123,8 +123,8 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   assert("U1 -> abierto solo el catálogo (hay uno con dudas)",
     u1.rvCatalogo && !u1.rvPreciosRnt && !u1.rvPreciosPol && !u1.rvContratos && !u1.rvAjustes, u1);
   const aviso = await page.evaluate(() => [document.getElementById("rvCatalogoAviso").textContent,
-    getComputedStyle(document.getElementById("rvPreciosRntAviso")).display, document.getElementById("rvRntFaltantes").hidden]);
-  assert("U1 -> «⚠ 1 con dudas» en el catálogo; sin aviso ni tabla de fechas sin precio", aviso[0] === "⚠ 1 con dudas" && aviso[1] === "none" && aviso[2], aviso);
+    document.getElementById("rvPreciosRntAviso").textContent, document.getElementById("rvRntFaltantes").hidden]);
+  assert("U1 -> «⚠ 1 con dudas» en el catálogo; sin aviso ni tabla de fechas sin precio", aviso[0] === "⚠ 1 con dudas" && aviso[1] === "" && aviso[2], aviso);
   await page.evaluate(() => { state.cache.precios_rnt_no_disponibles = { "2023-01-05": "fuera de los 365 días" }; renderPanel(); });
   const faltan = await page.evaluate(() => [document.getElementById("rvPreciosRnt").open, document.getElementById("rvPreciosRntAviso").textContent,
     document.getElementById("rvRntFaltantes").hidden, document.querySelectorAll("#tablaPreciosRntFaltantes tr").length]);
@@ -291,10 +291,10 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
 
   /* ============ U5) contador del menú ============ */
   const u5 = await page.evaluate(() => {
-    const n = document.getElementById("ccNavRevision"), cab = document.querySelector("#ccLista .cc-cab b");
-    return { n: n.textContent, oculto: n.hidden, cab: cab ? cab.textContent : null };
+    const n = document.getElementById("ccNavRevision"), fila = document.getElementById("ccPorDecidirAviso");
+    return { n: n.textContent, oculto: n.hidden, fila: fila.textContent };
   });
-  assert("U5 -> el número del menú es el de «movimientos por decidir»", !u5.oculto && u5.n === u5.cab && Number(u5.n) > 0, u5);
+  assert("U5 -> el número del menú es el de «N por decidir» (su fila en 🔍)", !u5.oculto && u5.fila === u5.n + " por decidir" && Number(u5.n) > 0, u5);
 
   const sinFiltros = await page.evaluate(() => !document.getElementById("ccFiltros") && !document.getElementById("ccFiltroPendientes"));
   assert("U5 -> Revisión sin barra de filtros", sinFiltros);

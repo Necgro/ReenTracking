@@ -347,6 +347,10 @@ function renderCosteCompras() {
   }
   const n = $("cbCount");
   if (n) n.textContent = String(vivas.size);
+  // Su estado en la lista de tareas de 🔍 (P21): las que aún llevan el de por defecto.
+  const sin = filas.filter(f => f.estado !== "ajeno" && f.supuesto).length;
+  const aviso = $("cbCosteAviso");
+  if (aviso) aviso.textContent = sin ? "⚠ " + sin + " sin coste" : "";
   cont.innerHTML = cbHtmlEditor(filas, cbBorrador);
 }
 function cbRenderSeguro() {
@@ -513,7 +517,6 @@ function cbInyectarEstilos() {
   const estilo = document.createElement("style");
   estilo.id = "estiloCoste20";
   estilo.textContent = [
-    ".cb-coste summary{color:var(--text)}",
     /* En un móvil la tabla scrollea en su caja, nunca la página. */
     ".cb-caja{overflow-x:auto}",
     /* Como la tabla de 📒 Transacciones: sin

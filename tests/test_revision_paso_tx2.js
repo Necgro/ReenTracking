@@ -133,8 +133,8 @@ assert("ccResumen.enLista = 4; total 13; a revisar 3; 1 salida",
   res.enLista === 4 && res.total === 13 && res.pendientes === 3 && res.salidas === 1, res);
 const cab = ccHtmlCabecera(REGS, ctx);
 // Textos de Revisión: una línea, sin repetir lo que hay en Transacciones.
-assert("cabecera: «4 movimientos por decidir (1 venta por vincular)», sin cobros",
-  cab.includes("<b>4</b> movimientos por decidir") && cab.includes("(<b>1</b> venta por vincular)") &&
+assert("cabecera: «1 venta por vincular», sin cobros (cuántos hay por decidir lo dice su fila, P21)",
+  !cab.includes("por decidir") && cab.includes("<b>1</b> venta por vincular") &&
   !cab.includes("cobro"), cab.slice(0, 200));
 assert("cabecera: sin la línea de «los otros N registros»", !cab.includes("Los otros"), cab);
 assert("cabecera: ya no dice que la lista lleva toda la clasificación",

@@ -290,8 +290,8 @@ assert("el fuente ya no pinta «Σ» en la card de vínculo (solo queda en comen
 console.log("== 5. T10 · lenguaje llano (lista/casilla/marca) y 4.8 sin casilla ==");
 // =========================================================================
 const cab = ccHtmlCabecera(REGS_CONF, CTX_CONF);
-assert("cabecera: «por decidir» y, si las hay, «por vincular» (textos simplificados)",
-  cab.includes("por decidir") && cab.includes("por vincular") &&
+assert("cabecera: «por vincular» (cuántos hay por decidir lo dice su fila, P21; textos simplificados)",
+  !cab.includes("por decidir") && cab.includes("por vincular") &&
   !cab.includes("pendientes") && !cab.includes("registros en la cola"));
 assert("4.8/T18 y 4.4b: sin casilla «ver todos» ni recuento de cobros en la cabecera",
   !cab.includes("cc-ver-todos-box") && !cab.includes("entrantes ya explicados"), cab.slice(0, 260));

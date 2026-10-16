@@ -1899,41 +1899,34 @@ function ccHtmlTarjeta(reg, opts = {}) {
          top + meta + hash + acciones + ccHtmlDecisiones(reg, opts.decision) + "</div>";
 }
 
-/* Cabecera de la lista: contadores y avisos de contexto. La lista usa
-   siempre los cobros sin contraparte explicada; la cabecera dice cuántos
-   entrantes ya explicados quedan fuera (el buscador permite mostrarlos). */
+/* Cabecera de la lista: las ventas por vincular y los avisos de contexto
+   (cuántos hay por decidir ya lo dice la fila, P21). Sin nada que decir,
+   no se pinta. */
 function ccHtmlCabecera(registros, ctx) {
-  const res = ccResumen(registros, ctx, false);
-  let html = '<div class="cc-cab">';
-  /* Una línea: «1 movimiento por
-     decidir» y, si las hay, las ventas por vincular. */
-  const n = res.enLista;
-  if (n || res.salidas) html += "<b>" + numEs(n, 0) + "</b>" + (n === 1 ? " movimiento por decidir" : " movimientos por decidir");
-  if (res.salidas) html += " (<b>" + numEs(res.salidas, 0) + "</b> " + (res.salidas === 1 ? "venta" : "ventas") + " por vincular)";
+  const salidas = registros.filter(r => ccPendienteDeVincular(r, ctx, false) === "salida").length;
+  let html = "";
+  if (salidas) html += "<b>" + numEs(salidas, 0) + "</b> " + (salidas === 1 ? "venta" : "ventas") + " por vincular";
   if (!ctx.hayCache) {
     html += '<div class="aviso">⚠ Sin datos: no se marcan ventas por vincular.</div>';
   } else if (!ctx.hayPropias) {
     html += '<div class="aviso">⚠ Falta tu wallet (tus datos de 🚀 Puesta en marcha).</div>';
   }
-  html += "</div>";
-  return html;
+  return html ? '<div class="cc-cab">' + html + "</div>" : "";
 }
 
 /* Lista de lo que necesita una decisión. «visibles» = ccColaRevision
    (sin filtros: son pocos); ventas = vínculos
    guardados (para el nombre de cada vínculo). */
 function ccHtmlLista(registros, visibles, ctx, ventas, dec) {
-  let html = ccHtmlCabecera(registros, ctx);
-  if (!visibles.length) {
-    html += '<div class="cc-vacio cc-todo-ok">✅ Nada por decidir.</div>';
-    return html;
-  }
-  /* Los tokens con dudas del catálogo, antes que las tarjetas: confirmarlos
+  if (!visibles.length) return ccHtmlCabecera(registros, ctx) + '<div class="cc-vacio cc-todo-ok">✅ Nada por decidir.</div>';
+  /* Los tokens con dudas del catálogo, arriba del todo: confirmarlos
      reclasifica muchos de estos movimientos. */
+  let html = "";
   const dudas = (dec && dec.dudas) || 0;
   if (dudas) html += '<div class="cc-cab cc-dudas">Primero <a href="#revision" data-ir="rvCatalogo">confirma ' +
     (dudas === 1 ? "el token con dudas</a>: cambia" : "los " + numEs(dudas, 0) + " tokens con dudas</a>: cambian") +
     " muchos de estos movimientos.</div>";
+  html += ccHtmlCabecera(registros, ctx);
   for (const r of visibles) {
     const vinc = ccVinculoDeRegistro(r, ctx);
     if (vinc) vinc.detalle = ccDetalleVinculo(vinc, ventas, registros);
@@ -2012,6 +2005,16 @@ function renderCorrecciones() {
     nav.textContent = cola.length ? numEs(cola.length, 0) : "";
     nav.hidden = !cola.length;
     nav.title = cola.length ? numEs(cola.length, 0) + (cola.length === 1 ? " movimiento por decidir" : " movimientos por decidir") : "";
+  }
+  /* Su fila en la lista de tareas (P21): en rojo y abierta si hay algo
+     (también al volver a 🔍: js/13 la pliega al salir); sin movimientos,
+     sin «Al día» en ninguna fila. */
+  const fila = $("ccPorDecidir");
+  if (fila) {
+    $("ccPorDecidirAviso").textContent = cola.length ? numEs(cola.length, 0) + " por decidir" : "";
+    fila.classList.toggle("rv-rojo", !!cola.length);
+    fila.closest(".rv-tareas").classList.toggle("rv-sin-datos", !registros.length);
+    pnAbrirSiHace("ccPorDecidir", cola.length > 0);
   }
 
   if (!registros.length) {
@@ -3057,7 +3060,7 @@ function ccInyectarEstilos() {
     "#ccLista .cc-cab a{color:var(--accent);font-weight:600;text-decoration:none}",
     "#ccLista .cc-cab a:hover{text-decoration:underline}",
     "#ccLista .cc-todo-ok{color:var(--ok);font-size:14px;font-weight:600}",
-    "#ccLista .cc-dudas{margin-top:8px;color:var(--warn);font-weight:600}",
+    "#ccLista .cc-dudas{color:var(--warn);font-weight:600;background:var(--warn-bg);border-color:var(--warn-bd)}",
     /* Hash como enlace, igual en toda la app. */
     ".cc-hash-enlace{color:var(--accent);font-size:13.5px;text-decoration:none;white-space:nowrap}",
     ".cc-hash-enlace:hover{text-decoration:underline}",
@@ -3108,7 +3111,7 @@ function ccInyectarEstilos() {
     ".cc-que-es:focus{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}",
     ".cc-que-es .cc-burbuja{display:none;position:absolute;top:calc(100% + 8px);right:0;width:max-content;max-width:min(540px,80vw);background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 18px;font-size:13.5px;font-weight:400;line-height:1.7;z-index:400;text-align:left;white-space:normal;cursor:auto}",
     ".cc-que-es:hover .cc-burbuja,.cc-que-es:focus .cc-burbuja{display:block}",
-    "@media print{.card>.cc-que-es,.cc-indice{display:none}}",
+    "@media print{.card>.cc-que-es{display:none}}",
     "#ccLista .cc-cat{margin-left:auto;display:inline-flex;align-items:center;font-size:13.5px;font-weight:700;color:var(--muted)}",
     /* La ⓘ de la nota va en el borde derecho: su burbuja se abre hacia dentro. */
     "#ccLista .cc-cat .cc-burbuja{left:auto;right:-6px;transform:none}",
@@ -3259,24 +3262,12 @@ function ccMontarEventos() {
   }
 }
 
-/* El índice fijo de arriba (#ccIndice) copia los números y ⚠ de los
-   títulos de cada bloque. Los pintan js/11, 15 y 20 cada uno a su hora, así
-   que se copian al cambiar (un observador por título), no al repintar. */
-function ccPintarIndice() {
-  for (const s of document.querySelectorAll("#ccIndice [data-copia]")) {
-    const t = ($(s.dataset.copia) || {}).textContent || "";
-    if (!s.classList.contains("rv-aviso")) { s.textContent = t || "0"; continue; }
-    s.textContent = t ? "⚠" : "";
-    s.parentNode.title = t.replace(/^⚠\s*/, "");
-  }
-}
-/* Baja a un bloque de 🔍 (sin quedar bajo el índice fijo) y lo abre: el
-   índice, el aviso de tokens con dudas ([data-ir]) y «Ir al catálogo» de 🚀. */
+/* Baja a un bloque de 🔍 y lo abre: el aviso de tokens con dudas
+   ([data-ir]) y «Ir al catálogo» de 🚀. */
 function ccIrABloque(id) {
   const el = $(id);
   if (!el) return;
   if (el.tagName === "DETAILS") el.open = true;
-  el.style.scrollMarginTop = $("ccIndice").offsetHeight + 8 + "px";
   el.scrollIntoView();
 }
 function ccPulsarIrA(e) {
@@ -3317,11 +3308,6 @@ function ccPulsarIrA(e) {
   ccMontarEventos();
   const vista = $("view-revision");
   if (vista) vista.addEventListener("click", ccPulsarIrA);
-  for (const s of document.querySelectorAll("#ccIndice [data-copia]")) {
-    const origen = $(s.dataset.copia);
-    if (origen) new MutationObserver(ccPintarIndice).observe(origen, { childList: true, characterData: true, subtree: true });
-  }
-  ccPintarIndice();
   document.querySelectorAll("[data-que-es]").forEach(e => { e.outerHTML = ccHtmlQueEs(); });
   ccRenderSeguro(); // el DOM ya existe: los scripts van al final del <body>
 })();

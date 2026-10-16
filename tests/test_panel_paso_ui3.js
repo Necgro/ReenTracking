@@ -150,7 +150,7 @@ console.log("== 5. index.html ==");
 const pagina = fs.readFileSync(path.join(BASE, "index.html"), "utf8");
 const ids = ["rvCatalogo", "rvPreciosRnt", "rvPreciosPol", "rvContratos", "rvAjustes"];
 assert("los cinco bloques son plegables y cerrados por defecto",
-  ids.every(id => new RegExp('<details id="' + id + '" class="[^"]*rv-plegable[^"]*">').test(pagina)), ids);
+  ids.every(id => new RegExp('<details id="' + id + '"( class="[^"]*")?>').test(pagina)), ids);
 assert("el editor JSON va dentro de su plegable (T63), con aviso",
   /<details id="rvAjustes"[\s\S]*?id="txtAjustes"[\s\S]*?<\/details>/.test(pagina) && /Un error cambia lo que sale en todas las pestañas/.test(pagina));
 // Explicación breve en cada apartado; «Movimientos ya decididos» no la lleva.
@@ -171,7 +171,7 @@ assert("precios de RNT sin formulario libre y con el enlace a CoinGecko a la vis
   /<a href="https:\/\/www\.coingecko\.com\/en\/coins\/reental" target="_blank" rel="noopener">CoinGecko ↗<\/a>/.test(pagina));
 assert("Revisión sin filtros", !pagina.includes('id="ccFiltros"') && !pagina.includes("ccFiltroCategoria"));
 assert("«💶 Coste de las compras por transferencia bancaria»", pagina.includes("💶 Coste de las compras por transferencia bancaria ("));
-assert("el título de cada pestaña, más grande", /\.view>\.card:first-of-type>h2:first-child[^{]*\{font-size:24px/.test(pagina));
+assert("el título de cada pestaña, más grande", /\.view>\.card:first-of-type>h2:first-child[^{]*\{font-size:28px/.test(pagina));
 const js15 = fs.readFileSync(path.join(BASE, "js", "15-correcciones.js"), "utf8");
 assert("js/15 pinta el contador con la misma lista de «por decidir»",
   /\$\("ccNavRevision"\)[\s\S]{0,200}cola\.length/.test(js15));

@@ -135,12 +135,11 @@ const cabD = ccHtmlCabecera(REGS, ctx);
 assert("cabecera: SIN casilla «ver todos» (4.8/T18: la vía de escape vive en el buscador)",
   !cabD.includes("cc-ver-todos-box") && !cabD.includes('name="verTodos"'));
 // La cabecera no cuenta cobros: Revisión solo lleva lo que pide una decisión.
-// Una línea, «N movimientos por decidir (M ventas por vincular)».
+// Solo «M ventas por vincular» (cuántos hay por decidir lo dice su fila, P21).
 assert("cabecera: ventas por vincular; sin cobros ni entrantes explicados",
-  cabD.includes("(<b>1</b> venta por vincular)") && !cabD.includes("cobros") &&
+  cabD.includes("<b>1</b> venta por vincular") && !cabD.includes("por decidir") && !cabD.includes("cobros") &&
   !cabD.includes("entrantes ya explicados"), cabD.slice(0, 260));
-assert("cabecera: lenguaje llano («por decidir», sin «cola»)",
-  cabD.includes("por decidir") && !/\bcola\b/i.test(cabD));
+assert("cabecera: lenguaje llano (sin «cola»)", !/\bcola\b/i.test(cabD));
 const badge = ccHtmlTarjeta(COBRO, { candidatura: ccCandidatura(COBRO, ctx) });
 // «SIN contraparte explicada» se dice en llano («sin explicación»).
 assert("4.4b (T70): un cobro ya no lleva marca «por vincular» en su card", !badge.includes("cc-cand"));

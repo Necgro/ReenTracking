@@ -137,7 +137,7 @@ const res = S.txResumenSpam(regs, ctx);
 assert("cuenta por motivo, de más a menos, y solo el spam",
   res[0].id === "web" && res[0].n === 4 && res.reduce((a, m) => a + m.n, 0) === 11 && res.length === 8, res);
 assert("cada motivo con su etiqueta", res[0].etiqueta === "Web en el nombre" &&
-  res.find(m => m.id === "descartado").etiqueta === "Descartado por ti en el catálogo");
+  res.find(m => m.id === "descartado").etiqueta === "Descartado en el catálogo");
 const h = S.txHtmlResumenSpam(res);
 /* Cada línea se puede pulsar (filtra ese
    motivo), pero sigue siendo una línea de texto: sin etiquetas. */

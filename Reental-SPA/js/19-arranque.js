@@ -1145,7 +1145,7 @@ function arrNormalizarHash() {
 // Acciones del resumen que llevan a 🔍 Revisión.
 function arrIrAlCatalogo() {
   location.hash = "#revision";
-  setTimeout(() => ccIrABloque("rvCatalogo"), 150); // js/15: lo abre, sin taparlo el índice
+  setTimeout(() => ccIrABloque("rvCatalogo"), 150); // js/15: lo abre
 }
 
 /* ----------------------------- Estilos (inyectados una vez) ----------------------------- */
