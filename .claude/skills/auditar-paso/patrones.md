@@ -160,6 +160,11 @@ como antes? Hacer → editar → ¿se conservan los campos que no se editaron?
   pestaña, y al imprimir salía ella y no la tarjeta. Cerrarla al salir y
   al imprimir. Y un interruptor que se oculta sin datos volvía encendido
   sin verlo al volver los datos: apagarlo al ocultarlo.
+- Borrar una marca compartida («ya se abrió solo») para que un plegable se
+  reabra reabre también los demás que la usan, y más tarde, en el
+  siguiente repintado (a mitad de una decisión). Borrarla solo en el que
+  toca. Y una pista de qué hacer sin datos dentro de un plegable cerrado
+  no la ve nadie.
 
 **Mirar:** ¿qué pasa si se repinta, se reclasifica o se cambia de pestaña a
 mitad de la acción? ¿Y si se pulsa dos veces? ¿Y en el papel?

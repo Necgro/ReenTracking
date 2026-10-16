@@ -356,6 +356,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 /* 🔍 como lista de tareas (P21): una caja, una fila por bloque. */
 .rv-tareas{max-width:780px;margin-top:16px;border:1px solid var(--btn-bd);border-radius:12px;background:var(--tarjeta);box-shadow:var(--tarj-sombra);overflow:hidden}
 .rv-tareas:has(>details[open]){max-width:none}
+.rv-tarea{margin:0}
 .rv-tarea+.rv-tarea{border-top:1px solid var(--border)}
 .rv-tarea>summary{position:relative;padding:12px 150px 12px 16px;cursor:pointer;font-weight:700;font-size:14.5px;line-height:24px;color:var(--text);list-style:none}
 .rv-tarea>summary::after{content:"▸";position:absolute;right:16px;top:12px;color:var(--muted);font-size:12px}

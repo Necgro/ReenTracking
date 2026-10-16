@@ -20,11 +20,15 @@ function routing() {
   // no cambia la que se ve.
   const vista = $("view-" + hash) || document.querySelector(".view.active") || $("view-dashboard");
   // Al salir de 🔍 Revisión se pliega todo: al volver (o al recargar) se ve
-  // plegada, salvo lo que pida atención al repintarse (js/11 pnAbrirSiHace).
-  // Al salir y no al entrar: los enlaces que llevan a un bloque
+  // plegada, salvo «Por decidir» con algo (js/15 la vuelve a abrir al entrar;
+  // el resto no se reabre solo a mitad de trabajo). Al salir y no al entrar: los enlaces que llevan a un bloque
   // (irAFechasSinPrecio, ccIrAVinculo…) lo abren después de cambiar.
   const rev = $("view-revision");
-  if (rev && rev.classList.contains("active") && vista !== rev) rev.querySelectorAll("details").forEach(d => { d.open = false; delete d.dataset.avisado; });
+  if (rev && rev.classList.contains("active") && vista !== rev) {
+    rev.querySelectorAll("details[open]").forEach(d => { d.open = false; });
+    const porDecidir = $("ccPorDecidir");
+    if (porDecidir) delete porDecidir.dataset.avisado;
+  }
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v === vista));
   if (rutaSubir) { rutaSubir = false; window.scrollTo({ top: 0, behavior: "instant" }); }
   document.querySelectorAll("#navPrincipal a").forEach(a =>
