@@ -79,18 +79,12 @@ console.log("== 3. Auditoría ==");
   vm.runInContext("pnConfirmadosAhora", S).delete(NUNCA);
 }
 
-// P19: el nombre del inmueble, sin el «Reental» de delante, igual en el catálogo y en la clasificación.
+// P19: la columna «Token» del catálogo, sin el «Reental-» de delante.
 {
-  const v = S.nombreVisibleInmueble;
-  assert("P19: «Reental Malaga 8» → «Malaga 8»", v({ nombre_etherscan: "Reental Malaga 8" }) === "Malaga 8");
-  assert("P19: «Reental-Duna 2» → «Duna 2»", v({ nombre_etherscan: "Reental-Duna 2" }) === "Duna 2");
-  assert("P19: sin prefijo, igual; solo «Reental», igual", v({ nombre_reental: "Rentas 3" }) === "Rentas 3" &&
-    v({ nombre_etherscan: "Reental" }) === "Reental" && v({ nombre_etherscan: "Reentalia 1" }) === "Reentalia 1");
-  assert("P19: sin nombre, vacío", v({}) === "" && v(null) === "");
-  const fila = S.pnHtmlFilaCatalogo({ addr: TENGO, estado: "CONFIRMADA", entrada: { nombre_etherscan: "Reental Malaga 8", simbolo: "MLG-8" } }, false);
-  assert("P19: el catálogo enseña «Malaga 8»", fila.includes("<td>Malaga 8</td>"), fila.slice(0, 120));
-  assert("P19: la clasificación usa el mismo nombre",
-    S.nombreInmueble(TENGO, { inmuebles: { [TENGO]: { nombre_etherscan: "Reental Malaga 8" } } }) === "Malaga 8");
+  const fila = s => S.pnHtmlFilaCatalogo({ addr: TENGO, estado: "CONFIRMADA", entrada: { nombre_reental: "Málaga 8", simbolo: s } }, false);
+  assert("P19: «Reental-MLG-8» → «MLG-8»", fila("Reental-MLG-8").includes("<td>MLG-8</td>"), fila("Reental-MLG-8").slice(0, 120));
+  assert("P19: sin prefijo, igual", fila("FDR").includes("<td>FDR</td>"));
+  assert("P19: el nombre no cambia", fila("Reental-MLG-8").includes("<td>Málaga 8</td>"));
 }
 
 console.log("\n" + ok + " OK, " + fallos + " FALLOS");

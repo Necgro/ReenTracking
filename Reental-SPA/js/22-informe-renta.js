@@ -954,7 +954,7 @@ function rentaNombresInmuebles(registros, cache) {
   for (const [addr, e] of Object.entries(confirmados)) {
     if (pdEsObjeto(e)) {
       const contrato = normalizarDireccion(addr);
-      nombres.set(contrato, pyO(nombreVisibleInmueble(e), contrato));
+      nombres.set(contrato, pyO(e.nombre_reental, pyO(e.nombre_etherscan, contrato)));
     }
   }
   for (const r of registros) {

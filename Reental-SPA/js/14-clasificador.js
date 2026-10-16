@@ -213,7 +213,7 @@ function clasificarDireccion(addr, contexto) {
 
 function nombreInmueble(contrato, contexto) {
   const entrada = contexto.inmuebles[normalizarDireccion(contrato || "")] || {};
-  return nombreVisibleInmueble(entrada) || null;
+  return entrada.nombre_reental || entrada.nombre_etherscan || null;
 }
 
 function transfersUnificadosClasificacion(cache) {

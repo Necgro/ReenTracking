@@ -56,14 +56,14 @@ function pnEnlaceContrato(addr) {
 
 function pnHtmlFilaCatalogo(f, sinTokens) {
   const e = f.entrada;
-  const nombre = nombreVisibleInmueble(e) || "(sin nombre)";
+  const nombre = e.nombre_reental || e.nombre_etherscan || "(sin nombre)";
   const botones = PN_BOTONES_CATALOGO[f.estado].map(([nuevo, texto, ayuda]) =>
     '<button type="button" class="rv-boton" data-addr="' + ccEsc(f.addr) + '" data-estado="' + nuevo +
     '" aria-label="' + ccEsc(texto.replace(/^\S+ /, "") + ": " + ayuda) + '">' + texto +
     '<span class="rv-burbuja" aria-hidden="true">' + ccEsc(ayuda) + "</span></button>").join("");
   return '<tr data-addr="' + ccEsc(f.addr) + '"' + (sinTokens ? ' class="rv-sin-tokens"' : "") + ">" +
     "<td>" + ccEsc(nombre) + "</td>" +
-    "<td>" + ccEsc(e.simbolo || "") + "</td>" +
+    "<td>" + ccEsc(String(e.simbolo || "").replace(/^reental-(?=\S)/i, "")) + "</td>" +
     "<td>" + ccEsc(e.primera_aparicion ? fechaEs(e.primera_aparicion) : "—") + "</td>" +
     "<td>" + pnEnlaceContrato(f.addr) + "</td>" +
     '<td><span class="badge ' + f.estado + '">' + ccEsc(PN_ESTADOS[f.estado]) + "</span></td>" +
@@ -248,7 +248,7 @@ async function pnCambiarEstadoCatalogo(addr, nuevo) {
   await pnGuardarYClasificar();
   // El estado final: el descubrimiento vuelve a confirmar una «con dudas»
   // que tenga pruebas de ser inmueble (p. ej. su nombre en el archivo).
-  toast((nombreVisibleInmueble(e) || addr) + " → " + (PN_ESTADOS[e.estado || "CONFIRMADA"] || PN_ESTADOS[nuevo]), "ok");
+  toast((e.nombre_reental || e.nombre_etherscan || addr) + " → " + (PN_ESTADOS[e.estado || "CONFIRMADA"] || PN_ESTADOS[nuevo]), "ok");
 }
 
 /* «Descartar» = el spam de todo el token de 📒 (js/18): sale del catálogo y
