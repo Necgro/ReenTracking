@@ -23,6 +23,10 @@ paridad con los datos reales esté en verde no prueba nada.
 - Un dato ilegible que para el cálculo entero (un depósito sin cantidad
   legible) en vez de dejarlo a revisar. Y lo que para el cálculo no llega
   a las cifras de referencia, así que la paridad no lo ve.
+- Un cociente cuyas dos partes no cubren lo mismo: lo que se queda fuera
+  de abajo (una compra sin importe o sin tipo del BCE) sigue sumando
+  arriba (sus rendimientos) y el % se dispara sin aviso. Y un dato aún
+  provisional (un cobro a medias, a revisar) contado como el final.
 
 **Mirar:** cada regla tocada, ¿está igual en todos los sitios que la
 calculan? ¿Lo comprueba una paridad con un caso que la ejercite?

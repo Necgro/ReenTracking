@@ -2,6 +2,14 @@
 
 Lo más reciente, arriba. Una fila por versión o paso.
 
+## Rentabilidad media en 📊 (16/10/2026)
+
+- **📊 Dashboard:** en la franja de arriba, «Rentabilidad media» en % anual,
+  desde la primera compra: lo repartido (íntegro) más lo ganado en las ventas,
+  sobre el dinero invertido medio. Al pasar el ratón, de qué sale cada parte.
+- **Cálculo:** no cambia; lo ganado en las ventas es en USD, así que no
+  coincide con 🧾 Fiscal (en €).
+
 ## Valor nominal en 📊 (16/10/2026)
 
 - **📊 Dashboard:** el dinero invertido es lo pagado por los tokens que

@@ -192,7 +192,7 @@ function dashDineroInvertido(registros, tiposBce, ajustes, cache) {
   const canjes = new Map();
   for (const r of lista) if (r.categoria === "COMPRA" && r.via_compra === "CANJE") canjes.set(r.hash, (canjes.get(r.hash) || []).concat(r));
   const res = { movimientos: [], compras: 0, ventas: 0, sinImporte: 0, sinCambio: 0, sinFecha: 0, eurBanco: 0, usdStable: 0,
-    sinCalcular: new Map() };
+    sinCalcular: new Map(), gananciaVentas: 0, ventasSinCobro: 0 };
   // Con dos claves iguales tras normalizar, la primera (como ccBuscarAjuste).
   const porClave = new Map();
   for (const [c, a] of Object.entries(ajustes || {})) if (!porClave.has(ccClaveAjuste(c))) porClave.set(ccClaveAjuste(c), a);
@@ -252,7 +252,13 @@ function dashDineroInvertido(registros, tiposBce, ajustes, cache) {
       const trozos = sacar(cola(r.contrato), r.cantidad);
       if (!trozos.length) continue; // su compra ya quedó fuera (y se dice)
       res.ventas++;
-      res.movimientos.push({ fecha: r.fecha, instante: r.instante, delta: -trozos.reduce((s, t) => s + t.usd, 0) });
+      const coste = trozos.reduce((s, t) => s + t.usd, 0), vendidos = trozos.reduce((s, t) => s + t.cant, 0);
+      res.movimientos.push({ fecha: r.fecha, instante: r.instante, delta: -coste });
+      // Lo ganado: lo cobrado (por los tokens con compra contada) menos lo
+      // que costaron. Sin lo cobrado, o a revisar (un pago diferido cobrado
+      // a medias), no se sabe: no suma y se cuenta.
+      if (positivo(r.importe_usdt) && r.revisar !== true) res.gananciaVentas += r.importe_usdt * vendidos / r.cantidad - coste;
+      else res.ventasSinCobro++;
       continue;
     }
     let importe = null, tipo = null;
@@ -365,6 +371,40 @@ function dashValorNominal(invertido, cartera, bce) {
   const eur = suma("EUR"), usd = suma("USD");
   const conBce = eur > 0 && bce ? bce : null;
   return { filas, eur, usd, bce: conBce, aprox: conBce ? eur * conBce.valor + usd : null, fuera };
+}
+
+/* Rentabilidad media anual, desde la primera compra hasta hoy: lo repartido
+   (íntegro, del archivo de Reental) más lo ganado en las ventas (USD, el
+   FIFO de dashDineroInvertido, no el de 🧾 Fiscal en €), sobre el dinero
+   invertido medio (la media de cada mes, de la serie mensual, hasta este
+   mes), por años. Una cifra que saldría mal no se enseña: sin archivo de
+   rendimientos, sin compras, con algo fuera del dinero invertido (sus
+   rendimientos sumarían sin su coste), con una venta sin cobrar del todo,
+   con fechas después de hoy o antes de 3 meses: { motivo }. Si no,
+   { pct, rend, ventas, medio, anios, primera }. */
+function dashRentabilidadMedia(invertido, mensual, rendimientos, hoy = hoyEspana()) {
+  if (!rendimientos) return { motivo: "Sin archivo de rendimientos." };
+  if (!invertido || !mensual || !mensual.length) return { motivo: "Sin compras de inmuebles con importe." };
+  const fuera = invertido.sinImporte + invertido.sinCambio + invertido.sinFecha;
+  if (fuera) return { motivo: dashCuantos(fuera, "compra o venta", "compras o ventas") + " fuera del dinero invertido (ver 💼)." };
+  if (invertido.ventasSinCobro) return { motivo: dashCuantos(invertido.ventasSinCobro, "venta", "ventas") + " sin cobrar del todo (ver 🔍 Revisión)." };
+  if (mensual[mensual.length - 1].etiqueta > hoy.slice(0, 7)) return { motivo: "Un movimiento con fecha después de hoy." };
+  const primera = invertido.movimientos[0].fecha.slice(0, 10);
+  const [a, m, d] = primera.split("-").map(Number);
+  if (hoy < fmtFecha(new Date(Date.UTC(a, m + 2, d)))) return { motivo: "Menos de 3 meses desde la primera compra." };
+  // ponytail: un mes cuenta entero aunque la compra llegue a mitad; con años de historia apenas pesa.
+  // La serie ya trae todos los meses seguidos; hasta hoy se repite el último.
+  const meses = dashMesesEntre(mensual[0].etiqueta, hoy.slice(0, 7)).length;
+  const medio = (mensual.reduce((t, p) => t + p.valor, 0) + (meses - mensual.length) * mensual[mensual.length - 1].valor) / meses;
+  if (!(medio > 0)) return { motivo: "Sin dinero invertido de media." };
+  const anios = ccDiasEntreFechas(hoy, primera) / 365.25;
+  const rend = rendimientos.total, ventas = invertido.gananciaVentas;
+  return { pct: 100 * (rend + ventas) / medio / anios, rend, ventas, medio, anios, primera };
+}
+function dashTituloRentabilidad(r) {
+  return "Rendimientos " + dashNum(r.rend, 2) + " USD y " + (r.ventas < 0 ? "pérdida" : "ganancia") + " de ventas " +
+    dashNum(Math.abs(r.ventas), 2) + " USD (en USD; 🧾 Fiscal va en €), sobre " + dashNum(r.medio, 2) +
+    " USD invertidos de media, desde " + fechaEs(r.primera) + " (" + dashNum(r.anios, 1) + " años)";
 }
 
 /* Resumen del archivo de rendimientos (state.filasCsv, parser de js/10), en
@@ -1196,6 +1236,7 @@ function renderDashboard() {
   const bce = cache ? seguro(() => dashUltimoTipoBce(cache), null) : null;
   const saldoVault = vaultSaldo && vaultSaldo.n ? vaultSaldo.saldo : null;
   const nominal = invertido && cartera && cartera !== FALLO ? seguro(() => dashValorNominal(invertido, cartera, bce), null) : null;
+  const rentabilidad = seguro(() => dashRentabilidadMedia(invertido, mensual, rendimientos), null);
 
   // Franja de métricas (con «No disponible» honesto).
   let html = '<div class="dash-metrics" aria-label="Métricas clave">';
@@ -1211,6 +1252,9 @@ function renderDashboard() {
         ? "Íntegro de " + rendimientos.filas + " repartos · retención " +
           dashNum(rendimientos.retained, 2) + " USD"
         : "Sin archivo de rendimientos" });
+  const conPct = rentabilidad && rentabilidad.pct !== undefined;
+  html += dashMetrica("Rentabilidad media", conPct ? dashNum(rentabilidad.pct, 1) + " % anual" : null,
+    { title: conPct ? dashTituloRentabilidad(rentabilidad) : (rentabilidad || { motivo: "No se pudo calcular." }).motivo });
   html += dashMetrica("Movimientos", categorias ? String(categorias.total) : null,
     { title: categorias ? "" : "Sin datos todavía" });
   html += dashMetrica("Revisar", categorias ? String(categorias.revisar) : null,
@@ -1361,10 +1405,10 @@ function dashInyectarEstilos() {
     "#tarjetaMetricas{--dash-a:#2563eb;--dash-b:var(--accent);--dash-c:#c98a0a;color:var(--text)}",
     "body.dark #tarjetaMetricas{--dash-a:#6b9cf5;--dash-c:#e0a93a}",
     "#tarjetaMetricas .dash-metrics{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px}",
-    "#tarjetaMetricas .dash-metric{background:var(--tarjeta);border:1px solid var(--border);border-radius:12px;padding:10px 15px;min-width:150px;flex:1 1 150px;text-decoration:none;color:inherit;display:block}",
+    "#tarjetaMetricas .dash-metric{background:var(--tarjeta);border:1px solid var(--border);border-radius:12px;padding:10px 15px;min-width:150px;flex:1 1 150px;text-decoration:none;color:inherit;display:flex;flex-direction:column}",
     "#tarjetaMetricas a.dash-metric:hover{border-color:var(--accent)}",
     "#tarjetaMetricas .dash-metric .k{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}",
-    "#tarjetaMetricas .dash-metric .v{font-size:16.5px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums;color:var(--text)}",
+    "#tarjetaMetricas .dash-metric .v{font-size:16.5px;font-weight:700;margin-top:auto;padding-top:2px;font-variant-numeric:tabular-nums;color:var(--text)}",
     "#tarjetaMetricas .dash-metric .v.dash-na{color:var(--faint);font-weight:600;font-size:13.5px}",
     "#tarjetaMetricas .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}",
     "@media(max-width:900px){#tarjetaMetricas .dash-grid{grid-template-columns:1fr}}",
