@@ -116,7 +116,6 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
       porDecidir: document.getElementById("ccPorDecidirAviso").textContent,
       filaOculta: getComputedStyle(document.getElementById("ccPorDecidir")).display === "none",
       enlace: !!lista.querySelector('.cc-cab a[href="#transacciones"]'),
-      ok: (lista.querySelector(".cc-todo-ok") || {}).textContent || "",
       chip: (document.getElementById("ccPendientes") || { textContent: "(quitado)" }).textContent,
     };
   });
@@ -158,7 +157,7 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   await esperar(500);
   let r = await page.evaluate(() => ({
     hash: location.hash,
-    visible: getComputedStyle(document.getElementById("view-transacciones")).display !== "none",
+    visible: document.getElementById("view-transacciones").classList.contains("active"),
     /* El recuento dice los movimientos y, al lado, el spam. */
     rec: document.getElementById("txRecuento").textContent,
     plegados: (() => { const rel = txRelacionesVinculos(state.registros, ((state.cache || {}).pagos_diferidos || {}).ventas || []);

@@ -112,7 +112,6 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
       plegable: det ? { abierto: det.open, titulo: det.querySelector("summary").textContent } : null,
       cab: (lista.querySelector(".cc-cab") || {}).textContent || "",
       enlace: !!lista.querySelector('.cc-cab a[href="#transacciones"]'),
-      ok: (lista.querySelector(".cc-todo-ok") || {}).textContent || "",
       chip: document.getElementById("ccPendientes").textContent,
     };
   });
@@ -219,7 +218,7 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
     return { hash: location.hash, buscar: document.getElementById("txBuscar").value,
              cat: document.getElementById("txFiltroCategoria").value, filas: filas.length,
              destacada: !!tr && tr.classList.contains("tx-destacada"),
-             visible: getComputedStyle(document.getElementById("view-transacciones")).display !== "none" };
+             visible: document.getElementById("view-transacciones").classList.contains("active") };
   }, base.clavePago);
   assert("abre 📒 Transacciones sin filtros, buscando el hash del cobro, con su fila resaltada",
     r.hash === "#transacciones" && r.visible && r.buscar === base.hashPago && r.cat === "" &&

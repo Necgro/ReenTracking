@@ -112,7 +112,6 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
       plegable: det ? { abierto: det.open, titulo: det.querySelector("summary").textContent } : null,
       cab: (lista.querySelector(".cc-cab") || {}).textContent || "",
       enlace: !!lista.querySelector('.cc-cab a[href="#transacciones"]'),
-      ok: (lista.querySelector(".cc-todo-ok") || {}).textContent || "",
       chip: document.getElementById("ccPendientes").textContent,
     };
   });
