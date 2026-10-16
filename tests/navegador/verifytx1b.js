@@ -312,6 +312,26 @@ const rgb = hex => "rgb(" + [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)
     return { alto: v.offsetHeight, foco: document.activeElement === b, guardada: getComputedStyle(v).contentVisibility };
   });
   assert("fuera de 📒: 0 de alto, sin foco dentro y la tabla guardada", oculta.alto === 0 && !oculta.foco && oculta.guardada === "hidden", oculta);
+  /* Auditoría del 16/10 A2: solo con @supports (sin content-visibility,
+     display:block la enseñaría en las demás pestañas). */
+  const regla = await page.evaluate(() => {
+    for (const h of document.styleSheets) for (const r of h.cssRules)
+      if (r.cssRules) for (const d of r.cssRules) if (d.selectorText === "#view-transacciones.view:not(.active)")
+        return { tipo: r.constructor.name, cond: r.conditionText };
+    return null;
+  });
+  assert("A2: la tabla guardada fuera de 📒, solo con @supports (content-visibility)", !!regla && regla.tipo === "CSSSupportsRule" && /content-visibility/.test(regla.cond), regla);
+  /* Auditoría del 16/10, hueco: cambiar el ancho estando fuera de 📒 y
+     volver deja el reparto de sitio como medido de cero. */
+  await page.setViewport({ width: 1900, height: 900 }); await esperar(200);
+  const aire = await page.evaluate(async () => {
+    location.hash = "#transacciones"; await new Promise(r => setTimeout(r, 300));
+    const t = document.getElementById("txTabla"), alVolver = t.style.getPropertyValue("--tx-aire");
+    txRepartoHecho = ""; txRepartirAire();
+    return { alVolver, deCero: t.style.getPropertyValue("--tx-aire") };
+  });
+  await page.setViewport({ width: 1366, height: 768 }); await esperar(200);
+  assert("ancho cambiado fuera de 📒: al volver, el reparto como medido de cero", !!aire.alVolver && aire.alVolver === aire.deCero && aire.deCero !== "0px", aire);
   const errs = errores();
   assert("0 errores de consola", errs.length === 0, errs);
 

@@ -238,8 +238,9 @@ main{flex:1;min-width:0;display:flex;flex-direction:column}
 .view{display:none}
 .view.active{display:block;animation:fade var(--dur-vista) ease}
 /* 📒 (cientos o miles de filas) no se quita del todo al salir: el
-   navegador guarda la tabla dibujada y al volver no la rehace. */
-#view-transacciones.view:not(.active){display:block;content-visibility:hidden}
+   navegador guarda la tabla dibujada y al volver no la rehace. Solo donde
+   el navegador lo sabe hacer (si no, se vería en las demás pestañas). */
+@supports (content-visibility:hidden){#view-transacciones.view:not(.active){display:block;content-visibility:hidden}}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:18px;box-shadow:var(--shadow)}
 .card h2{font-size:17px;font-weight:800;letter-spacing:-.01em;margin-bottom:4px}
