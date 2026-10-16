@@ -1419,7 +1419,7 @@ function txPintarCuerpo(registros) {
   }
 
   if (!registros.length) {
-    cuerpo.innerHTML = txHtmlFilaVacia("Sin movimientos todavía: completa 🚀 Puesta en marcha.");
+    cuerpo.innerHTML = txHtmlCuerpo = txHtmlFilaVacia("Sin movimientos todavía: completa 🚀 Puesta en marcha.");
     if (rec) rec.textContent = "";
     for (const id of ["txTriaje", "txMotivosSpam"]) { const el = $(id); if (el) el.innerHTML = ""; }
     const motivos = $("txMotivosSpam");
@@ -1450,7 +1450,7 @@ function txPintarCuerpo(registros) {
      qué opciones tiene cada 🚫 y qué spam se quita con su ↩. */
   const ctxMotor = state.cache ? construirContexto(state.cache) : null;
   let abiertoPintado = false;
-  cuerpo.innerHTML = visibles.length
+  const html = visibles.length
     ? visibles.map(r => {
         const vinculo = ccVinculoDeRegistro(r, ctx);
         if (vinculo) vinculo.detalle = ccDetalleVinculo(vinculo, ventas, registros);
@@ -1480,6 +1480,13 @@ function txPintarCuerpo(registros) {
           txHtmlFilaNota(r, notaP, editando, editando ? ed.borrador : null);
       }).join("")
     : txHtmlFilaVacia("Ningún movimiento con estos filtros.");
+  /* Lo mismo que ya está no se vuelve a poner (con cientos de filas, el
+     navegador tarda en rehacer la tabla y hay que volver a medirla): al
+     entrar en 📒 sin cambios, la tabla de antes se queda. */
+  if (html !== txHtmlCuerpo) {
+    cuerpo.innerHTML = txHtmlCuerpo = html;
+    txCuerposPintados++;
+  }
   /* Si su fila ya no se ve (un filtro, el modo spam…), las opciones se
      cierran: no vuelven a salir solas al enseñarla otra vez. */
   if (!abiertoPintado) txApartarAbierto = null;
@@ -1506,9 +1513,16 @@ function txPintarCuerpo(registros) {
    estirarse y suma la diferencia, repartida, al margen izquierdo de cada
    columna (--tx-aire). Sin sitio libre, 0. */
 const TX_SEL_CAJA_TABLA = "#view-transacciones .tx-tablawrap";
+/* Medir la tabla entera cuesta (con cientos de filas, ~100 ms): solo si
+   cambió el ancho o se pintó otra vez desde la última medida (al entrar
+   en 📒 lo pedían el pintado y el cambio de ancho, cada uno por su lado). */
+let txCuerposPintados = 0, txRepartoHecho = "", txHtmlCuerpo = "";
 function txRepartirAire() {
   const caja = document.querySelector(TX_SEL_CAJA_TABLA), tabla = $("txTabla");
   if (!caja || !tabla || !caja.clientWidth) return;
+  const huella = caja.clientWidth + "|" + txCuerposPintados;
+  if (huella === txRepartoHecho) return;
+  txRepartoHecho = huella;
   tabla.classList.add("tx-midiendo"); // sin aire, sin estirarse ni anchos en % (estos también la estiran)
   const natural = tabla.offsetWidth;
   tabla.classList.remove("tx-midiendo");

@@ -290,6 +290,19 @@ const rgb = hex => "rgb(" + [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)
     if (await page.evaluate(h => document.getElementById("view-" + h.slice(1)).classList.contains("active"), v)) rutas++;
   }
   assert("routing de las " + vistas.length + " vistas intacto", vistas.length === 8 && rutas === 8, { vistas, rutas });
+  /* Volver a 📒 sin cambios no rehace la tabla (con cientos de filas, tarda);
+     con un cambio, sí. */
+  const rehecha = await page.evaluate(async () => {
+    const espera = ms => new Promise(r => setTimeout(r, ms));
+    location.hash = "#transacciones"; await espera(150);
+    const fila = document.querySelector("#txCuerpo tr");
+    location.hash = "#dashboard"; await espera(150);
+    location.hash = "#transacciones"; await espera(150);
+    const igual = document.querySelector("#txCuerpo tr") === fila;
+    state.registros = state.registros.slice(1); renderTransacciones();
+    return { igual, cambia: document.querySelector("#txCuerpo tr") !== fila };
+  });
+  assert("al volver a 📒 sin cambios, la misma tabla; con un cambio, otra", rehecha.igual && rehecha.cambia, rehecha);
   const errs = errores();
   assert("0 errores de consola", errs.length === 0, errs);
 
