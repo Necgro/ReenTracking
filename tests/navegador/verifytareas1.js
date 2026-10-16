@@ -135,6 +135,30 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   });
   assert("colores: ámbar, verde y rojo", colores.amb && colores.verde && colores.rojo, colores);
 
+  /* Auditoría del 16/10 A1: abierta, la fila no recorta; la burbuja ⓘ de la
+     primera tarjeta (hacia arriba) se ve entera. */
+  const ip = await page.evaluate(() => {
+    const d = document.querySelector("#ccLista .cc-dudas"); if (d) d.style.display = "none";
+    document.getElementById("ccPorDecidir").scrollIntoView({ block: "center" });
+    const tarjeta = document.querySelector("#ccLista .cc-item");
+    if (!tarjeta) return null;
+    tarjeta.insertAdjacentHTML("afterbegin", ccInfo("Una explicación larga. ".repeat(12))); // como la del motivo
+    const i = tarjeta.querySelector(".cc-info");
+    const r = i.getBoundingClientRect();
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+  });
+  if (ip) await page.mouse.move(ip.x, ip.y);
+  await esperar(150);
+  const recorte = await page.evaluate(() => {
+    const bu = document.querySelector("#ccLista .cc-info .cc-burbuja");
+    if (!bu) return { sinBurbuja: true };
+    const r = bu.getBoundingClientRect(), e = document.elementFromPoint(r.left + r.width / 2, r.top + 4);
+    const d = document.querySelector("#ccLista .cc-dudas"); if (d) d.style.display = "";
+    return { overflow: getComputedStyle(document.getElementById("ccPorDecidir"), "::details-content").overflow, arribaSeVe: !!(e && bu.contains(e)) };
+  });
+  await page.mouse.move(0, 0);
+  assert("A1: abierta, sin recorte: la burbuja ⓘ de la primera tarjeta se ve entera", recorte.overflow === "visible" && recorte.arribaSeVe, recorte);
+
   /* El aviso de tokens con dudas, arriba del todo de «Por decidir», y lleva al catálogo. */
   const primero = await page.evaluate(() => (document.querySelector("#ccLista>*") || {}).className);
   assert("el aviso de tokens con dudas, lo primero de «Por decidir»", primero === "cc-cab cc-dudas", primero);

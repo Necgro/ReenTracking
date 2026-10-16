@@ -365,8 +365,10 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 .rv-tareas{border:1px solid var(--btn-bd);border-radius:12px;background:var(--tarjeta);box-shadow:var(--tarj-sombra);overflow:hidden;transition:max-width var(--dur-fila) ease}
 .rv-tareas:has(>details[open]:not([hidden])){max-width:100%}
 .rv-tareas,.rv-enlaces{interpolate-size:allow-keywords}
-.rv-tarea::details-content,.rv-enlaces>details::details-content{height:0;overflow:clip;transition:height var(--dur-fila) ease,content-visibility var(--dur-fila) allow-discrete}
-.rv-tarea[open]::details-content,.rv-enlaces>details[open]::details-content{height:auto;animation:fade var(--dur-fila) ease}
+/* Recorta solo mientras se despliega: abierta, sin recorte (si no, las
+   burbujas ⓘ de arriba quedan cortadas); al cerrar, recorta al momento. */
+.rv-tarea::details-content,.rv-enlaces>details::details-content{height:0;overflow:clip;transition:height var(--dur-fila) ease,content-visibility var(--dur-fila) allow-discrete,overflow 0s allow-discrete}
+.rv-tarea[open]::details-content,.rv-enlaces>details[open]::details-content{height:auto;overflow:visible;animation:fade var(--dur-fila) ease;transition-delay:0s,0s,var(--dur-fila)}
 .rv-tarea{margin:0}
 .rv-tarea+.rv-tarea{border-top:2px solid var(--border2)}
 .rv-tarea>summary{position:relative;padding:12px 150px 12px 16px;cursor:pointer;font-weight:700;font-size:14.5px;line-height:24px;color:var(--text);list-style:none}
