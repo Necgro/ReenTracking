@@ -49,9 +49,9 @@ module.exports = async function comprobarTx1f(page, assert, opts = {}) {
     const filas = [...document.querySelectorAll("#txCuerpo tr.tx-fila")];
     return { ths, colgroup: !!t.querySelector("colgroup"), n: filas.length, malas: filas.filter(tr => tr.children.length !== 9).length };
   });
-  assert(pref + "T1 -> 9 columnas (D1): Fecha · Categoría · Token · Operación · Cantidad · Importe · Contraparte · Tx · Acciones",
+  assert(pref + "T1 -> 9 columnas (D1): Fecha · Categoría · Inmueble / Token · Operación · Cantidad · Importe · Contraparte · Tx · Acciones",
     JSON.stringify(t1.ths.map(x => x.replace(/\s/g, ""))) ===
-    JSON.stringify(["Fecha", "Categoría", "Token", "Operación", "Cantidad", "Importe(retención)", "Contraparte", "Tx", "Acciones"]), t1.ths);
+    JSON.stringify(["Fecha", "Categoría", "Inmueble/Token", "Operación", "Cantidad", "Importe(retención)", "Contraparte", "Tx", "Acciones"]), t1.ths);
   assert(pref + "T1 -> las " + t1.n + " filas tienen 9 celdas y no hay colgroup", t1.n > 0 && t1.malas === 0 && !t1.colgroup, t1);
 
   /* ============ T2) alineaciones medidas ============ */

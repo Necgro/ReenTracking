@@ -131,7 +131,7 @@ const tabla = (html.match(/<table id="txTabla"[\s\S]*?<\/table>/) || [""])[0];
 const nombreTh = h => h.replace(/<span class="tx-burbuja"[\s\S]*?<\/span>/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 const ths = [...tabla.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/g)].map(m => nombreTh(m[1]));
 assert("9 columnas (TX-1f, D1): fecha, categoría, token, operación, cantidad, importe, contraparte, tx y acciones",
-  JSON.stringify(ths) === JSON.stringify(["Fecha", "Categoría", "Token", "Operación", "Cantidad", "Importe (retención)", "Contraparte", "Tx", "Acciones"]) &&
+  JSON.stringify(ths) === JSON.stringify(["Fecha", "Categoría", "Inmueble / Token", "Operación", "Cantidad", "Importe (retención)", "Contraparte", "Tx", "Acciones"]) &&
   (tabla.match(/<col[ >]/g) || []).length === 0 && tabla.includes('colspan="9"'), ths);
 assert("la cabecera del importe lleva su burbuja corta: la unidad y la retención entre paréntesis",
   /<span class="tx-ayuda" tabindex="0" aria-label="Importe \(retención\): [^"]+">Importe<span class="tx-ret">\(retención\)<\/span><span class="tx-burbuja" aria-hidden="true">/.test(tabla) &&
