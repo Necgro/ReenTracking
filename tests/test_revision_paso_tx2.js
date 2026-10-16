@@ -156,10 +156,8 @@ assert("4.4b (T70): sin plegable de cobros ni marca «🔗 cobro»",
   !html.includes("cc-cobros") && !html.includes("Cobros sin explicar") && !html.includes("cc-cand cobro"));
 
 const htmlVacia = lista(YA.concat([C1]));
-assert("sin nada pendiente (aunque haya depósitos): «✅ Nada que revisar» y ninguna card",
-  htmlVacia.includes("✅ Nada por decidir.") && nCards(htmlVacia) === 0);
-// Con nada por decidir, solo «✅ Nada por decidir.».
-assert("sin nada pendiente: sin «0 movimientos por decidir» repetido", !htmlVacia.includes("movimientos por decidir"));
+// Con nada por decidir, «Por decidir» no sale (P21b): la lista, vacía.
+assert("sin nada pendiente (aunque haya depósitos): lista vacía, ninguna card", htmlVacia === "", htmlVacia);
 
 const vV = cola.filter(r => ccPendienteDeVincular(r, ctx, false));
 assert("por vincular: la salida (y el cobro que además está a revisar)", claves(vV) === "s1,r2", claves(vV));

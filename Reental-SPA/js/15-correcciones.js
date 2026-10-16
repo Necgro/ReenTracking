@@ -1899,26 +1899,28 @@ function ccHtmlTarjeta(reg, opts = {}) {
          top + meta + hash + acciones + ccHtmlDecisiones(reg, opts.decision) + "</div>";
 }
 
-/* Cabecera de la lista: las ventas por vincular y los avisos de contexto
-   (cuántos hay por decidir ya lo dice la fila, P21). Sin nada que decir,
-   no se pinta. */
+/* Cabecera de la lista: las ventas por vincular (cuántos hay por decidir
+   lo dice la fila, P21; los avisos de contexto, ccAvisoContexto). Sin
+   ninguna, no se pinta. */
 function ccHtmlCabecera(registros, ctx) {
   const salidas = registros.filter(r => ccPendienteDeVincular(r, ctx, false) === "salida").length;
-  let html = "";
-  if (salidas) html += "<b>" + numEs(salidas, 0) + "</b> " + (salidas === 1 ? "venta" : "ventas") + " por vincular";
-  if (!ctx.hayCache) {
-    html += '<div class="aviso">⚠ Sin datos: no se marcan ventas por vincular.</div>';
-  } else if (!ctx.hayPropias) {
-    html += '<div class="aviso">⚠ Falta tu wallet (tus datos de 🚀 Puesta en marcha).</div>';
-  }
-  return html ? '<div class="cc-cab">' + html + "</div>" : "";
+  return salidas ? '<div class="cc-cab"><b>' + numEs(salidas, 0) + "</b> " + (salidas === 1 ? "venta" : "ventas") + " por vincular</div>" : "";
+}
+/* Encima de la caja de 🔍, en gris: lo que falta para que la revisión
+   sea completa ("" si nada). Fuera de «Por decidir», que sin nada que
+   decidir no sale (P21b). */
+function ccAvisoContexto(registros, ctx) {
+  if (!registros.length) return "Sin datos todavía: completa 🚀 Puesta en marcha.";
+  if (!ctx.hayCache) return "⚠ Sin datos: no se marcan ventas por vincular.";
+  if (!ctx.hayPropias) return "⚠ Falta tu wallet (tus datos de 🚀 Puesta en marcha).";
+  return "";
 }
 
 /* Lista de lo que necesita una decisión. «visibles» = ccColaRevision
    (sin filtros: son pocos); ventas = vínculos
    guardados (para el nombre de cada vínculo). */
 function ccHtmlLista(registros, visibles, ctx, ventas, dec) {
-  if (!visibles.length) return ccHtmlCabecera(registros, ctx) + '<div class="cc-vacio cc-todo-ok">✅ Nada por decidir.</div>';
+  if (!visibles.length) return ""; // sin nada, «Por decidir» no sale (P21b)
   /* Los tokens con dudas del catálogo, arriba del todo: confirmarlos
      reclasifica muchos de estos movimientos. */
   let html = "";
@@ -2000,35 +2002,37 @@ function renderCorrecciones() {
   const cola = ccColaRevision(registros, ctx);
 
   /* El número de «🔍 Revisión» en el menú (solo si hay algo). */
+  const n = cola.length ? numEs(cola.length, 0) : "";
+  const frase = n && n + (cola.length === 1 ? " movimiento por decidir" : " movimientos por decidir");
   const nav = $("ccNavRevision");
   if (nav) {
-    nav.textContent = cola.length ? numEs(cola.length, 0) : "";
+    nav.textContent = n;
     nav.hidden = !cola.length;
-    nav.title = cola.length ? numEs(cola.length, 0) + (cola.length === 1 ? " movimiento por decidir" : " movimientos por decidir") : "";
+    nav.title = frase;
   }
-  /* Su fila en la lista de tareas (P21): en rojo y abierta si hay algo
-     (también al volver a 🔍: js/13 la pliega al salir); sin movimientos,
-     cerrada (decidido por el usuario) y sin «Al día» en ninguna fila. */
+  /* Su fila en la lista de tareas (P21): solo si hay algo, abierta (también
+     al volver a 🔍: js/13 la pliega al salir), con el aviso de arriba que
+     lleva a ella; sin movimientos, sin «Al día» en ninguna fila. */
   const fila = $("ccPorDecidir");
   if (fila) {
-    $("ccPorDecidirAviso").textContent = cola.length ? numEs(cola.length, 0) + " por decidir" : "";
-    fila.classList.toggle("rv-rojo", !!cola.length);
+    const arriba = $("ccPorDecidirArriba"), contexto = $("ccContexto");
+    contexto.textContent = ccAvisoContexto(registros, ctx);
+    contexto.hidden = !contexto.textContent;
+    $("ccPorDecidirAviso").textContent = n && n + " por decidir";
+    arriba.querySelector("a").textContent = frase;
+    fila.hidden = arriba.hidden = !cola.length;
     fila.closest(".rv-tareas").classList.toggle("rv-sin-datos", !registros.length);
     pnAbrirSiHace("ccPorDecidir", cola.length > 0);
   }
 
-  if (!registros.length) {
-    lista.innerHTML = '<div class="cc-vacio">Sin movimientos todavía: ' + "completa 🚀 Puesta en marcha." + "</div>";
-  } else {
-    if (ccDecisionAbierta && !cola.some(r => r.clave === ccDecisionAbierta.clave)) ccDecisionAbierta = null;
-    lista.innerHTML = ccHtmlLista(registros, cola, ctx, ccVentasGuardadas(), {
-        ajustes: (state.cache && state.cache.ajustes_usuario) || {},
-        tiposBce: (state.cache && state.cache.tipos_bce) || {},
-        cache: state.cache,
-        abierta: ccDecisionAbierta,
-        dudas: ctx.dudas.size,
-      });
-  }
+  if (ccDecisionAbierta && !cola.some(r => r.clave === ccDecisionAbierta.clave)) ccDecisionAbierta = null;
+  lista.innerHTML = ccHtmlLista(registros, cola, ctx, ccVentasGuardadas(), {
+      ajustes: (state.cache && state.cache.ajustes_usuario) || {},
+      tiposBce: (state.cache && state.cache.tipos_bce) || {},
+      cache: state.cache,
+      abierta: ccDecisionAbierta,
+      dudas: ctx.dudas.size,
+    });
   renderCcResueltos();
 }
 
@@ -3059,7 +3063,6 @@ function ccInyectarEstilos() {
     "#ccLista .cc-cab .aviso{color:var(--warn);font-weight:600}",
     "#ccLista .cc-cab a{color:var(--accent);font-weight:600;text-decoration:none}",
     "#ccLista .cc-cab a:hover{text-decoration:underline}",
-    "#ccLista .cc-todo-ok{color:var(--ok);font-size:14px;font-weight:600}",
     "#ccLista .cc-dudas{color:var(--warn);font-weight:600;background:var(--warn-bg);border-color:var(--warn-bd)}",
     /* Hash como enlace, igual en toda la app. */
     ".cc-hash-enlace{color:var(--accent);font-size:13.5px;text-decoration:none;white-space:nowrap}",
@@ -3262,12 +3265,14 @@ function ccMontarEventos() {
   }
 }
 
-/* Baja a un bloque de 🔍 y lo abre: el aviso de tokens con dudas
-   ([data-ir]) y «Ir al catálogo» de 🚀. */
+/* Baja a un bloque de 🔍 y lo abre: los avisos con [data-ir] (tokens con
+   dudas y «Todavía hay N por decidir») y «Ir al catálogo» de 🚀. */
 function ccIrABloque(id) {
   const el = $(id);
   if (!el) return;
   if (el.tagName === "DETAILS") el.open = true;
+  // El foco va con él: con el teclado, Tab sigue desde el bloque.
+  (el.querySelector(":scope>summary") || el).focus({ preventScroll: true });
   el.scrollIntoView();
 }
 function ccPulsarIrA(e) {

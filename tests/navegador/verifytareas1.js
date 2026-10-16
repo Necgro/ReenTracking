@@ -1,13 +1,13 @@
-/* Arnés de 🔍 Revisión como lista de tareas (P21; antes, el índice fijo de
- * P1). Una caja con una fila por bloque, en el orden en que conviene
- * resolver (① inmuebles, ② direcciones, ③ por decidir, ④ coste, RNT y POL),
- * cada una con su estado a la derecha: «Al día» en verde, el aviso en ámbar
- * y «N por decidir» en rojo (fila abierta). Cerrada, la caja es estrecha;
- * con una fila abierta, ancha. «Ya decididos» y «Ajustes en JSON», enlaces
- * debajo. El aviso de tokens con dudas va arriba del todo de «Por decidir».
- * Al salir de 🔍 (y al recargar) todo queda plegado; al volver solo se
- * reabre «Por decidir» (A1 de la auditoría: el catálogo, no). Sin datos,
- * «Por decidir» cerrada (decidido por el usuario).
+/* Arnés de 🔍 Revisión como lista de tareas (P21 y P21b; antes, el índice
+ * fijo de P1). Una caja con una fila por bloque, en el orden en que
+ * conviene resolver (inmuebles, direcciones, por decidir, coste, RNT y
+ * POL), sin números, cada una con su estado a la derecha: «Al día» en
+ * verde y el aviso en ámbar. «Por decidir» solo sale si hay algo: en rojo,
+ * abierta y con un aviso encima de la caja que lleva a ella. Cerrada, la
+ * caja es estrecha; con una fila abierta, ancha. «Ya decididos» y «Ajustes
+ * en JSON», enlaces debajo. El aviso de tokens con dudas va arriba del
+ * todo de «Por decidir». Al salir de 🔍 (y al recargar) todo queda
+ * plegado; al volver solo se reabre «Por decidir» (el catálogo, no).
  *
  * Sin datos (relleno solo en pantalla). Ejecución (servidor en 8765 y
  * NODE_PATH a puppeteer-core):  node tests/navegador/verifytareas1.js
@@ -39,20 +39,27 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   const filas = () => page.evaluate(() => [...document.querySelectorAll(".rv-tareas>details")].map(d => {
     const a = d.querySelector(":scope>summary>.rv-aviso");
     const visto = a && getComputedStyle(a).display !== "none";
-    return { id: d.id, num: (d.querySelector(".rv-num") || {}).dataset.n,
-      estado: !visto ? "" : a.textContent || getComputedStyle(a, "::before").content.replace(/"/g, ""),
-      rojo: d.classList.contains("rv-rojo"), abierta: d.open };
+    return { id: d.id, oculta: getComputedStyle(d).display === "none", estado: !visto ? "" : a.textContent || getComputedStyle(a, "::before").content.replace(/"/g, ""),
+      abierta: d.open };
   }));
+  /* El aviso de encima de la caja: su texto si se ve. */
+  const visto = id => page.evaluate(id => { const e = document.getElementById(id); return getComputedStyle(e).display === "none" ? "" : e.textContent; }, id);
+  const arriba = () => visto("ccPorDecidirArriba");
 
   const f0 = await filas();
-  assert("6 filas en orden: inmuebles, direcciones, por decidir, coste, RNT y POL (① a ④; RNT y POL sin número)",
-    f0.map(f => f.id).join() === "rvCatalogo,rvContratos,ccPorDecidir,cbCoste,rvPreciosRnt,rvPreciosPol" &&
-    f0.map(f => f.num).join() === "1,2,3,4,,", f0);
-  assert("sin movimientos: ninguna fila dice «Al día» ni va en rojo", f0.every(f => f.estado === "" && !f.rojo), f0);
-  const pista = await page.evaluate(() => ({ abierta: document.getElementById("ccPorDecidir").open,
-    html: document.getElementById("ccLista").textContent }));
-  assert("sin movimientos, «Por decidir» cerrada (decidido por el usuario), con «completa 🚀 Puesta en marcha» dentro",
-    !pista.abierta && /completa 🚀 Puesta en marcha/.test(pista.html), pista);
+  assert("6 filas en orden: inmuebles, direcciones, por decidir, coste, RNT y POL, sin números",
+    f0.map(f => f.id).join() === "rvCatalogo,rvContratos,ccPorDecidir,cbCoste,rvPreciosRnt,rvPreciosPol", f0);
+  assert("sin movimientos: ninguna fila dice «Al día»; «Por decidir» y su aviso no salen",
+    f0.every(f => f.estado === "") && f0.find(f => f.id === "ccPorDecidir").oculta && (await arriba()) === "", f0);
+  assert("sin datos: encima de la caja, en gris, «completa 🚀 Puesta en marcha»",
+    (await visto("ccContexto")) === "Sin datos todavía: completa 🚀 Puesta en marcha.", await visto("ccContexto"));
+  const forma = await page.evaluate(() => {
+    const caja = document.querySelector(".rv-tareas"), cs = getComputedStyle(caja);
+    const v = n => { const e = document.createElement("i"); e.style.color = "var(" + n + ")"; document.body.appendChild(e); const r = getComputedStyle(e).color; e.remove(); return r; };
+    return { centrada: cs.marginLeft === cs.marginRight && parseFloat(cs.marginLeft) > 50,
+      raya: getComputedStyle(document.getElementById("rvContratos")).borderTopColor === v("--border2") };
+  });
+  assert("la caja centrada y las rayas entre filas en --border2", forma.centrada && forma.raya, forma);
   const margenes = await page.evaluate(() => [...document.querySelectorAll(".rv-tarea")].map(d => getComputedStyle(d).marginTop));
   assert("A3: las filas sin margen de más arriba", margenes.every(m => m === "0px"), margenes);
   const enlaces = await page.evaluate(() => [...document.querySelectorAll(".rv-enlaces>details")].map(d => d.id).join());
@@ -79,7 +86,38 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   await sembrar(2, true);
   const f1 = await filas();
   const por = f1.find(f => f.id === "ccPorDecidir");
-  assert("«Por decidir»: «1 por decidir», en rojo y abierta", por.estado === "1 por decidir" && por.rojo && por.abierta, por);
+  assert("«Por decidir»: sale, «1 por decidir» y abierta", !por.oculta && por.estado === "1 por decidir" && por.abierta, por);
+  assert("encima de la caja: «⚠ Todavía hay 1 movimiento por decidir.»", (await arriba()) === "⚠ Todavía hay 1 movimiento por decidir.", await arriba());
+  assert("con datos y tu wallet, sin la línea gris de encima", (await visto("ccContexto")) === "");
+  const rojos = await page.evaluate(() => {
+    const v = n => { const e = document.createElement("i"); e.style.color = "var(" + n + ")"; document.body.appendChild(e); const r = getComputedStyle(e).color; e.remove(); return r; };
+    const fondo = id => getComputedStyle(document.getElementById(id)).backgroundColor;
+    return { fila: fondo("ccPorDecidir") === v("--err-bg"), arriba: fondo("ccPorDecidirArriba") === v("--err-bg") };
+  });
+  assert("la fila y el aviso de arriba, con fondo rojo", rojos.fila && rojos.arriba, rojos);
+  const plural = await page.evaluate(() => {
+    const r0 = state.registros.find(r => r.revisar);
+    state.registros.push(Object.assign({}, r0, { clave: r0.clave + "b" }), Object.assign({}, r0, { clave: r0.clave + "c" }));
+    renderCorrecciones();
+    const t = document.getElementById("ccPorDecidirArriba").textContent;
+    state.registros = state.registros.filter(r => !/[bc]$/.test(r.clave));
+    renderCorrecciones();
+    return t;
+  });
+  assert("con 3: «⚠ Todavía hay 3 movimientos por decidir.»", plural === "⚠ Todavía hay 3 movimientos por decidir.", plural);
+  /* Sin wallet, la línea gris lo dice (la fila no sale: nada por vincular). */
+  const sinWallet = await page.evaluate(() => {
+    const antes = state.config;
+    state.config = Object.assign({}, antes, { wallet: "" });
+    const regs = state.registros;
+    state.registros = regs.filter(r => !r.revisar);
+    renderCorrecciones();
+    const t = getComputedStyle(document.getElementById("ccContexto")).display === "none" ? "" : document.getElementById("ccContexto").textContent;
+    state.config = antes; state.registros = regs;
+    renderCorrecciones();
+    return t;
+  });
+  assert("sin wallet: «⚠ Falta tu wallet…» encima de la caja", sinWallet === "⚠ Falta tu wallet (tus datos de 🚀 Puesta en marcha).", sinWallet);
   assert("el número del menú es el mismo", await page.evaluate(() => document.getElementById("ccNavRevision").textContent) === "1");
   assert("inmuebles: el aviso en ámbar; direcciones, RNT y POL: «Al día»; coste: «⚠ 1 sin coste»",
     f1[0].estado === "⚠ 2 con dudas" && ["rvContratos", "rvPreciosRnt", "rvPreciosPol"].every(id => f1.find(f => f.id === id).estado === "Al día") &&
@@ -108,25 +146,51 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   });
   assert("su enlace abre el catálogo sin cambiar de pestaña", aviso.abierto && aviso.hash === "#revision", aviso);
 
-  /* Ancho: estrecha cerrada, ancha con una fila abierta. */
+  /* Ancho: estrecha cerrada, ancha con una fila abierta; el aviso de
+     arriba, siempre como la caja cerrada. */
   const ancho = await page.evaluate(() => {
-    const caja = document.querySelector(".rv-tareas");
+    const caja = document.querySelector(".rv-tareas"), avisoArriba = document.getElementById("ccPorDecidirArriba");
     document.querySelectorAll(".rv-tareas>details").forEach(d => { d.open = false; });
-    const cerrada = caja.offsetWidth;
+    const cerrada = caja.offsetWidth, arribaCerrada = avisoArriba.offsetWidth;
     document.getElementById("rvPreciosPol").open = true;
-    const abierta = caja.offsetWidth;
+    const abierta = caja.offsetWidth, arribaAbierta = avisoArriba.offsetWidth;
     document.getElementById("rvPreciosPol").open = false;
-    return { cerrada, abierta };
+    return { cerrada, abierta, arribaCerrada, arribaAbierta };
   });
-  assert("cerrada, ≤ 780 px; con una fila abierta, todo el ancho", ancho.cerrada <= 780 && ancho.abierta > 900, ancho);
+  assert("cerrada, ≤ 780 px; con una fila abierta, todo el ancho; el aviso de arriba, como la caja cerrada",
+    ancho.cerrada <= 780 && ancho.abierta > 900 && ancho.arribaCerrada === ancho.cerrada && ancho.arribaAbierta === ancho.cerrada, ancho);
 
-  /* Si lo cierras no se vuelve a abrir solo; sin nada por decidir, «Al día» y sin rojo. */
+  /* El aviso de arriba lleva a «Por decidir» y la abre, aunque otra fila
+     abierta la deje fuera de la vista. */
+  const salto = await page.evaluate(async () => {
+    const $ = id => document.getElementById(id);
+    $("rvCatalogo").open = true;
+    $("tablaCatalogo").insertAdjacentHTML("beforeend", '<tr id="relleno"><td style="height:2000px"></td></tr>');
+    window.scrollTo({ top: 0, behavior: "instant" });
+    $("ccPorDecidir").open = false;
+    const antes = $("ccPorDecidir").getBoundingClientRect().top > innerHeight;
+    $("ccPorDecidirArriba").querySelector("a").click();
+    await new Promise(r => setTimeout(r, 900));
+    const top = $("ccPorDecidir").getBoundingClientRect().top;
+    const foco = document.activeElement === $("ccPorDecidir").querySelector("summary");
+    $("relleno").remove();
+    const abierta = $("ccPorDecidir").open;
+    $("ccPorDecidir").open = $("rvCatalogo").open = false;
+    return { antes, abierta, foco, aLaVista: top >= 0 && top < innerHeight / 2, hash: location.hash };
+  });
+  assert("el aviso de arriba baja a «Por decidir» (fuera de la vista bajo el catálogo abierto), la abre y le pasa el foco",
+    salto.antes && salto.abierta && salto.foco && salto.aLaVista && salto.hash === "#revision", salto);
+
+  /* Si lo cierras no se vuelve a abrir solo; sin nada por decidir, ni la fila ni su aviso. */
   await sembrar(0, true);
   assert("cerrada a mano, no se abre sola al repintar", !(await filas()).find(f => f.id === "ccPorDecidir").abierta);
+  await page.evaluate(() => { document.getElementById("ccPorDecidir").open = true; });
   await sembrar(0, false);
   const f2 = (await filas()).find(f => f.id === "ccPorDecidir");
   const cab = await page.evaluate(() => [...document.querySelectorAll("#ccLista .cc-cab")].map(e => e.textContent));
-  assert("sin nada por decidir: «Al día», sin rojo, y sin una cabecera vacía", f2.estado === "Al día" && !f2.rojo && cab.length === 0, { f2, cab });
+  const anchoLimpio = await page.evaluate(() => document.querySelector(".rv-tareas").offsetWidth);
+  assert("sin nada por decidir: ni «Por decidir» ni su aviso, sin una cabecera vacía, y la caja estrecha aunque la fila quedara abierta",
+    f2.oculta && (await arriba()) === "" && cab.length === 0 && anchoLimpio <= 780, { f2, cab, anchoLimpio });
   await sembrar(0, true);
   assert("al volver a haber algo, se abre otra vez", (await filas()).find(f => f.id === "ccPorDecidir").abierta);
 

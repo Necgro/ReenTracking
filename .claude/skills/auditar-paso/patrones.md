@@ -163,8 +163,10 @@ como antes? Hacer → editar → ¿se conservan los campos que no se editaron?
 - Borrar una marca compartida («ya se abrió solo») para que un plegable se
   reabra reabre también los demás que la usan, y más tarde, en el
   siguiente repintado (a mitad de una decisión). Borrarla solo en el que
-  toca. Y una pista de qué hacer sin datos dentro de un plegable cerrado
-  no la ve nadie.
+  toca. Y una pista de qué hacer sin datos (o un aviso de que falta la
+  wallet) dentro de un plegable cerrado u oculto no la ve nadie.
+- Un enlace que lleva a un bloque lejano (scroll y abrir) sin llevar el
+  foco: con el teclado, Tab vuelve a donde estaba.
 
 **Mirar:** ¿qué pasa si se repinta, se reclasifica o se cambia de pestaña a
 mitad de la acción? ¿Y si se pulsa dos veces? ¿Y en el papel?
@@ -383,6 +385,8 @@ textos que el usuario o un ajuste pueden cambiar.
 
 ## 11. Tests demasiado optimistas
 
+- El test lee el texto (`textContent`) o el atributo `hidden` de algo que
+  ya no se ve: pasa aunque nadie lo vea. Mirar `display` o lo visible.
 - El test solo prueba el caso normal o los datos reales de hoy.
 - El test comprueba que no da error, pero no el resultado.
 - El test reproduce la misma lógica que el código (si el código está mal,

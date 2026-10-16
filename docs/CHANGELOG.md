@@ -4,12 +4,14 @@ Lo más reciente, arriba. Una fila por versión o paso.
 
 ## 🔍 Revisión como lista de tareas (16/10/2026)
 
-- **🔍 Revisión:** una sola caja con una fila por bloque, en el orden en que
-  conviene resolver (① Inmuebles, ② Direcciones, ③ Por decidir, ④ Coste,
-  RNT y POL), y su estado a la derecha: «Al día» en verde, los avisos en
-  ámbar y «N por decidir» en rojo, con la fila abierta. Cerrada es
-  estrecha; al abrir una fila, ancha. «Ya decididos» y «Ajustes en JSON»,
-  como enlaces debajo. Sin la fila de botones fija de arriba.
+- **🔍 Revisión:** una sola caja centrada con una fila por bloque, en el
+  orden en que conviene resolver (Inmuebles, Direcciones, Por decidir,
+  Coste, RNT y POL), y su estado a la derecha: «Al día» en verde y los
+  avisos en ámbar. «Por decidir» solo sale si hay algo: en rojo y abierta,
+  con «⚠ Todavía hay N movimientos por decidir» encima de la caja, que
+  lleva a ella. Cerrada, la caja es estrecha; al abrir una fila, ancha.
+  «Ya decididos» y «Ajustes en JSON», como enlaces debajo. Sin la fila de
+  botones fija de arriba.
 - **Cálculo:** no cambia.
 
 ## Rentabilidad media en 📊 (16/10/2026)

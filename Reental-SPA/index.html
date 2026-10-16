@@ -354,28 +354,29 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 .rv-tabla.rv-estrecha{width:auto;min-width:420px;margin:0 auto}
 .rv-tabla.rv-estrecha td,.rv-tabla.rv-estrecha th{padding-left:18px;padding-right:18px}
 /* 🔍 como lista de tareas (P21): una caja, una fila por bloque. */
-.rv-tareas{max-width:780px;margin-top:16px;border:1px solid var(--btn-bd);border-radius:12px;background:var(--tarjeta);box-shadow:var(--tarj-sombra);overflow:hidden}
-.rv-tareas:has(>details[open]){max-width:none}
+.rv-tareas,.rv-arriba,.rv-pista{max-width:780px;margin:16px auto 0}
+.rv-pista{color:var(--muted);font-size:14px}
+.rv-tareas{border:1px solid var(--btn-bd);border-radius:12px;background:var(--tarjeta);box-shadow:var(--tarj-sombra);overflow:hidden}
+.rv-tareas:has(>details[open]:not([hidden])){max-width:none}
 .rv-tarea{margin:0}
-.rv-tarea+.rv-tarea{border-top:1px solid var(--border)}
+.rv-tarea+.rv-tarea{border-top:1px solid var(--border2)}
 .rv-tarea>summary{position:relative;padding:12px 150px 12px 16px;cursor:pointer;font-weight:700;font-size:14.5px;line-height:24px;color:var(--text);list-style:none}
 .rv-tarea>summary::after{content:"▸";position:absolute;right:16px;top:12px;color:var(--muted);font-size:12px}
 .rv-tarea[open]>summary::after{content:"▾"}
 .rv-tarea[open]{padding-bottom:14px}
 .rv-tarea>:not(summary){margin-left:16px;margin-right:16px}
-.rv-num{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin:-2px 10px 0 0;width:22px;height:22px;border:1px solid var(--border2);border-radius:50%;font-size:12px;font-weight:600;color:var(--muted)}
-.rv-num::before{content:attr(data-n)}
-.rv-num[data-n=""]{visibility:hidden}
 /* El estado, a la derecha: ámbar si pide algo; vacío, «Al día» en verde. */
 .rv-tarea .rv-aviso{position:absolute;right:36px;top:50%;transform:translateY(-50%);margin:0;line-height:normal;padding:2px 10px;border:1px solid var(--warn-bd);border-radius:999px;background:var(--warn-bg);font-size:13px;white-space:nowrap}
 .rv-tarea .rv-aviso:empty{display:block;background:var(--ok-bg);border-color:var(--ok-bd);color:var(--ok)}
 .rv-tarea .rv-aviso:empty::before{content:"Al día"}
 .rv-tareas.rv-sin-datos .rv-aviso:empty{display:none}
-/* «Por decidir» con algo: en rojo, para que no se escape. */
-.rv-tarea.rv-rojo{background:var(--err-bg);box-shadow:inset 4px 0 0 var(--err)}
-.rv-rojo .rv-num{border-color:var(--err);color:var(--err)}
-.rv-rojo .rv-aviso{background:var(--err);border-color:var(--err);color:var(--panel)}
-.rv-enlaces{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:12px}
+/* «Por decidir» (solo sale con algo): en rojo, para que no se escape; y
+   el aviso de arriba, por si otra fila abierta la deja fuera de la vista. */
+#ccPorDecidir{background:var(--err-bg);box-shadow:inset 4px 0 0 var(--err)}
+#ccPorDecidir .rv-aviso{background:var(--err);border-color:var(--err);color:var(--panel)}
+.rv-arriba{padding:10px 16px;border-radius:10px;background:var(--err-bg);border:1px solid var(--err-bd);color:var(--err);font-weight:700;font-size:14.5px}
+.rv-arriba a{color:inherit}
+.rv-enlaces{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 22px;margin-top:12px}
 .rv-enlaces>details{margin:0}
 .rv-enlaces>details[open]{flex-basis:100%}
 .rv-enlaces>details>summary{display:inline-block;font-weight:400;font-size:14px;color:var(--muted);border-bottom:1px dashed var(--border2);list-style:none;cursor:pointer}
@@ -508,17 +509,20 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
          que conviene resolver, con su estado a la derecha (.rv-aviso; vacío,
          «Al día»). Cerrada es estrecha; con una fila abierta, la caja toma
          el ancho entero (las tablas lo necesitan). js/11 abre el catálogo y
-         los precios si piden atención; js/15, «Por decidir». -->
+         los precios si piden atención; js/15 enseña «Por decidir» (y el
+         aviso de arriba) solo si hay algo, en rojo y abierta. -->
+    <p id="ccContexto" class="rv-pista" hidden></p>
+    <p id="ccPorDecidirArriba" class="rv-arriba" hidden>⚠ Todavía hay <a href="#revision" data-ir="ccPorDecidir"></a>.</p>
     <div class="rv-tareas">
     <details id="rvCatalogo" class="rv-tarea">
-      <summary><span class="rv-num" data-n="1"></span>🏠 Catálogo de inmuebles (<span id="nCatalogo">0</span>)<span id="rvCatalogoAviso" class="rv-aviso"></span></summary>
+      <summary>🏠 Catálogo de inmuebles (<span id="nCatalogo">0</span>)<span id="rvCatalogoAviso" class="rv-aviso"></span></summary>
       <p class="help rv-explica">Los tokens que la app cuenta como inmuebles.</p>
       <!-- Apagado, solo los que tienes (js/11, pnVerTodos) -->
       <label id="rvCatalogoTodosCaja" class="rv-interruptor" hidden><input type="checkbox" role="switch" id="rvCatalogoTodos"><span class="rv-interruptor-pista" aria-hidden="true"></span><span>Ver todos (<span id="rvCatalogoTodosN">0</span>)</span></label>
       <div class="rv-caja"><table class="rv-tabla rv-titulos-centro"><thead><tr><th>Inmueble</th><th>Token</th><th>1ª aparición</th><th>Contrato</th><th>Estado</th><th></th></tr></thead><tbody id="tablaCatalogo"></tbody></table></div>
     </details>
     <details id="rvContratos" class="rv-tarea">
-      <summary><span class="rv-num" data-n="2"></span>🧭 Direcciones que la app reconoce (<span id="nContratosDefi">0</span>)<span class="rv-aviso"><!-- sin pendientes que contar: siempre «Al día» --></span></summary>
+      <summary>🧭 Direcciones que la app reconoce (<span id="nContratosDefi">0</span>)<span class="rv-aviso"><!-- sin pendientes que contar: siempre «Al día» --></span></summary>
       <p class="help rv-explica">Pools, staking y otros contratos.</p>
       <div class="rv-caja"><table class="rv-tabla"><thead><tr><th>Nombre</th><th>Tipo</th><th>Contrato</th><th></th></tr></thead><tbody id="tablaContratos"></tbody></table></div>
       <details id="rvSemillasQuitadas" class="rv-sub" hidden>
@@ -538,21 +542,19 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
          caso se puede reeditar/deshacer (vuelve a la cola y reclasifica).
          Editor de coste de adquisicion plegable, cerrado por defecto (por
          compra). -->
-    <details id="ccPorDecidir" class="rv-tarea">
-      <summary><span class="rv-num" data-n="3"></span>Por decidir<span id="ccPorDecidirAviso" class="rv-aviso"></span></summary>
-      <div id="ccLista" class="cc-lista" aria-live="polite">
-        <div class="cc-vacio">Sin movimientos todavía: completa 🚀 Puesta en marcha.</div>
-      </div>
+    <details id="ccPorDecidir" class="rv-tarea" hidden>
+      <summary>Por decidir<span id="ccPorDecidirAviso" class="rv-aviso"></span></summary>
+      <div id="ccLista" class="cc-lista" aria-live="polite"></div>
     </details>
     <!-- Coste de las compras por transferencia bancaria, por compra
          (js/20-coste-compras.js). -->
     <details id="cbCoste" class="rv-tarea">
-      <summary><span class="rv-num" data-n="4"></span>💶 Coste de las compras por transferencia bancaria (<span id="cbCount">0</span>)<span id="cbCosteAviso" class="rv-aviso"></span></summary>
+      <summary>💶 Coste de las compras por transferencia bancaria (<span id="cbCount">0</span>)<span id="cbCosteAviso" class="rv-aviso"></span></summary>
       <p class="help rv-explica">Coste de tokens pagado por transferencia (€ o $), la compra no se registra en la blockchain. Por defecto 1 token: 100 €.</p>
       <div id="cbCuerpo"><p class="help">Sin compras por transferencia bancaria.</p></div>
     </details>
     <details id="rvPreciosRnt" class="rv-tarea">
-      <summary><span class="rv-num" data-n=""></span>🪙 Precios de RNT (USD) (<span id="nPreciosRnt">0</span>)<span id="rvPreciosRntAviso" class="rv-aviso"></span></summary>
+      <summary>🪙 Precios de RNT (USD) (<span id="nPreciosRnt">0</span>)<span id="rvPreciosRntAviso" class="rv-aviso"></span></summary>
       <p class="help rv-explica">Sirven para pasar a euros lo que recibes en RNT.</p>
       <!-- Sin formulario libre de fecha y
            precio (invitaba al error). Solo las fechas que la app necesita, cada
@@ -566,7 +568,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
       <div class="rv-caja"><table class="rv-tabla rv-estrecha"><thead><tr><th>Fecha</th><th class="num">Precio USD</th><th></th></tr></thead><tbody id="tablaPreciosRnt"></tbody></table></div>
     </details>
     <details id="rvPreciosPol" class="rv-tarea">
-      <summary><span class="rv-num" data-n=""></span>⛽ Precios de POL (USD) (<span id="nPreciosPol">0</span>)<span id="rvPreciosPolAviso" class="rv-aviso"></span></summary>
+      <summary>⛽ Precios de POL (USD) (<span id="nPreciosPol">0</span>)<span id="rvPreciosPolAviso" class="rv-aviso"></span></summary>
       <p class="help rv-explica">Sirven para pasar a euros el POL que entra o sale de tu wallet.</p>
       <!-- Como los de RNT, sin formulario
            libre. Solo las fechas que el motor necesita (POL que entra sin coste

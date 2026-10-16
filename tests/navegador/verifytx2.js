@@ -114,6 +114,7 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
       marcaCobro: !!lista.querySelector(".cc-cand.cobro"),
       cab: (lista.querySelector(".cc-cab") || {}).textContent || "",
       porDecidir: document.getElementById("ccPorDecidirAviso").textContent,
+      filaOculta: getComputedStyle(document.getElementById("ccPorDecidir")).display === "none",
       enlace: !!lista.querySelector('.cc-cab a[href="#transacciones"]'),
       ok: (lista.querySelector(".cc-todo-ok") || {}).textContent || "",
       chip: (document.getElementById("ccPendientes") || { textContent: "(quitado)" }).textContent,
@@ -266,8 +267,8 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   await esperar(250);
   f = await foto();
 // Sin contador ni enlace a Transacciones en la cabecera.
-  assert("con todo ya clasificado: «✅ Nada por decidir.», 0 cards y sin «0 movimientos por decidir»",
-    f.domTodas.length === 0 && f.ok.includes("Nada por decidir") && !f.cab.includes("por decidir") && f.porDecidir === "" &&
+  assert("con todo ya clasificado: 0 cards y «Por decidir» no sale (P21b)",
+    f.domTodas.length === 0 && f.filaOculta && f.porDecidir === "" &&
     f.chip === "(quitado)", f);
   await page.screenshot({ path: path.join(OUT, "cap_tx2_nada.png") });
   await page.evaluate(() => { state.registros = window.__regs; renderCorrecciones(); });
