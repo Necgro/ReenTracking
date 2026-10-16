@@ -117,6 +117,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
    ============================================================ */
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
+  /* Duraciones de los fundidos (pestañas) y de las filas de 🔍 (decididas por el usuario). */
+  --dur-vista:.4s; --dur-fila:.6s;
   --bg:#f2f5f2; --panel:#ffffff; --panel2:#f7faf7; --tarjeta:#ffffff;
   --text:#182420; --muted:#54635a; --faint:#647268;
   --border:#dde5de; --border2:#c3cfc5;
@@ -234,7 +236,7 @@ main{flex:1;min-width:0;display:flex;flex-direction:column}
 
 /* ---------- componentes ---------- */
 .view{display:none}
-.view.active{display:block;animation:fade .4s ease}
+.view.active{display:block;animation:fade var(--dur-vista) ease}
 /* 📒 (cientos o miles de filas) no se quita del todo al salir: el
    navegador guarda la tabla dibujada y al volver no la rehace. */
 #view-transacciones.view:not(.active){display:block;content-visibility:hidden}
@@ -242,8 +244,8 @@ main{flex:1;min-width:0;display:flex;flex-direction:column}
 .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:18px;box-shadow:var(--shadow)}
 .card h2{font-size:17px;font-weight:800;letter-spacing:-.01em;margin-bottom:4px}
 /* El título de cada pestaña, más visible. */
-.view>.card:first-of-type>h2:first-child,.view>.card:first-of-type>.arr-cabecera:first-child>h2{font-size:28px;letter-spacing:-.02em;margin-bottom:20px}
-.view>.card:first-of-type>.arr-cabecera:first-child{margin-bottom:20px}
+.view>.card:first-of-type>h2:first-child,.view>.card:first-of-type>.arr-cabecera:first-child>h2{font-size:28px;letter-spacing:-.02em}
+.view>.card:first-of-type>:is(h2,.arr-cabecera):first-child{margin-bottom:20px}
 .view>.card:first-of-type>.arr-cabecera:first-child>h2{margin-bottom:0}
 @media(max-width:760px){.view>.card:first-of-type>h2:first-child,.view>.card:first-of-type>.arr-cabecera:first-child>h2{font-size:21px}}
 .card .sub{font-size:13px;color:var(--muted);margin-bottom:14px}
@@ -339,8 +341,6 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 .cc-lista-resueltos{margin-top:10px;display:flex;flex-direction:column;gap:8px}
 /* ---------- 🔍 Revisión: las tablas como 📒 Transacciones, sin
    cuadrícula, una raya fina entre filas. ---------- */
-.rv-aviso{margin-left:8px;color:var(--warn);font-weight:700}
-.rv-aviso:empty{display:none}
 /* Interruptor (un checkbox con role="switch"): la pista con su bolita. */
 .rv-interruptor{display:inline-flex;align-items:center;gap:8px;margin:0 0 0 16px;font-size:13.5px;color:var(--text);cursor:pointer;vertical-align:middle}
 .rv-interruptor[hidden]{display:none}
@@ -359,15 +359,14 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 /* 🔍 como lista de tareas (P21): una caja, una fila por bloque. */
 .rv-tareas,.rv-arriba,.rv-pista{max-width:780px;margin:16px auto 0}
 .rv-pista{color:var(--muted);font-size:14px}
-.rv-tareas{border:1px solid var(--btn-bd);border-radius:12px;background:var(--tarjeta);box-shadow:var(--tarj-sombra);overflow:hidden}
-.rv-tareas:has(>details[open]:not([hidden])){max-width:100%}
 /* Sin golpes (pedido por el usuario): la caja se ensancha poco a poco y
    cada fila se despliega (alto de 0 a lo suyo) mientras lo de dentro entra
    fundido. Donde el navegador no sabe animar el alto, solo el fundido. */
-.rv-tareas{transition:max-width .6s ease}
+.rv-tareas{border:1px solid var(--btn-bd);border-radius:12px;background:var(--tarjeta);box-shadow:var(--tarj-sombra);overflow:hidden;transition:max-width var(--dur-fila) ease}
+.rv-tareas:has(>details[open]:not([hidden])){max-width:100%}
 .rv-tareas,.rv-enlaces{interpolate-size:allow-keywords}
-.rv-tarea::details-content,.rv-enlaces>details::details-content{height:0;overflow:clip;transition:height .6s ease,content-visibility .6s allow-discrete}
-.rv-tarea[open]::details-content,.rv-enlaces>details[open]::details-content{height:auto;animation:fade .6s ease}
+.rv-tarea::details-content,.rv-enlaces>details::details-content{height:0;overflow:clip;transition:height var(--dur-fila) ease,content-visibility var(--dur-fila) allow-discrete}
+.rv-tarea[open]::details-content,.rv-enlaces>details[open]::details-content{height:auto;animation:fade var(--dur-fila) ease}
 .rv-tarea{margin:0}
 .rv-tarea+.rv-tarea{border-top:2px solid var(--border2)}
 .rv-tarea>summary{position:relative;padding:12px 150px 12px 16px;cursor:pointer;font-weight:700;font-size:14.5px;line-height:24px;color:var(--text);list-style:none}
@@ -376,9 +375,9 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 .rv-tarea[open]{padding-bottom:14px}
 .rv-tarea>:not(summary){margin-left:16px;margin-right:16px}
 /* El estado, a la derecha: ámbar si pide algo; vacío, «Al día» en verde. */
-.rv-tarea .rv-aviso{position:absolute;right:36px;top:50%;transform:translateY(-50%);margin:0;line-height:normal;padding:2px 10px;border:1px solid var(--warn-bd);border-radius:999px;background:var(--warn-bg);font-size:13px;white-space:nowrap}
-.rv-tarea .rv-aviso:empty{display:block;background:var(--ok-bg);border-color:var(--ok-bd);color:var(--ok)}
-.rv-tarea .rv-aviso:empty::before{content:"Al día"}
+.rv-aviso{position:absolute;right:36px;top:50%;transform:translateY(-50%);line-height:normal;padding:2px 10px;border:1px solid var(--warn-bd);border-radius:999px;background:var(--warn-bg);color:var(--warn);font-weight:700;font-size:13px;white-space:nowrap}
+.rv-aviso:empty{background:var(--ok-bg);border-color:var(--ok-bd);color:var(--ok)}
+.rv-aviso:empty::before{content:"Al día"}
 .rv-tareas.rv-sin-datos .rv-aviso:empty{display:none}
 /* «Por decidir» (solo sale con algo): en rojo, para que no se escape; y
    el aviso de arriba, por si otra fila abierta la deja fuera de la vista. */
@@ -437,9 +436,9 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
   /* Lo más leve se queda: al cambiar de pestaña (0,4 s) aparece fundido,
      sin desplazar nada (si no, sale de golpe). Las filas de 🔍 se despliegan
      igual (0,6 s; el usuario lo pidió con este ajuste puesto). */
-  .rv-tareas{transition:max-width .6s ease!important}
-  .view.active{animation:fundido .4s ease!important}
-  .rv-tarea[open]::details-content,.rv-enlaces>details[open]::details-content{animation:fundido .6s ease!important}
+  .rv-tareas{transition:max-width var(--dur-fila) ease!important}
+  .view.active{animation:fundido var(--dur-vista) ease!important}
+  .rv-tarea[open]::details-content,.rv-enlaces>details[open]::details-content{animation:fundido var(--dur-fila) ease!important}
   @keyframes fundido{from{opacity:0}to{opacity:1}}
   html{scroll-behavior:auto}
 }
@@ -552,7 +551,7 @@ html.sin-animaciones.sin-animaciones *,html.sin-animaciones.sin-animaciones *::b
       <div class="row mt rv-form">
         <div class="rv-form-dir"><label for="inpContratoDir">Dirección</label><input id="inpContratoDir" class="mono" placeholder="0x…" autocomplete="off"></div>
         <div><label for="inpContratoNombre">Nombre</label><input id="inpContratoNombre" autocomplete="off"></div>
-        <div><label for="selContratoTipo">Tipo <span class="cc-info" tabindex="0" aria-label="Información: Pool, Staking y Farming: meter o sacar es movimiento neutro. Recompensas: lo que te paga es recompensa DeFi. Las de Reental salen de su archivo. Tus otras wallets no hace falta añadirlas: el dinero que llega de ellas entra como «Ingreso de dinero».">ⓘ<span class="cc-burbuja" role="tooltip">Pool, Staking y Farming: meter o sacar es movimiento neutro. Recompensas: lo que te paga es recompensa DeFi. Las de Reental salen de su archivo. Tus otras wallets no hace falta añadirlas: el dinero que llega de ellas entra como «Ingreso de dinero».</span></span></label><select id="selContratoTipo"></select></div>
+        <div><label for="selContratoTipo">Tipo <span id="rvTipoInfo"></span></label><select id="selContratoTipo"></select></div>
         <div class="rv-form-btn"><button id="btnAddContrato">➕ Añadir</button></div>
       </div>
     </details>

@@ -464,6 +464,11 @@ function pnAbrirSiHace(id, hace) {
   if (hace) el.dataset.avisado = "1";
   else delete el.dataset.avisado;
 }
+/* Para que el próximo aviso lo vuelva a abrir aunque siga el mismo. */
+function pnOlvidarAviso(id) {
+  const el = $(id);
+  if (el) delete el.dataset.avisado;
+}
 
 /* El precio de una fecha que falta, de RNT o de POL (m: CG_RNT o
    CG_POL de js/08). */
@@ -565,7 +570,7 @@ function renderPanel() {
   $("rvCatalogoTodos").checked = pnVerTodos;
   // Apagado, el título dice «activos» y el interruptor cuenta los inactivos.
   $("rvCatalogoActivos").hidden = !sinTokens.size || pnVerTodos;
-  $("rvCatalogoTodosN").textContent = todas.filter(f => sinTokens.has(f.addr)).length;
+  $("rvCatalogoTodosN").textContent = sinTokens.size;
   const dudas = lista.filter(f => f.estado === "CANDIDATA").length;
   $("rvCatalogoAviso").textContent = dudas ? "⚠ " + dudas + " con dudas" : "";
   pnAbrirSiHace("rvCatalogo", dudas > 0);
@@ -625,6 +630,7 @@ function pnMontarEventos() {
     const b = ev.target.closest("button[data-volver]");
     if (b) pnVolverAPonerSemilla(b.dataset.volver);
   });
+  $("rvTipoInfo").outerHTML = ccInfo("Pool, Staking y Farming: meter o sacar es movimiento neutro. Recompensas: lo que te paga es recompensa DeFi. Las de Reental salen de su archivo. Tus otras wallets no hace falta añadirlas: el dinero que llega de ellas entra como «Ingreso de dinero».");
   $("selContratoTipo").innerHTML = PN_TIPOS_ELEGIBLES.map(r =>
     '<option value="' + r + '">' + ccEsc(PN_TIPOS_CONTRATO[r]) + "</option>").join("");
   $("btnAddContrato").onclick = pnAñadirContrato;

@@ -26,8 +26,7 @@ function routing() {
   const rev = $("view-revision");
   if (rev && rev.classList.contains("active") && vista !== rev) {
     rev.querySelectorAll("details[open]").forEach(d => { d.open = false; });
-    const porDecidir = $("ccPorDecidir");
-    if (porDecidir) delete porDecidir.dataset.avisado;
+    pnOlvidarAviso("ccPorDecidir");
   }
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v === vista));
   if (rutaSubir) { rutaSubir = false; window.scrollTo({ top: 0, behavior: "instant" }); }

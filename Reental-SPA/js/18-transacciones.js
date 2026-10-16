@@ -1485,7 +1485,7 @@ function txPintarCuerpo(registros) {
      entrar en 📒 sin cambios, la tabla de antes se queda. */
   if (html !== txHtmlCuerpo) {
     cuerpo.innerHTML = txHtmlCuerpo = html;
-    txCuerposPintados++;
+    txRepartoHecho = ""; // filas nuevas: hay que volver a medir
   }
   /* Si su fila ya no se ve (un filtro, el modo spam…), las opciones se
      cierran: no vuelven a salir solas al enseñarla otra vez. */
@@ -1513,14 +1513,16 @@ function txPintarCuerpo(registros) {
    estirarse y suma la diferencia, repartida, al margen izquierdo de cada
    columna (--tx-aire). Sin sitio libre, 0. */
 const TX_SEL_CAJA_TABLA = "#view-transacciones .tx-tablawrap";
-/* Medir la tabla entera cuesta (con cientos de filas, ~100 ms): solo si
-   cambió el ancho o se pintó otra vez desde la última medida (al entrar
-   en 📒 lo pedían el pintado y el cambio de ancho, cada uno por su lado). */
-let txCuerposPintados = 0, txRepartoHecho = "", txHtmlCuerpo = "";
+/* Medir la tabla entera cuesta (con cientos de filas, ~100 ms): solo con
+   📒 a la vista, y si cambió el ancho o se pintó otra vez desde la última
+   medida (al entrar en 📒 lo pedían el pintado y el cambio de ancho, cada
+   uno por su lado). Oculta (content-visibility) también se podría medir,
+   pero obligaría al navegador a maquetarla. */
+let txRepartoHecho = "", txHtmlCuerpo = "";
 function txRepartirAire() {
   const caja = document.querySelector(TX_SEL_CAJA_TABLA), tabla = $("txTabla");
-  if (!caja || !tabla || !caja.clientWidth) return;
-  const huella = caja.clientWidth + "|" + txCuerposPintados;
+  if (!caja || !tabla || !txVistaVisible() || !caja.clientWidth) return;
+  const huella = String(caja.clientWidth);
   if (huella === txRepartoHecho) return;
   txRepartoHecho = huella;
   tabla.classList.add("tx-midiendo"); // sin aire, sin estirarse ni anchos en % (estos también la estiran)

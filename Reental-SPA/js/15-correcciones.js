@@ -1903,7 +1903,7 @@ function ccHtmlTarjeta(reg, opts = {}) {
    lo dice la fila, P21; los avisos de contexto, ccAvisoContexto). Sin
    ninguna, no se pinta. */
 function ccHtmlCabecera(registros, ctx) {
-  const salidas = registros.filter(r => ccPendienteDeVincular(r, ctx, false) === "salida").length;
+  const salidas = registros.filter(r => ccEsSalidaPendiente(r, ctx)).length;
   return salidas ? '<div class="cc-cab"><b>' + numEs(salidas, 0) + "</b> " + (salidas === 1 ? "venta" : "ventas") + " por vincular</div>" : "";
 }
 /* Encima de la caja de 🔍, en gris: lo que falta para que la revisión
@@ -3059,8 +3059,6 @@ function ccInyectarEstilos() {
   estilo.textContent = [
     "#ccLista .cc-cab{font-size:14px;color:var(--muted);background:var(--tarjeta);border:1px solid var(--border);border-radius:10px;padding:8px 12px;line-height:1.7}",
     "#ccLista .cc-cab b{color:var(--text)}",
-    "#ccLista .cc-cab .nota{color:var(--faint)}",
-    "#ccLista .cc-cab .aviso{color:var(--warn);font-weight:600}",
     "#ccLista .cc-cab a{color:var(--accent);font-weight:600;text-decoration:none}",
     "#ccLista .cc-cab a:hover{text-decoration:underline}",
     "#ccLista .cc-dudas{color:var(--warn);font-weight:600;background:var(--warn-bg);border-color:var(--warn-bd)}",
