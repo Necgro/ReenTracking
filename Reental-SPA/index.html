@@ -375,7 +375,8 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 .rv-tabla td,.rv-tabla th{padding:9px 10px;border:0;border-bottom:1px solid color-mix(in srgb,var(--border) 80%,var(--border2));vertical-align:middle;white-space:nowrap}
 .rv-tabla th{background:none;border-bottom:1px solid var(--border2);font-size:12.5px}
 .rv-tabla tbody tr:hover{background:color-mix(in srgb,var(--accent) 7%,var(--tarjeta))}
-.rv-tabla.rv-titulos-centro th{text-align:center}
+/* Catálogo: «Inmueble» a la izquierda; las columnas cortas, título y contenido centrados. */
+.rv-tabla.rv-titulos-centro :is(th,td):is(:nth-child(2),:nth-child(3),:nth-child(4),:nth-child(5)){text-align:center}
 .rv-tabla .num{text-align:right;font-variant-numeric:tabular-nums}
 .rv-tabla .rv-acciones{text-align:right}
 .rv-tabla .rv-acciones button{min-height:30px;padding:4px 10px;font-size:12.5px;margin-left:6px}
