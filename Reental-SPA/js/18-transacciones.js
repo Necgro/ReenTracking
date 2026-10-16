@@ -138,16 +138,16 @@ const TX_GRUPOS = [
    encaja es el del registro. Las señales son las del motor (js/14 y
    nombreTokenSospechoso de js/02); aquí solo se dice cuál fue. */
 const TX_MOTIVOS_SPAM = [
-  { id: "ajuste", etiqueta: "Mandado al spam por ti" },
-  { id: "direccion", etiqueta: "Dirección mandada al spam por ti" },
-  { id: "token", etiqueta: "Token mandado al spam por ti" },
-  { id: "descartado", etiqueta: "Descartado por ti en el catálogo" },
+  { id: "ajuste", etiqueta: "Marcado como spam" },
+  { id: "direccion", etiqueta: "Dirección marcada como spam" },
+  { id: "token", etiqueta: "Token marcado como spam" },
+  { id: "descartado", etiqueta: "Descartado en el catálogo" },
   { id: "sin-nombre", etiqueta: "Token sin nombre" },
   { id: "web", etiqueta: "Web en el nombre" },
   { id: "publicidad", etiqueta: "Publicidad en el nombre" },
   { id: "simbolos", etiqueta: "Símbolos raros en el nombre" },
   { id: "valor-cero", etiqueta: "Transferencia de 0" },
-  { id: "imita", etiqueta: "Dirección que imita la tuya" },
+  { id: "imita", etiqueta: "Dirección que intenta imitar la tuya" },
   { id: "sin-valor", etiqueta: "Token desconocido sin valor" },
   { id: "otro", etiqueta: "Otro motivo" },
 ];
@@ -1177,7 +1177,7 @@ function txHtmlFila(reg, opts = {}) {
      y lo que mandaste tú, la marca 🚫, también si
      fue con su dirección o su token entero. */
   const regla = opts.estadoSpam === "regla" ? TX_APARTAR[opts.regla.tipo] : null;
-  const marcaSpam = opts.estadoSpam === "quitar" ? "Mandado al spam por ti"
+  const marcaSpam = opts.estadoSpam === "quitar" ? "Marcado como spam"
     : regla ? txEtiquetaMotivoSpam(regla.motivo) : "";
   if (marcaSpam) {
     h += ' <span class="tx-ayuda tx-marca-sacado tx-marca-spam" tabindex="0" aria-label="' + ccEsc(marcaSpam) + '">🚫' +

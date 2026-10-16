@@ -102,8 +102,8 @@ for (const e of datos.escenarios) {
     const motivos = Object.fromEntries(tx.txResumenSpam(regs, ctxSpam).map(m => [m.etiqueta, m.n]));
     console.log("    motivos: " + JSON.stringify(motivos));
     comprobar("el resumen del spam dice sus motivos",
-      motivos["Dirección mandada al spam por ti"] === datos.de_las_direcciones.length && motivos["Token mandado al spam por ti"] >= 1 &&
-      motivos["Dirección que imita la tuya"] === 3 && !motivos["Otro motivo"]);
+      motivos["Dirección marcada como spam"] === datos.de_las_direcciones.length && motivos["Token marcado como spam"] >= 1 &&
+      motivos["Dirección que intenta imitar la tuya"] === 3 && !motivos["Otro motivo"]);
   }
 }
 

@@ -10,7 +10,7 @@
  *   txSpamUsuarioCon / txSpamUsuarioSin (el bloque que se guarda y que
  *   deshacer lo deja como estaba, sin bloque vacío), txReglaSpam y
  *   txEstadoSpam (↩ «Quitar del spam» de lo apartado), txMotivoSpam (los
- *   motivos nuevos y «Dirección que imita la tuya»), txHtmlFilaApartar y
+ *   motivos nuevos y «Dirección que intenta imitar la tuya»), txHtmlFilaApartar y
  *   txHtmlFila.
  *
  * DATOS 100% SINTÉTICOS. Ejecución (desde la raíz):
@@ -175,22 +175,22 @@ const regla = S.txReglaSpam(apartadaDir, ctxB2);
 assert("txEstadoSpam: «regla» (↩ quita la regla)", S.txEstadoSpam(apartadaDir, {}, { regla }) === "regla");
 assert("txEstadoSpam: un ajuste tuyo manda sobre la regla",
   S.txEstadoSpam(apartadaDir, { d: { categoria: "SPAM", subcategoria: "NEUTRO", revisar: false, nota: "Mandado al spam por ti (2026-10-01)" } }, { regla }) === "quitar");
-const htmlDir = S.txHtmlFila(apartadaDir, { estadoSpam: "regla", regla, motivoSpam: "Dirección mandada al spam por ti" });
+const htmlDir = S.txHtmlFila(apartadaDir, { estadoSpam: "regla", regla, motivoSpam: "Dirección marcada como spam" });
 assert("fila: ↩ «Quitar del spam» con «Toda la dirección.» y sin 🔍",
   /data-accion="quitar-regla-spam"/.test(htmlDir) && /<b>Quitar del spam<\/b> Toda la dirección\./.test(htmlDir) &&
   !/mandar-revisar/.test(htmlDir), htmlDir);
-assert("fila: marca 🚫 «Dirección mandada al spam por ti»",
-  /tx-marca-spam[^>]*>🚫<span class="tx-burbuja" aria-hidden="true">Dirección mandada al spam por ti</.test(htmlDir));
+assert("fila: marca 🚫 «Dirección marcada como spam»",
+  /tx-marca-spam[^>]*>🚫<span class="tx-burbuja" aria-hidden="true">Dirección marcada como spam</.test(htmlDir));
 const htmlTok = S.txHtmlFila(apartadaTok, { estadoSpam: "regla", regla: S.txReglaSpam(apartadaTok, ctxB2) });
 assert("fila de token: «Todo el token.» y su marca",
-  /<b>Quitar del spam<\/b> Todo el token\./.test(htmlTok) && /Token mandado al spam por ti/.test(htmlTok));
+  /<b>Quitar del spam<\/b> Todo el token\./.test(htmlTok) && /Token marcado como spam/.test(htmlTok));
 
 console.log("== 6. Motivos del spam ==");
 const ctxSpam = S.txContextoSpam({});
-assert("«Dirección mandada al spam por ti»", S.txEtiquetaMotivoSpam(S.txMotivoSpam(apartadaDir, ctxSpam)) === "Dirección mandada al spam por ti");
-assert("«Token mandado al spam por ti»", S.txEtiquetaMotivoSpam(S.txMotivoSpam(apartadaTok, ctxSpam)) === "Token mandado al spam por ti");
+assert("«Dirección marcada como spam»", S.txEtiquetaMotivoSpam(S.txMotivoSpam(apartadaDir, ctxSpam)) === "Dirección marcada como spam");
+assert("«Token marcado como spam»", S.txEtiquetaMotivoSpam(S.txMotivoSpam(apartadaTok, ctxSpam)) === "Token marcado como spam");
 const imita = reg("i", "SPAM", { nota: vm.runInContext("NOTA_IMITA_DIRECCION", S), origen: IMITA });
-assert("«Dirección que imita la tuya» (antes, «Otro motivo»)", S.txEtiquetaMotivoSpam(S.txMotivoSpam(imita, ctxSpam)) === "Dirección que imita la tuya");
+assert("«Dirección que intenta imitar la tuya» (antes, «Otro motivo»)", S.txEtiquetaMotivoSpam(S.txMotivoSpam(imita, ctxSpam)) === "Dirección que intenta imitar la tuya");
 const imitaMotor = uno(clasificar([tx(h(10), IMITA, WALLET, 0.0001, ts(2026, 6, 19))]), h(10));
 assert("la nota del motor es la que reconoce la tabla", imitaMotor.nota === vm.runInContext("NOTA_IMITA_DIRECCION", S), imitaMotor.nota);
 

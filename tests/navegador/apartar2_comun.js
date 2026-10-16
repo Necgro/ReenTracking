@@ -136,7 +136,7 @@ module.exports = async function comprobarApartar2(page, assert, opts = {}) {
   /* ============ B3) en el spam ============ */
   await modoSpam(true);
   const motivos = await page.evaluate(() => [...document.querySelectorAll("#txMotivosSpam li")].map(l => l.textContent));
-  assert("B3 -> motivo «" + n + " Dirección mandada al spam por ti»", motivos.includes(n + " Dirección mandada al spam por ti"), motivos);
+  assert("B3 -> motivo «" + n + " Dirección marcada como spam»", motivos.includes(n + " Dirección marcada como spam"), motivos);
   const enSpam = await page.evaluate(c => {
     const f = document.querySelector('#txCuerpo tr.tx-fila[data-clave="' + c + '"]');
     if (!f) return null;
@@ -146,8 +146,8 @@ module.exports = async function comprobarApartar2(page, assert, opts = {}) {
       burbujas: [...f.querySelectorAll(".tx-acciones .tx-burbuja")].map(b => b.textContent),
     };
   }, clave);
-  assert("B3 -> su fila lleva la marca 🚫 «Dirección mandada al spam por ti»",
-    enSpam && enSpam.marca === "🚫Dirección mandada al spam por ti", enSpam);
+  assert("B3 -> su fila lleva la marca 🚫 «Dirección marcada como spam»",
+    enSpam && enSpam.marca === "🚫Dirección marcada como spam", enSpam);
   assert("B3 -> y ↩ «Quitar del spam» con «Toda la dirección.», sin 🔍",
     enSpam && enSpam.acciones.includes("quitar-regla-spam") && !enSpam.acciones.includes("mandar-revisar") &&
     enSpam.burbujas.includes("Quitar del spam Toda la dirección."), enSpam);

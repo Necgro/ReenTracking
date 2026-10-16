@@ -9,7 +9,7 @@
  * - aplicarAjustesUsuario (js/14): con ese ajuste, el movimiento pasa al
  *   spam (o queda a revisar) y al quitarlo vuelve exactamente a lo de antes.
  * - txHtmlFila: iconos y marca ↩ «Sacado del spam»; sin 🔍 en el spam.
- * - txMotivoSpam: lo mandado por ti sale como «Mandado al spam por ti».
+ * - txMotivoSpam: lo mandado por ti sale como «Marcado como spam».
  *
  * DATOS 100% SINTETICOS.
  *
@@ -96,8 +96,8 @@ const aplicar = ajustes => { const copia = JSON.parse(original); S.aplicarAjuste
 const a1 = aplicar(conSpam);
 assert("con el ajuste, el depósito es spam y no a revisar", a1[0].categoria === "SPAM" && a1[0].subcategoria === "NEUTRO" && a1[0].revisar === false, a1[0]);
 assert("la nota del motor se conserva y se le añade la marca", a1[0].nota === "nota del motor; Mandado al spam por ti (2026-10-01)", a1[0].nota);
-assert("su motivo: «Mandado al spam por ti»",
-  S.txEtiquetaMotivoSpam(S.txMotivoSpam(a1[0], S.txContextoSpam({ ajustes_usuario: conSpam }))) === "Mandado al spam por ti");
+assert("su motivo: «Marcado como spam»",
+  S.txEtiquetaMotivoSpam(S.txMotivoSpam(a1[0], S.txContextoSpam({ ajustes_usuario: conSpam }))) === "Marcado como spam");
 assert("quitado el ajuste, todo como antes", huella(aplicar(sinSpam)) === original);
 const a2 = aplicar(sacado);
 assert("sacado: a revisar", a2[1].categoria === "REVISAR" && a2[1].revisar === true, a2[1]);
@@ -132,8 +132,8 @@ assert("las marcas nuevas no dicen «SPA»", !/la SPA/.test(JSON.stringify(S.txA
   S.txNotaMandarRevisar("", FECHA)));
 
 console.log("== 6. Retoque: marca 🚫 y filtro por motivo ==");
-assert("lo mandado por ti lleva la marca 🚫 «Mandado al spam por ti»",
-  /tx-marca-spam[^>]*>🚫<span class="tx-burbuja" aria-hidden="true">Mandado al spam por ti<\/span>/.test(filaMandada), filaMandada);
+assert("lo mandado por ti lleva la marca 🚫 «Marcado como spam»",
+  /tx-marca-spam[^>]*>🚫<span class="tx-burbuja" aria-hidden="true">Marcado como spam<\/span>/.test(filaMandada), filaMandada);
 assert("el spam de la app no la lleva", !/tx-marca-spam/.test(filaSpam));
 const ctxF = S.txContextoSpam({ ajustes_usuario: conSpam });
 const mio = Object.assign(reg("k", "SPAM", "NEUTRO"), {}), web = reg("w", "SPAM", "NEUTRO", { token: "Visit www.premio.example" });

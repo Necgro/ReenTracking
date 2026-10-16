@@ -94,13 +94,13 @@ module.exports = async function comprobarApartar1(page, assert, opts = {}) {
     enSpam && enSpam.acciones.includes("quitar-ajuste-spam") && !enSpam.acciones.includes("mandar-revisar") &&
     enSpam.burbujas.includes("Quitar del spam"), enSpam);
   const motivo = await page.evaluate(() => [...document.querySelectorAll("#txMotivosSpam li")].map(l => l.textContent));
-  assert("A2 -> motivo «1 Mandado al spam por ti»", motivo.includes("1 Mandado al spam por ti"), motivo);
+  assert("A2 -> motivo «1 Marcado como spam»", motivo.includes("1 Marcado como spam"), motivo);
   /* La marca 🚫 en su fila y el motivo que se pulsa. */
   const marcaSpam = await page.evaluate(c => {
     const m = document.querySelector('#txCuerpo tr.tx-fila[data-clave="' + c + '"] .tx-marca-spam');
     return m ? m.textContent : "";
   }, claveMandar);
-  assert("A7 -> lo tuyo lleva la marca 🚫 «Mandado al spam por ti»", marcaSpam === "🚫Mandado al spam por ti", marcaSpam);
+  assert("A7 -> lo tuyo lleva la marca 🚫 «Marcado como spam»", marcaSpam === "🚫Marcado como spam", marcaSpam);
   const nMarcas = await page.evaluate(() => document.querySelectorAll("#txCuerpo .tx-marca-spam").length);
   assert("A7 -> solo esa fila del spam la lleva (más las que ya llevaban tu marca: " + (opts.marcasPrevias || 0) + ")",
     nMarcas === 1 + (opts.marcasPrevias || 0), nMarcas);
@@ -112,7 +112,7 @@ module.exports = async function comprobarApartar1(page, assert, opts = {}) {
     pulsado: document.querySelector('#txMotivosSpam button[data-motivo="ajuste"]').getAttribute("aria-pressed"),
     lineas: document.querySelectorAll("#txMotivosSpam li").length,
   }));
-  assert("A7 -> al pulsar «Mandado al spam por ti», la tabla enseña solo ese",
+  assert("A7 -> al pulsar «Marcado como spam», la tabla enseña solo ese",
     filtrado.filas.length === 1 && filtrado.filas[0] === claveMandar && filtrado.pulsado === "true", filtrado);
   const opSpam = await page.evaluate(() => document.querySelector('#txFiltroCategoria option[value="SPAM"]').textContent);
   assert("A7 -> el selector sigue contando todo el spam", opSpam === "SPAM (" + (spam0 + 1) + ")", opSpam);
