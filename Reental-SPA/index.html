@@ -366,8 +366,8 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
    fundido. Donde el navegador no sabe animar el alto, solo el fundido. */
 .rv-tareas{transition:max-width .6s ease}
 .rv-tareas,.rv-enlaces{interpolate-size:allow-keywords}
-.rv-tarea::details-content,.rv-enlaces>details::details-content{height:0;overflow:clip;transition:height 1.2s ease,content-visibility 1.2s allow-discrete}
-.rv-tarea[open]::details-content,.rv-enlaces>details[open]::details-content{height:auto;animation:fade 1.2s ease}
+.rv-tarea::details-content,.rv-enlaces>details::details-content{height:0;overflow:clip;transition:height .6s ease,content-visibility .6s allow-discrete}
+.rv-tarea[open]::details-content,.rv-enlaces>details[open]::details-content{height:auto;animation:fade .6s ease}
 .rv-tarea{margin:0}
 .rv-tarea+.rv-tarea{border-top:2px solid var(--border2)}
 .rv-tarea>summary{position:relative;padding:12px 150px 12px 16px;cursor:pointer;font-weight:700;font-size:14.5px;line-height:24px;color:var(--text);list-style:none}
@@ -436,10 +436,10 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
   *,*::before,*::after{animation:none!important;transition:none!important}
   /* Lo más leve se queda: al cambiar de pestaña (0,4 s) aparece fundido,
      sin desplazar nada (si no, sale de golpe). Las filas de 🔍 se despliegan
-     igual (1,2 s; el usuario lo pidió con este ajuste puesto). */
+     igual (0,6 s; el usuario lo pidió con este ajuste puesto). */
   .rv-tareas{transition:max-width .6s ease!important}
   .view.active{animation:fundido .4s ease!important}
-  .rv-tarea[open]::details-content,.rv-enlaces>details[open]::details-content{animation:fundido 1.2s ease!important}
+  .rv-tarea[open]::details-content,.rv-enlaces>details[open]::details-content{animation:fundido .6s ease!important}
   @keyframes fundido{from{opacity:0}to{opacity:1}}
   html{scroll-behavior:auto}
 }
