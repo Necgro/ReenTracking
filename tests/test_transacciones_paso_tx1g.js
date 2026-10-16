@@ -128,6 +128,10 @@ const casos = [
 for (const [r, esperado] of casos) {
   assert(r.clave + " -> " + esperado, S.txMotivoSpam(r, ctx) === esperado, S.txMotivoSpam(r, ctx));
 }
+/* Auditoría del 16/10 A4: buscar lo que dice el motivo encuentra ese spam. */
+assert("A4: buscar «marcado» o «catalogo» encuentra el spam por su motivo",
+  S.txPasaFiltros(casos[0][0], { q: "marcado", ctxSpam: ctx }) && S.txPasaFiltros(casos[1][0], { q: "catalogo", ctxSpam: ctx }) &&
+  !S.txPasaFiltros(casos[3][0], { q: "marcado", ctxSpam: ctx }));
 assert("el orden y las señales son las del motor: lo que el motor llama sospechoso tiene un motivo de nombre",
   casos.slice(2, 7).every(([r]) => S.nombreTokenSospechoso(r.token, r.simbolo)));
 assert("sin contexto no falla", S.txMotivoSpam(casos[3][0]) === "web" && S.txMotivoSpam(null) === "otro");

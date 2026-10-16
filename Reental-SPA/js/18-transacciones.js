@@ -548,7 +548,7 @@ function txEsCobroPlegado(reg, rel) {
 /* Búsqueda de texto: hash, inmueble, token/símbolo, clave, nota y fecha
    (también como se enseña: 01/03/2026) sin distinguir mayúsculas ni tildes
    («caceres» encuentra «Cáceres», como en 💰 Rendimientos), más los
-   textos de su vínculo (`extra`).
+   textos de su vínculo, la nota personal y el motivo del spam (`extra`).
    Consulta vacía = coincide todo. */
 let txConsultaVista = ["", ""]; // [la última consulta, normalizada]: una vez, no por fila
 /* ¿Hay búsqueda? Una tilde suelta («´») no es buscar nada. */
@@ -663,6 +663,8 @@ function txPasaFiltros(reg, f, excepto, rel) {
   if (excepto !== "motivo" && f.motivo && (reg.categoria !== "SPAM" || txMotivoSpam(reg, f.ctxSpam) !== f.motivo)) return false;
   if (excepto !== "q") {
     const extra = (rel && rel.get(reg.clave) ? rel.get(reg.clave).busqueda : []).concat(txTextoNota(f.notas, reg.clave));
+    /* El spam, también por su motivo («marcado», «imitar»): lo que se lee en la fila. */
+    if (buscando && reg.categoria === "SPAM") extra.push(txEtiquetaMotivoSpam(txMotivoSpam(reg, f.ctxSpam)));
     if (!txCoincideBusqueda(reg, f.q, extra)) return false;
   }
   return true;
