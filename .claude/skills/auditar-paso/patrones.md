@@ -167,6 +167,11 @@ como antes? Hacer → editar → ¿se conservan los campos que no se editaron?
   wallet) dentro de un plegable cerrado u oculto no la ve nadie.
 - Un enlace que lleva a un bloque lejano (scroll y abrir) sin llevar el
   foco: con el teclado, Tab vuelve a donde estaba.
+- Lo que hace falta mientras algo se anima, puesto para siempre: el
+  recorte (`overflow:clip`) de una fila que se despliega seguía con la fila
+  abierta y cortaba las burbujas ⓘ que se abren hacia arriba. Recortar solo
+  mientras se anima. Y una ⓘ dentro de un `<label>`: el campo se llama como
+  todo su texto.
 
 **Mirar:** ¿qué pasa si se repinta, se reclasifica o se cambia de pestaña a
 mitad de la acción? ¿Y si se pulsa dos veces? ¿Y en el papel?
@@ -452,6 +457,10 @@ textos que el usuario o un ajuste pueden cambiar.
   px y a 960 px la quinta bajaba sola y ancha; y un arnés que cuenta
   «todos los botones» de una barra se rompe al añadir uno. Medir a 2–3
   anchos y elegir por un atributo propio.
+- Comprobar «se ve» por `display`: una regla nueva (`content-visibility`
+  con `display:block`, para no rehacer una pestaña) lo deja siempre en
+  verdadero. Y una clase que ya no existe, leída «por si acaso», da por
+  buena cualquier aserción negativa. Mirar la clase de la pestaña abierta.
 - Un servidor falso que da siempre la misma respuesta, pida lo que pida:
   con la descarga del BCE «solo lo que falta», el falso devolvía la serie
   entera y tapaba los días que la app ya no pedía. El falso responde solo
