@@ -235,6 +235,15 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
   assert("U4 -> las semillas DeFi, con ✕; tipos en llano y sin los de Reental",
     semillas.filas === 6 && semillas.quitar === 6 &&
     JSON.stringify(semillas.tipos) === JSON.stringify(["Pool", "Staking", "Farming", "Recompensas"]), semillas);
+  /* Auditoría del 16/10 A3: la ⓘ de «Tipo», al lado de la etiqueta y fuera de
+     ella (el desplegable se llama «Tipo», no todo el texto de la ⓘ). */
+  const tipo = await page.evaluate(() => {
+    const s = document.getElementById("selContratoTipo"), l = s.labels[0], i = l && l.nextElementSibling;
+    const rl = l.getBoundingClientRect(), ri = i.getBoundingClientRect();
+    return { etiqueta: [...s.labels].map(x => x.textContent.trim()).join("|"), info: !!(i && i.classList.contains("cc-info")),
+      alLado: Math.abs((rl.top + rl.bottom) / 2 - (ri.top + ri.bottom) / 2) < 6 && ri.left >= rl.right };
+  });
+  assert("A3 -> «Tipo»: su etiqueta solo dice «Tipo» y la ⓘ va a su lado", tipo.etiqueta === "Tipo" && tipo.info && tipo.alLado, tipo);
   const w1 = await escrituras();
   await page.evaluate(() => { document.getElementById("inpContratoDir").value = "0x1234"; document.getElementById("inpContratoNombre").value = "Mal"; document.getElementById("btnAddContrato").click(); });
   await esperar(200);

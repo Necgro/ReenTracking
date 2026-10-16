@@ -419,6 +419,8 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 .rv-form>div{min-width:150px}
 .rv-form .rv-form-dir{min-width:min(360px,100%)}
 .rv-form .rv-form-btn{min-width:0}
+/* La ⓘ al lado de su etiqueta, fuera de ella (si no, el desplegable se llamaría como todo su texto). */
+.rv-label-info{display:inline-block}
 .rv-warn{margin-top:10px;padding:8px 12px;border-radius:10px;background:var(--warn-bg);border:1px solid var(--warn-bd);color:var(--warn);font-weight:600}
 /* En 🔍 Revisión, la letra pequeña 1 px más
    grande (lo de js/15 y js/20, en sus estilos). */
@@ -554,7 +556,7 @@ html.sin-animaciones.sin-animaciones *,html.sin-animaciones.sin-animaciones *::b
       <div class="row mt rv-form">
         <div class="rv-form-dir"><label for="inpContratoDir">Dirección</label><input id="inpContratoDir" class="mono" placeholder="0x…" autocomplete="off"></div>
         <div><label for="inpContratoNombre">Nombre</label><input id="inpContratoNombre" autocomplete="off"></div>
-        <div><label for="selContratoTipo">Tipo <span id="rvTipoInfo"></span></label><select id="selContratoTipo"></select></div>
+        <div><label for="selContratoTipo" class="rv-label-info">Tipo</label><span id="rvTipoInfo"></span><select id="selContratoTipo"></select></div>
         <div class="rv-form-btn"><button id="btnAddContrato">➕ Añadir</button></div>
       </div>
     </details>
