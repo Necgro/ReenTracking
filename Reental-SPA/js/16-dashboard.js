@@ -156,7 +156,12 @@ function dashSerieMensual(movimientos) {
    compras, ventas, sinImporte, sinCambio, sinFecha } y lo que queda, en la
    moneda en que se pagó: eurBanco (por transferencia, en €) y usdStable (en USDT o USDC,
    también desde el vault, y las de transferencia pagadas en USD: el
-   pagado_usd de su ajuste, «En USDT…» de 💶, que cuenta tal cual). */
+   pagado_usd de su ajuste, «En USDT…» de 💶, que cuenta tal cual).
+   Para el valor nominal, también lo que queda de cada compra: colas
+   (Map contrato → lotes { cant, usd, eur, moneda, ajuste }) y sinCantidad
+   (los lotes sin cantidad, con su contrato); moneda es lo que dice la
+   compra de la moneda del proyecto (dashVotoMoneda) y ajuste, que su coste
+   lo pusiste tú y no casa con 100 por token. */
 const DASH_VIAS_COMPRA = ["BANCARIA", "ONCHAIN", "VAULT"];
 /* Antes de esto o más de un año en el futuro, la fecha es una
    errata (un ajuste a mano, un timeStamp 0) y alargaría el gráfico sin fin. */
@@ -164,8 +169,8 @@ const DASH_FECHA_MIN = "2015-01-01";
 /* Tipo USD/EUR del BCE de una fecha o, si ese día no lo hay, del anterior
    más cercano (la búsqueda de ccEurOrientativo, js/15) si no tiene más de
    4 días (el tope lo pone ccEurOrientativo); null si no hay ninguno. */
-function dashTipoBce(tiposBce, fecha) {
-  const bce = ccEurOrientativo(1, fecha, tiposBce);
+function dashTipoBce(tiposBce, fecha, cache) {
+  const bce = ccEurOrientativo(1, fecha, tiposBce, cache);
   return bce ? Number(tiposBce[bce.fecha]) : null;
 }
 
@@ -186,9 +191,19 @@ function dashDineroInvertido(registros, tiposBce, ajustes, cache) {
      sin importe (el burn) pasa lo que costaron al token nuevo. */
   const canjes = new Map();
   for (const r of lista) if (r.categoria === "COMPRA" && r.via_compra === "CANJE") canjes.set(r.hash, (canjes.get(r.hash) || []).concat(r));
-  const res = { movimientos: [], compras: 0, ventas: 0, sinImporte: 0, sinCambio: 0, sinFecha: 0, eurBanco: 0, usdStable: 0 };
-  const enUsd = new Map(Object.entries(ajustes || {}).map(([c, a]) => [ccClaveAjuste(c), ccPagadoUsd(a, tiposBce, cache)]) // con la cache, como 💶
-    .filter(([, u]) => u).map(([c, u]) => [c, u.importe]));
+  const res = { movimientos: [], compras: 0, ventas: 0, sinImporte: 0, sinCambio: 0, sinFecha: 0, eurBanco: 0, usdStable: 0,
+    sinCalcular: new Map() };
+  // Con dos claves iguales tras normalizar, la primera (como ccBuscarAjuste).
+  const porClave = new Map();
+  for (const [c, a] of Object.entries(ajustes || {})) if (!porClave.has(ccClaveAjuste(c))) porClave.set(ccClaveAjuste(c), a);
+  const enUsd = new Map([...porClave].map(([c, a]) => [c, ccPagadoUsd(a, tiposBce, cache)]) // con la cache, como 💶
+    .filter(([, u]) => u));
+  const tipos = new Map(); // el tipo del BCE de cada día, buscado una vez
+  const tipoDia = (dia, conCache) => {
+    const k = dia + (conCache ? "+" : "");
+    if (!tipos.has(k)) tipos.set(k, dashTipoBce(tiposBce, dia, conCache ? cache : undefined));
+    return tipos.get(k);
+  };
   // Lo que queda de cada compra por inmueble: { cant, usd, eur } (eur: lo
   // pagado en € por transferencia; si no, null). Sin cantidad, aparte.
   const colas = new Map(), sinCantidad = [];
@@ -198,13 +213,21 @@ function dashDineroInvertido(registros, tiposBce, ajustes, cache) {
     let falta = cantidad;
     while (falta > 1e-12 && q.length) {
       const l = q[0], todo = falta >= l.cant - 1e-12, f = todo ? 1 : falta / l.cant;
-      const t = { cant: l.cant * f, usd: l.usd * f, eur: l.eur === null ? null : l.eur * f };
+      const t = Object.assign({}, l, { cant: l.cant * f, usd: l.usd * f, eur: l.eur === null ? null : l.eur * f });
       if (todo) q.shift();
       else { l.cant -= t.cant; l.usd -= t.usd; if (l.eur !== null) l.eur -= t.eur; }
       trozos.push(t);
       falta -= t.cant;
     }
     return trozos;
+  };
+  /* Una compra que queda fuera (sin fecha, sin tipo del BCE o sin importe)
+     sigue diciendo la moneda en que se pagó, para el valor nominal. */
+  const omitir = (r, contador, motivo) => {
+    res[contador]++;
+    const k = normalizarDireccion(r.contrato || "");
+    if (!res.sinCalcular.has(k)) res.sinCalcular.set(k, { motivo,
+      moneda: r.via_compra === "BANCARIA" && !enUsd.has(ccClaveAjuste(r.clave)) ? "EUR" : "USD" });
   };
   for (const r of lista) {
     const compra = r.categoria === "COMPRA" && DASH_VIAS_COMPRA.includes(r.via_compra) &&
@@ -213,13 +236,16 @@ function dashDineroInvertido(registros, tiposBce, ajustes, cache) {
     if (!compra && !venta) continue;
     if (venta && !positivo(r.importe_usdt) && (canjes.get(r.hash) || []).length) {
       const nuevo = canjes.get(r.hash).shift();
+      const viejoK = normalizarDireccion(r.contrato || ""), nuevoK = normalizarDireccion(nuevo.contrato || "");
+      for (const l of sinCantidad) if (l.contrato === viejoK) l.contrato = nuevoK;
+      if (res.sinCalcular.has(viejoK) && !res.sinCalcular.has(nuevoK)) res.sinCalcular.set(nuevoK, res.sinCalcular.get(viejoK));
       if (positivo(r.cantidad) && positivo(nuevo.cantidad)) {
         const escala = nuevo.cantidad / r.cantidad;
         for (const t of sacar(cola(r.contrato), r.cantidad)) cola(nuevo.contrato).push(Object.assign(t, { cant: t.cant * escala }));
       }
       continue;
     }
-    if (!dashFechaDibujable(r.fecha)) { res.sinFecha++; continue; }
+    if (!dashFechaDibujable(r.fecha)) { if (compra) omitir(r, "sinFecha", "sin fecha"); else res.sinFecha++; continue; }
     if (venta) {
       // Baja lo que costaron los tokens vendidos, no lo cobrado.
       if (!positivo(r.cantidad)) { res.sinImporte++; continue; }
@@ -229,31 +255,116 @@ function dashDineroInvertido(registros, tiposBce, ajustes, cache) {
       res.movimientos.push({ fecha: r.fecha, instante: r.instante, delta: -trozos.reduce((s, t) => s + t.usd, 0) });
       continue;
     }
-    let importe = null;
-    const usdBanco = r.via_compra === "BANCARIA" ? enUsd.get(ccClaveAjuste(r.clave)) : undefined;
-    const enEur = r.via_compra === "BANCARIA" && !usdBanco;
-    if (usdBanco) importe = usdBanco; // pagada en USD: lo pagado
+    let importe = null, tipo = null;
+    const banco = r.via_compra === "BANCARIA";
+    const usdBanco = banco ? enUsd.get(ccClaveAjuste(r.clave)) : undefined;
+    const enEur = banco && !usdBanco;
+    if (usdBanco) { importe = usdBanco.importe; tipo = tipoDia(usdBanco.fecha, true); } // pagada en USD: lo pagado
     else if (enEur) { // en €, como el motor
       if (positivo(r.coste_eur)) {
-        const tipo = dashTipoBce(tiposBce, r.fecha.slice(0, 10));
-        if (tipo === null) { res.sinCambio++; continue; }
+        tipo = tipoDia(r.fecha.slice(0, 10));
+        if (tipo === null) { omitir(r, "sinCambio", "sin tipo del BCE"); continue; }
         importe = r.coste_eur * tipo;
       }
-    } else if (positivo(r.importe_usdt)) importe = r.importe_usdt;
-    if (importe === null) { res.sinImporte++; continue; }
+    } else if (positivo(r.importe_usdt)) { importe = r.importe_usdt; tipo = tipoDia(r.fecha.slice(0, 10)); }
+    if (importe === null) { omitir(r, "sinImporte", "sin importe"); continue; }
     res.compras++;
-    const lote = { cant: r.cantidad, usd: importe, eur: enEur ? r.coste_eur : null };
-    if (positivo(r.cantidad)) cola(r.contrato).push(lote); else sinCantidad.push(lote);
+    // El coste por defecto de una transferencia (100 €/token por
+    // configuración) no dice nada de la moneda: solo el que pusiste tú
+    // (la regla de cbSupuesto, js/20).
+    const aj = banco ? porClave.get(ccClaveAjuste(r.clave)) : null;
+    const puesto = !banco || (pdEsObjeto(aj) && "coste_eur" in aj);
+    const moneda = puesto && positivo(r.cantidad) ? dashVotoMoneda(importe / r.cantidad, tipo) : null;
+    const lote = { cant: r.cantidad, usd: importe, eur: enEur ? r.coste_eur : null, moneda,
+      ajuste: banco && puesto && tipo !== null && !moneda };
+    if (positivo(r.cantidad)) cola(r.contrato).push(lote);
+    else sinCantidad.push(Object.assign(lote, { contrato: normalizarDireccion(r.contrato || "") }));
     res.movimientos.push({ fecha: r.fecha, instante: r.instante, delta: importe });
   }
   // Lo que queda, en la moneda en que se pagó.
   for (const l of [].concat(...colas.values(), sinCantidad)) {
     if (l.eur !== null) res.eurBanco += l.eur; else res.usdStable += l.usd;
   }
+  res.colas = colas;
+  res.sinCantidad = sinCantidad;
   ordenarPorFecha(res.movimientos);  // por el instante real
   let total = 0;
   for (const m of res.movimientos) { total += m.delta; m.invertido = red6(total); }
   return res;
+}
+
+/* Valor nominal: lo que Reental llama «Invertido» de cada proyecto, los
+   tokens que tienes × 100 en la moneda del proyecto (€ o $). La moneda no
+   viene en ningún dato: la dice el precio de cada compra frente a 100 $ y a
+   100 € con el BCE de su día. */
+const DASH_NOMINAL = 100;
+const DASH_CASA = 0.02; // ±2 %: lo que se aleja más no vota
+
+/* La moneda del proyecto que dice una compra, por su precio por token en
+   USD y el tipo del BCE de su día: "USD", "EUR" (la más cercana) o null
+   (ninguna casa, o sin tipo). */
+function dashVotoMoneda(precioUsd, tipo) {
+  if (!(precioUsd > 0) || !(tipo > 0)) return null;
+  const dUsd = Math.abs(precioUsd / DASH_NOMINAL - 1), dEur = Math.abs(precioUsd / (DASH_NOMINAL * tipo) - 1);
+  const [moneda, d] = dUsd <= dEur ? ["USD", dUsd] : ["EUR", dEur];
+  return d <= DASH_CASA ? moneda : null;
+}
+
+/* Los tokens se enseñan con 2 decimales: menos de 0,01 no se marca. */
+const DASH_TOKENS_MIN = 0.005;
+/* Lo que vale cada céntimo que se enseña. */
+const dashCent = x => Math.round(x * 100) / 100;
+
+/* El valor nominal de lo que tienes, de los saldos de «🧱 Tu cartera»
+   (dashCarteraTokens) y lo que queda de cada compra (dashDineroInvertido).
+   Moneda del proyecto: la de la mayoría (por tokens) de sus compras que
+   casan; si ninguna casa, la moneda en que lo pagaste. Un proyecto sin
+   ninguna compra queda fuera de los totales (moneda null), salvo si la
+   compra quedó fuera de lo pagado (sin fecha, sin tipo del BCE o sin
+   importe): entonces, la moneda en que se pagó y el motivo. Cada fila:
+   { nombre, contrato, tokens, moneda, nominal, costeEur, costeUsd, ajuste,
+   sinPrecio, motivo, sinCompra (tokens de más frente a las compras),
+   sinSaldo (tokens comprados que ya no están) }. Devuelve { filas, eur,
+   usd, bce (el último tipo del BCE, solo si hay €), aprox (≈ USD con él,
+   o null) y fuera (lo pagado de inmuebles que no están en «🧱 Tu
+   cartera»: { n, costeEur, costeUsd }, o null) }; las filas y fuera suman
+   lo pagado de la tarjeta. */
+function dashValorNominal(invertido, cartera, bce) {
+  if (!invertido || !invertido.colas || !cartera || !Array.isArray(cartera.items)) return null;
+  const filas = cartera.items.map(it => {
+    const lotes = invertido.colas.get(it.contrato) || [];
+    const sinPrecio = invertido.sinCantidad.filter(l => l.contrato === it.contrato);
+    const todos = lotes.concat(sinPrecio);
+    const votos = { EUR: 0, USD: 0 };
+    for (const l of lotes) if (l.moneda) votos[l.moneda] += l.cant;
+    const omitida = invertido.sinCalcular && invertido.sinCalcular.get(it.contrato);
+    const moneda = !todos.length ? (omitida ? omitida.moneda : null)
+      : votos.EUR || votos.USD ? (votos.EUR >= votos.USD ? "EUR" : "USD")
+      : todos.some(l => l.eur !== null) ? "EUR" : "USD";
+    const dif = red6(it.n - lotes.reduce((t, l) => t + l.cant, 0));
+    // Lo que no llega a 0,01 tokens no se marca (se ve con 2 decimales).
+    const cuenta = x => x >= DASH_TOKENS_MIN ? x : 0;
+    // Con una compra sin cantidad o fuera de lo pagado no se sabe cuántos faltan.
+    const seSabe = moneda && !sinPrecio.length && !omitida;
+    return { nombre: it.nombre, contrato: it.contrato, tokens: it.n, moneda,
+      nominal: moneda ? dashCent(it.n * DASH_NOMINAL) : null,
+      costeEur: todos.reduce((t, l) => t + (l.eur || 0), 0),
+      costeUsd: todos.reduce((t, l) => t + (l.eur === null ? l.usd : 0), 0),
+      ajuste: todos.some(l => l.ajuste), sinPrecio: sinPrecio.length > 0, motivo: omitida ? omitida.motivo : "",
+      sinCompra: seSabe ? cuenta(dif) : 0, sinSaldo: seSabe ? cuenta(-dif) : 0 };
+  });
+  // Lo pagado de los inmuebles que no están en la cartera (enviados a
+  // otra wallet, con dudas, con saldo negativo…).
+  const enCartera = new Set(filas.map(f => f.contrato));
+  const otros = [...invertido.colas].filter(([c, q]) => q.length && !enCartera.has(c)).concat(invertido.sinCantidad.filter(l => !enCartera.has(l.contrato)).map(l => [l.contrato, [l]]));
+  const lotesFuera = [].concat(...otros.map(([, q]) => q));
+  const fuera = otros.length ? { n: new Set(otros.map(([c]) => c)).size,
+    costeEur: lotesFuera.reduce((t, l) => t + (l.eur || 0), 0),
+    costeUsd: lotesFuera.reduce((t, l) => t + (l.eur === null ? l.usd : 0), 0) } : null;
+  const suma = m => dashCent(filas.reduce((t, f) => t + (f.moneda === m ? f.nominal : 0), 0));
+  const eur = suma("EUR"), usd = suma("USD");
+  const conBce = eur > 0 && bce ? bce : null;
+  return { filas, eur, usd, bce: conBce, aprox: conBce ? eur * conBce.valor + usd : null, fuera };
 }
 
 /* Resumen del archivo de rendimientos (state.filasCsv, parser de js/10), en
@@ -455,7 +566,7 @@ function dashCarteraTokens(cache) {
     if (tokens < 0) { negativos++; continue; }
     if (tokens === 0) continue;
     // Siempre un texto (un nombre escrito a mano como número rompería el orden).
-    items.push({ nombre: String(nombreInmueble(contrato, { inmuebles }) || inmuebles[contrato].simbolo || txHashCorto(contrato)), n: tokens });
+    items.push({ nombre: String(nombreInmueble(contrato, { inmuebles }) || inmuebles[contrato].simbolo || txHashCorto(contrato)), n: tokens, contrato });
   }
   items.sort((a, b) => b.n - a.n || a.nombre.localeCompare(b.nombre));
   return { total: red6(items.reduce((t, it) => t + it.n, 0)), items, negativos, ignorados, conDudas };
@@ -481,15 +592,14 @@ function dashCategoriasResumen(registros) {
   return { total, revisar };
 }
 
-/* Último tipo de cambio BCE de la cache (USD por EUR), por fecha. */
+/* Último tipo de cambio BCE de la cache (USD por EUR), por fecha; uno
+   que no es un número mayor que 0 (escrito a mano) no cuenta. */
 function dashUltimoTipoBce(cache) {
   const tipos = (cache && cache.tipos_bce) || {};
-  const fechas = Object.keys(tipos).sort();
+  const fechas = Object.keys(tipos).filter(f => Number(tipos[f]) > 0).sort();
   if (!fechas.length) return null;
   const fecha = fechas[fechas.length - 1];
-  const valor = Number(tipos[fecha]);
-  if (!Number.isFinite(valor)) return null;
-  return { fecha, valor };
+  return { fecha, valor: Number(tipos[fecha]) };
 }
 
 /* ----------------------------- Gráficos SVG (a mano) ----------------------------- */
@@ -742,9 +852,10 @@ function dashLeyenda(filas) {
 
 /* ----------------------------- Tarjetas de cada bloque ----------------------------- */
 
-function dashTarjetaInvertido(invertido, mensual) {
+function dashTarjetaInvertido(invertido, mensual, nominal) {
   const titulo = "💼 Dinero invertido";
   let cuerpo;
+  dashNominal = dashNominal && !!invertido && mensual.length > 0;
   if (!invertido) {
     cuerpo = dashNoDisponible("Sin datos todavía.", { href: "#inicio", texto: "🚀 Ir a Puesta en marcha" });
   } else if (!mensual.length) {
@@ -755,6 +866,11 @@ function dashTarjetaInvertido(invertido, mensual) {
   } else {
     dashSerieInvertido = mensual;
     const s = mensual, ultimo = s[s.length - 1].valor;
+    const hayNominal = !!nominal && (nominal.eur > 0 || nominal.usd > 0);
+    dashDatosNominal = hayNominal ? { nominal, invertido, ultimo } : null;
+    // Si vuelve a salir, apagado (no encendido sin que lo veas).
+    if (!hayNominal) dashNominal = false;
+    if (hayNominal && dashNominal) return dashTarjeta(titulo, "", dashCuerpoNominal(nominal), true);
     // Los meses como en el bocadillo («mar 2024»), no «03/2024».
     const hint = dashEsc(dashNombrePeriodo(s[0].etiqueta)) + " – " + dashEsc(dashNombrePeriodo(s[s.length - 1].etiqueta)) +
       " · " + dashCuantos(invertido.compras, "compra", "compras") + " y " + dashCuantos(invertido.ventas, "venta", "ventas");
@@ -762,12 +878,101 @@ function dashTarjetaInvertido(invertido, mensual) {
       " USD) a " + dashNombrePeriodo(s[s.length - 1].etiqueta) + " (" + dashNum(ultimo, 2) + " USD).";
     cuerpo = '<div class="dash-value-lg">' + dashEsc(dashNum(ultimo, 2)) + "&nbsp;USD</div>" +
       dashDesgloseInvertido(invertido) +
+      (hayNominal ? dashFilaNominal(nominal, false) : "") +
       '<div class="dash-hint">' + hint + "</div>" +
       '<div class="dash-chart dash-tipcaja dash-invertido" role="img" tabindex="0" aria-label="' + dashEsc(aria) + '">' +
       dashSvgLinea(s) + '<div class="dash-tip" hidden></div></div><div class="solo-lector" aria-live="polite"></div>' +
       dashAvisosInvertido(invertido);
   }
-  return dashTarjeta(titulo, "Lo pagado por los tokens que tienes", cuerpo, true);
+  return dashTarjeta(titulo, "", cuerpo, true);
+}
+
+/* «2.450,80 € · 1.012,25 $»: lo que es 0 no sale. */
+function dashEurUsd(eur, usd, sep = " · ") {
+  const hay = x => Math.round(x * 100) > 0;
+  return [hay(eur) ? dashNum(eur, 2) + " €" : "", hay(usd) ? dashNum(usd, 2) + " $" : ""].filter(Boolean).map(dashEsc).join(sep);
+}
+/* «≈ 3.760,24 USD» si hay € y tipo del BCE; si no, € y $ tal cual. */
+function dashAproxNominal(n) {
+  return n.bce ? "≈ " + dashEsc(dashNum(n.aprox, 2)) + " USD" : dashEurUsd(n.eur, n.usd);
+}
+
+/* El interruptor «Valor nominal»: apagado, con el total al lado;
+   encendido, con «Ver el detalle». */
+function dashFilaNominal(n, encendido) {
+  return '<div class="dash-nominal-fila"><label class="rv-interruptor dash-nominal-sw"><input type="checkbox" role="switch"' +
+    (encendido ? " checked" : "") + '><span class="rv-interruptor-pista" aria-hidden="true"></span><span>Valor nominal</span></label>' +
+    (encendido ? '<button type="button" class="dash-ver-detalle">Ver el detalle</button>'
+      : '<span class="dash-nominal-k">' + dashAproxNominal(n) + "</span>") + "</div>";
+}
+
+/* La tarjeta con el interruptor encendido: el valor nominal (sin gráfico:
+   no hay serie del nominal mes a mes). */
+function dashCuerpoNominal(n) {
+  const sinCompra = n.filas.filter(f => !f.moneda).length;
+  const linea = n.bce
+    ? '<div class="dash-desglose">' + dashAproxNominal(n) + ' <span class="dash-bce">(€ al BCE del ' +
+      dashEsc(fechaEs(n.bce.fecha)) + ", " + dashEsc(dashNum(n.bce.valor, 4)) + ")</span></div>"
+    : "";
+  return '<div class="dash-value-lg">' + dashEurUsd(n.eur, n.usd, '<span class="dash-nominal-sep">·</span>') + "</div>" + linea +
+    dashFilaNominal(n, true) +
+    (sinCompra ? '<div class="dash-note">⚠ ' + dashCuantos(sinCompra, "inmueble sin compra", "inmuebles sin compra") + ", fuera del total.</div>" : "");
+}
+
+/* La ventana «Ver el detalle»: las dos cifras y cada inmueble. */
+function dashHtmlDetalleNominal(d) {
+  const { nominal: n, invertido: inv, ultimo } = d;
+  // La línea bajo el título, también vacía: las dos cifras, a la misma altura.
+  const caja = (titulo, sub, cifra, debajo) => '<div class="dash-dlg-caja"><div class="dash-dlg-t">' + titulo + "</div>" +
+    '<div class="dash-dlg-k">' + (sub || "&nbsp;") + "</div><b>" + cifra + "</b>" +
+    (debajo ? '<div class="dash-dlg-k">' + debajo + "</div>" : "") + "</div>";
+  const fila = f => {
+    const marcas = [f.ajuste ? "tu ajuste" : "", f.sinPrecio ? "sin precio por token" : "", f.motivo ? "compra " + f.motivo : "",
+      f.sinCompra ? dashNum(f.sinCompra, 2) + " tokens sin compra" : "",
+      f.sinSaldo ? dashNum(f.sinSaldo, 2) + " tokens que ya no tienes" : ""].filter(Boolean);
+    return "<tr><td>" + dashEsc(f.nombre) + '</td><td class="n">' + dashEsc(dashNum(f.tokens, 2)) + '</td><td class="n">' +
+      (f.moneda ? dashEurUsd(f.moneda === "EUR" ? f.nominal : 0, f.moneda === "USD" ? f.nominal : 0) : "—") + '</td><td class="n">' +
+      (f.moneda ? dashEurUsd(f.costeEur, f.costeUsd) || "—" : "—") +
+      marcas.map(m => ' <span class="dash-dlg-k">(' + dashEsc(m) + ")</span>").join("") + "</td></tr>";
+  };
+  const grupos = [["EUR", "Proyectos en €"], ["USD", "Proyectos en $"], [null, "Sin compra"]].map(([m, nombre]) => {
+    const filas = n.filas.filter(f => f.moneda === m);
+    return filas.length ? '<tr class="dash-dlg-grupo"><td colspan="4">' + nombre + "</td></tr>" + filas.map(fila).join("") : "";
+  }).join("") + (n.fuera && dashEurUsd(n.fuera.costeEur, n.fuera.costeUsd)
+    ? '<tr class="dash-dlg-grupo"><td colspan="4">Fuera de tu cartera</td></tr><tr><td>' +
+      dashCuantos(n.fuera.n, "inmueble", "inmuebles") + '</td><td class="n">—</td><td class="n">—</td><td class="n">' +
+      dashEurUsd(n.fuera.costeEur, n.fuera.costeUsd) + "</td></tr>"
+    : "");
+  return '<div class="dash-dlg-cab"><h3 id="dashDlgNominalTit">💼 Valor nominal y coste real</h3>' +
+    '<button type="button" class="dash-dlg-x" aria-label="Cerrar">✕</button></div>' +
+    "<p><b>Valor nominal</b> (lo que muestra la web de Reental como «Invertido»): 100 por token, en € o en $ según el proyecto, no lo que pagaste.</p>" +
+    "<p><b>Coste real</b> es lo que cuenta en 🧾 Fiscal. La diferencia sale del cambio € / $ de cada compra y de tus ajustes de coste.</p>" +
+    '<div class="dash-dlg-cajas">' +
+    // El * del ≈ USD lleva a la nota de encima de la tabla.
+    caja("Valor nominal", "(Lo que muestra la web de Reental)", dashEurUsd(n.eur, n.usd), n.bce ? dashAproxNominal(n) + "*" : "") +
+    caja("Coste real", "", dashEurUsd(inv.eurBanco, inv.usdStable), dashEsc(dashNum(ultimo, 2)) + " USD") + "</div>" +
+    '<p class="dash-dlg-pie">' + (n.bce ? "* " : "") + "Puede diferir de la web de Reental por el tipo de cambio (el ≈ USD usa el del BCE) y/o porque la moneda de cada proyecto (€ o $) la deduce la app de tus compras.</p>" +
+    '<table><thead><tr><th>Inmueble</th><th class="n">Tokens</th><th class="n">Nominal</th><th class="n">Coste real</th></tr></thead><tbody>' +
+    grupos + "</tbody></table>";
+}
+
+/* Abre la ventana con los datos del momento, en el <body> (un repintado de
+   📊 no la borra); al cerrarla, el foco vuelve a «Ver el detalle». */
+function dashAbrirDetalle() {
+  if (!dashDatosNominal) return;
+  const dlg = document.createElement("dialog");
+  dlg.className = "arr-dlg dash-dlg";
+  dlg.setAttribute("aria-labelledby", "dashDlgNominalTit");
+  dlg.innerHTML = dashHtmlDetalleNominal(dashDatosNominal);
+  document.body.appendChild(dlg);
+  dlg.querySelector(".dash-dlg-x").addEventListener("click", () => dlg.close());
+  dlg.addEventListener("close", () => {
+    dlg.remove();
+    const boton = document.querySelector("#tarjetaMetricas .dash-ver-detalle") ||
+      document.querySelector("#tarjetaMetricas .dash-nominal-sw input");
+    if (boton) boton.focus();
+  });
+  dlg.showModal();
 }
 
 /* Debajo de la cifra, como lo pone Reental: lo comprado en € (por
@@ -813,6 +1018,10 @@ function dashFaltanDecisiones(cache, registros) {
 let dashVistaRend = "mes";
 let dashColumnasRend = []; // las del gráfico pintado (las lee el bocadillo)
 let dashSerieInvertido = []; // los meses del dinero invertido pintados (ídem)
+/* «Valor nominal» encendido: apagado al entrar a 📊 (hashchange); se
+   mantiene si 📊 se repinta sola estando en ella. */
+let dashNominal = false;
+let dashDatosNominal = null; // lo que enseña «Ver el detalle»
 
 function dashTarjetaRendimientos(rendimientos, vista, faltanDecisiones) {
   vista = vista || dashVistaRend;
@@ -986,6 +1195,7 @@ function renderDashboard() {
   const cartera = cache ? seguro(() => dashCarteraTokens(cache), FALLO) : null;
   const bce = cache ? seguro(() => dashUltimoTipoBce(cache), null) : null;
   const saldoVault = vaultSaldo && vaultSaldo.n ? vaultSaldo.saldo : null;
+  const nominal = invertido && cartera && cartera !== FALLO ? seguro(() => dashValorNominal(invertido, cartera, bce), null) : null;
 
   // Franja de métricas (con «No disponible» honesto).
   let html = '<div class="dash-metrics" aria-label="Métricas clave">';
@@ -1013,7 +1223,7 @@ function renderDashboard() {
   // ancho (el dinero invertido, primero), e inmuebles y cartera al lado.
   html += '<div class="dash-grid">';
   const tarjeta = (titulo, fn, ancha) => seguro(fn, dashTarjeta(titulo, "", dashNoDisponible("No se pudo pintar."), ancha));
-  html += tarjeta("💼 Dinero invertido", () => dashTarjetaInvertido(invertido, mensual), true);
+  html += tarjeta("💼 Dinero invertido", () => dashTarjetaInvertido(invertido, mensual, nominal), true);
   html += tarjeta("💰 Rendimientos", () => dashTarjetaRendimientos(rendimientos, null, dashFaltanDecisiones(cache, registros)), true);
   html += tarjeta("🏠 Inmuebles", () => dashTarjetaInmuebles(rendimientos));
   html += tarjeta("🧱 Tu cartera", () => cartera === FALLO ? dashTarjeta("🧱 Tu cartera", "", dashNoDisponible("No se pudo pintar."))
@@ -1036,6 +1246,8 @@ function dashSelectorFoco(el) {
   if (el.classList.contains("dash-ver-todos")) return ".dash-ver-todos";
   if (el.classList.contains("dash-apiladas")) return ".dash-apiladas";
   if (el.classList.contains("dash-invertido")) return ".dash-invertido";
+  if (el.closest(".dash-nominal-sw")) return ".dash-nominal-sw input";
+  if (el.classList.contains("dash-ver-detalle")) return ".dash-ver-detalle";
   return null;
 }
 
@@ -1049,6 +1261,7 @@ function dashMontarEventos(cont) {
     const vista = ev.target.closest(".dash-vista");
     if (vista) { dashVistaRend = vista.dataset.vista; renderDashboard(); return; }
     if (ev.target.closest(".dash-ver-todos")) { dashVerTodos = !dashVerTodos; renderDashboard(); return; }
+    if (ev.target.closest(".dash-ver-detalle")) { dashAbrirDetalle(); return; }
     mostrar(ev);
   });
   // Con el ratón, el bocadillo va con el puntero. También
@@ -1064,6 +1277,9 @@ function dashMontarEventos(cont) {
     const caja = ev.target.closest(".dash-tipcaja");
     if (caja && !caja.contains(ev.relatedTarget)) dashMostrarBocadillo(caja, null);
   };
+  cont.addEventListener("change", ev => {
+    if (ev.target.closest(".dash-nominal-sw")) { dashNominal = ev.target.checked; renderDashboard(); }
+  });
   cont.addEventListener("mouseover", mostrar);
   cont.addEventListener("mousemove", mostrar);
   cont.addEventListener("mouseout", quitarAlSalir);
@@ -1157,8 +1373,33 @@ function dashInyectarEstilos() {
     "#tarjetaMetricas .dash-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}",
     "#tarjetaMetricas .dash-head h3{font-size:14px;font-weight:700;color:var(--text)}",
     "#tarjetaMetricas .dash-hint{font-size:13px;color:var(--muted);margin-top:3px}",
-    "#tarjetaMetricas .dash-value-lg{font-size:24px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--text)}",
-    "#tarjetaMetricas .dash-desglose{font-size:18px;color:var(--muted);margin-top:2px;padding-bottom:8px;margin-bottom:6px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums}",
+    "#tarjetaMetricas .dash-value-lg{font-size:36px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--text)}",
+    "#tarjetaMetricas .dash-desglose{font-size:20px;color:var(--muted);margin:8px 0 6px;font-variant-numeric:tabular-nums}",
+    "#tarjetaMetricas .dash-bce{font-size:14px}",
+    "#tarjetaMetricas .dash-nominal-sep{margin:0 10px;font-size:20px;font-weight:400;color:var(--faint);vertical-align:middle}",
+    "#tarjetaMetricas .dash-nominal-fila{display:flex;align-items:center;gap:12px;margin:24px 0 8px}",
+    "#tarjetaMetricas .dash-nominal-fila .rv-interruptor{margin:0;font-weight:600}",
+    "#tarjetaMetricas .dash-nominal-k{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}",
+    "@media print{#tarjetaMetricas .dash-nominal-fila{display:none}}",
+    // La ventana «Ver el detalle» (en el <body>, fuera de #tarjetaMetricas).
+    // Más ancha que .arr-dlg; el relleno de arriba lo pone el título, fijo al bajar.
+    ".arr-dlg.dash-dlg{max-width:640px;width:calc(100% - 32px);padding-top:0}",
+    ".dash-dlg-cab{display:flex;align-items:flex-start;gap:12px;position:sticky;top:0;z-index:1;padding:18px 0 8px;background:var(--tarjeta)}",
+    ".dash-dlg-cab h3{flex:1}",
+    ".dash-dlg p{font-size:13.5px;margin:0 0 6px}",
+    ".dash-dlg-cajas{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}",
+    ".dash-dlg-caja{border:1px solid var(--border);border-radius:12px;padding:10px 14px}",
+    ".dash-dlg-caja b{display:block;font-size:17px;margin:4px 0 2px;font-variant-numeric:tabular-nums}",
+    ".dash-dlg-k{font-size:12.5px;color:var(--muted)}",
+    // Gris oscuro (entre el texto y el gris de las notas), en los dos temas.
+    ".dash-dlg-t{font-size:14.5px;font-weight:700;color:color-mix(in srgb,var(--text) 75%,var(--muted))}",
+    ".dash-dlg table{width:100%;border-collapse:collapse;font-size:13px}",
+    ".dash-dlg th,.dash-dlg td{border:1px solid var(--border);padding:6px 8px;text-align:left}",
+    ".dash-dlg th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--panel2)}",
+    ".dash-dlg .n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}",
+    ".dash-dlg th,.dash-dlg th.n{text-align:center}",
+    ".dash-dlg-grupo td{background:var(--ok-bg);font-weight:600;color:var(--muted)}",
+    ".dash-dlg-pie{margin:0 0 12px!important;color:var(--muted)}",
     "#tarjetaMetricas .dash-desglose-sep{margin:0 10px}",
     "#tarjetaMetricas .dash-subhead{font-size:13px;font-weight:700;color:var(--muted);margin:14px 0 2px;text-transform:uppercase;letter-spacing:.05em}",
     "#tarjetaMetricas .dash-value-k{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}",
@@ -1259,8 +1500,10 @@ function dashInyectarEstilos() {
   });
 
   window.addEventListener("hashchange", () => {
+    // La ventana «Ver el detalle» no se queda encima de otra pestaña.
+    document.querySelectorAll("dialog.dash-dlg[open]").forEach(d => d.close());
     const hash = (location.hash || "#dashboard").slice(1);
-    if (hash === "dashboard" || !document.getElementById("view-" + hash)) renderSeguro();
+    if (hash === "dashboard" || !document.getElementById("view-" + hash)) { dashNominal = false; renderSeguro(); }
   });
 
   renderSeguro(); // el DOM ya existe: los scripts van al final del <body>

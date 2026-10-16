@@ -151,6 +151,11 @@ como antes? Hacer → editar → ¿se conservan los campos que no se editaron?
   clasificar): lo que llegó mientras tanto («ya clasificará al terminar»)
   se quedó sin hacer, y una ventana que se abre sola al acabar lo propuso
   aunque el usuario ya lo había escrito.
+- Una ventana modal puesta en el `<body>` (para que un repintado no la
+  borre) no sigue a su pestaña: se quedaba encima de otra al cambiar de
+  pestaña, y al imprimir salía ella y no la tarjeta. Cerrarla al salir y
+  al imprimir. Y un interruptor que se oculta sin datos volvía encendido
+  sin verlo al volver los datos: apagarlo al ocultarlo.
 
 **Mirar:** ¿qué pasa si se repinta, se reclasifica o se cambia de pestaña a
 mitad de la acción? ¿Y si se pulsa dos veces? ¿Y en el papel?
@@ -228,6 +233,10 @@ cambió?
 - Las cifras de referencia pueden haberse grabado con el fallo dentro: el
   total de la hoja Cartera sumaba dos veces el resultado de un pool puesto
   a mano; solo se vio comparando con otra hoja del mismo libro.
+- Una caja de totales y una tabla de filas que salen de sitios distintos
+  (el total de lo pagado frente a las filas de lo que queda en la cartera):
+  con tokens enviados a otra wallet no sumaban lo mismo y nada lo decía.
+  Una fila con «el resto».
 
 **Mirar:** cada recuento nuevo o tocado, con cada filtro pulsado y con el
 spam, lo apartado y lo «a revisar» dentro y fuera.
@@ -254,6 +263,9 @@ spam, lo apartado y lo «a revisar» dentro y fuera.
 - Un aviso que el usuario no puede quitar: el motor lo volvía a poner
   aunque en 🔍 Revisión se decidiera «dejar como movimiento», y el año
   quedaba con «⚠️ 1 aviso» para siempre. Todo aviso nuevo, con su salida.
+- Lo que queda fuera de una cifra se enseña como si no existiera en otra:
+  una compra sin tipo del BCE salía «sin compra» en el valor nominal.
+  Decir el motivo real.
 
 **Mirar:** cada camino de error: ¿el usuario sabe qué falla y qué hacer?
 ¿El aviso dice la verdad del estado final?

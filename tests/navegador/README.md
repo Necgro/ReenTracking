@@ -50,6 +50,7 @@ lo haría una persona: abren `index.html`, pulsan botones y miden lo que sale.
 | `verifybocadillo1.js` | El bocadillo de los gráficos de 📊 sigue al ratón (línea y barras); con teclado, arriba de su columna | Sintéticos |
 | `verifymenu1.js` | La barra en dos grupos y su pie que lleva a 🚀; los iconos de 📒 y 💰 sin caja; «🔄 Actualizar» centrado y más abajo | Sin datos |
 | `verifycg1_ui.js` | Sincronización de CoinGecko sin reintentos inútiles | Sintéticos |
+| `verifynominal1.js` | 📊 «Valor nominal»: interruptor (repintado, volver a 📊, imprimir), «Ver el detalle» (Esc, foco, al imprimir y al cambiar de pestaña se cierra) | Sintéticos |
 | `privado/navegador/verify*_real.js` | Lo mismo con tu cache, config y CSV y la cache de prueba (solo en memoria; sin alguno, la regresión los omite). Están en `privado/` porque comprueban tus cifras; la regresión los busca allí | Copia fija de `privado/datos_reales/` |
 | `privado/navegador/verifydesc1_ui_real.js` | Descubrimiento automático con el catálogo vacío | `reental_cache_prueba.json` |
 

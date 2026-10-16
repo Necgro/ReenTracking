@@ -2,6 +2,15 @@
 
 Lo más reciente, arriba. Una fila por versión o paso.
 
+## Valor nominal en 📊 (16/10/2026)
+
+- **📊 Dashboard:** el dinero invertido es lo pagado por los tokens que
+  tienes (cada venta resta lo que costó lo vendido). Debajo, el interruptor
+  «Valor nominal»: esos tokens a 100 € o 100 $ cada uno según el proyecto,
+  la cifra que enseña la web de Reental, con su total aproximado en USD.
+  «Ver el detalle» abre una ventana con las dos cifras por inmueble.
+- **Cálculo:** no cambia; al imprimir sale siempre lo pagado.
+
 ## 1.2 — compras pagadas en dólares (15/10/2026)
 
 - **💶 Coste de las compras:** una compra por transferencia guardada con «En

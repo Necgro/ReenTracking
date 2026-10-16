@@ -130,7 +130,7 @@ vm.runInContext(`state.config = { wallet: "${W}", vault: "${V}" }`, S);
 S.__c = cache;
 const ct = vm.runInContext("dashCarteraTokens(__c)", S);
 assert("Cáceres 8: 7 + 2,5 del vault (los 4 a tu vault no cambian nada); RFON por su símbolo",
-  json(ct.items) === json([{ nombre: "Cáceres 8", n: 9.5 }, { nombre: "RFON", n: 1 }]), ct.items);
+  json(ct.items) === json([{ nombre: "Cáceres 8", n: 9.5, contrato: A }, { nombre: "RFON", n: 1, contrato: D }]), ct.items);
 assert("el vendido no sale, el negativo y lo ilegible se cuentan aparte, el «con dudas» no entra",
   ct.total === 10.5 && ct.negativos === 1 && ct.ignorados === 1 && ct.conDudas === 1, ct);
 vm.runInContext(`state.config = { wallet: "${W}", vault: "" }`, S);

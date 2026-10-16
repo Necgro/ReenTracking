@@ -27,6 +27,7 @@ La columna «Fuera» son las que ya no se usan.
 | Lo que se compra en Reental | **Inmueble** (su parte, «token del inmueble») | propiedad |
 | Año de la declaración | **Ejercicio** | año fiscal |
 | Mes al que corresponde un rendimiento | **Periodo** (sin tilde) | período |
+| Lo pagado por los tokens que tienes (📊) / esos tokens a 100 € o 100 $ cada uno, según el proyecto (el «Invertido» de la web de Reental) | **Dinero invertido** («coste real» en su detalle) / **Valor nominal** | — |
 | Lo que costó algo | **Coste de compra**; en las tablas de ventas, «valor de adquisición», que es la palabra de Renta Web | coste FIFO, coste base |
 | Resultado de una venta | **Ganancia o pérdida** («G/P» solo como título de columna) | plusvalía (queda en el glosario del informe, como palabra de Reental) |
 | Lo que se paga a la red | **Comisiones de red (gas)** | comisión, gas a secas |

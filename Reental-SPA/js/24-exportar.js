@@ -364,9 +364,13 @@ function exAntesDeImprimir() {
   // La lista entera de inmuebles del Dashboard también en el papel.
   const verTodos = vista ? vista.querySelector('.dash-ver-todos[aria-expanded="false"]') : null;
   if (verTodos) verTodos.click();
+  // Y siempre lo pagado, no el valor nominal (ni su ventana).
+  document.querySelectorAll("dialog.dash-dlg[open]").forEach(d => d.close());
+  const nominal = vista ? vista.querySelector(".dash-nominal-sw input:checked") : null;
+  if (nominal) nominal.click();
   const oscuro = document.body.classList.contains("dark");
   document.body.classList.remove("dark");
-  exEstado.imprimiendo = { ...exEstado.imprimiendo, preparado: true, oscuro, vista, abiertos, claves, verTodos: !!verTodos };
+  exEstado.imprimiendo = { ...exEstado.imprimiendo, preparado: true, oscuro, vista, abiertos, claves, verTodos: !!verTodos, nominal: !!nominal };
 }
 function exDespuesDeImprimir() {
   const imp = exEstado.imprimiendo;
@@ -377,6 +381,8 @@ function exDespuesDeImprimir() {
     for (const d of imp.vista.querySelectorAll("details[open][data-abierto]")) if (imp.claves.includes(d.dataset.abierto)) d.open = false;
     const verMenos = imp.verTodos && imp.vista.querySelector('.dash-ver-todos[aria-expanded="true"]');
     if (verMenos) verMenos.click();
+    const nominal = imp.nominal && imp.vista.querySelector(".dash-nominal-sw input:not(:checked)");
+    if (nominal) nominal.click();
   }
   if (imp.oscuro) document.body.classList.add("dark");
   if (imp.volverA && location.hash !== imp.volverA) location.replace(imp.volverA);
