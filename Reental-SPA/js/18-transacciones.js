@@ -441,7 +441,7 @@ function txNombresContratos(cache) {
   const c = pdEsObjeto(cache) ? cache : {};
   for (const [addr, e] of Object.entries(c.catalogo_propiedades || {})) {
     if (estadoCatalogo(e) !== "CONFIRMADA") continue;
-    const nombre = e.nombre_reental || e.nombre_etherscan;
+    const nombre = nombreVisibleInmueble(e);
     if (nombre) poner(addr, "Token " + nombre, "Contrato del token del inmueble " + nombre);
   }
   const cortoPorRol = { DISTRIBUIDOR: "Reental · repartos", SETTLEMENT: "Reental · liquidación" };

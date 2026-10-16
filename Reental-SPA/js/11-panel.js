@@ -56,7 +56,7 @@ function pnEnlaceContrato(addr) {
 
 function pnHtmlFilaCatalogo(f, sinTokens) {
   const e = f.entrada;
-  const nombre = e.nombre_reental || e.nombre_etherscan || "(sin nombre)";
+  const nombre = nombreVisibleInmueble(e) || "(sin nombre)";
   const botones = PN_BOTONES_CATALOGO[f.estado].map(([nuevo, texto, ayuda]) =>
     '<button type="button" class="rv-boton" data-addr="' + ccEsc(f.addr) + '" data-estado="' + nuevo +
     '" aria-label="' + ccEsc(texto.replace(/^\S+ /, "") + ": " + ayuda) + '">' + texto +
@@ -248,7 +248,7 @@ async function pnCambiarEstadoCatalogo(addr, nuevo) {
   await pnGuardarYClasificar();
   // El estado final: el descubrimiento vuelve a confirmar una «con dudas»
   // que tenga pruebas de ser inmueble (p. ej. su nombre en el archivo).
-  toast((e.nombre_reental || e.nombre_etherscan || addr) + " → " + (PN_ESTADOS[e.estado || "CONFIRMADA"] || PN_ESTADOS[nuevo]), "ok");
+  toast((nombreVisibleInmueble(e) || addr) + " → " + (PN_ESTADOS[e.estado || "CONFIRMADA"] || PN_ESTADOS[nuevo]), "ok");
 }
 
 /* «Descartar» = el spam de todo el token de 📒 (js/18): sale del catálogo y

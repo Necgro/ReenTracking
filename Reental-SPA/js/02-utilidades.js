@@ -420,6 +420,12 @@ function normalizarNombreInmueble(nombre) {
   const sinAcentos = nombre.normalize("NFKD").replace(/\p{M}/gu, "");
   return sinAcentos.toLowerCase().split(/\s+/).filter(Boolean).join(" ");
 }
+/* Nombre del inmueble para enseñarlo (el del archivo de Reental o el de
+   Etherscan), sin el «Reental» de delante: «Reental Malaga 8» → «Malaga 8». */
+function nombreVisibleInmueble(entrada) {
+  const nombre = entrada ? (entrada.nombre_reental || entrada.nombre_etherscan) : "";
+  return nombre ? String(nombre).replace(/^reental[\s_-]+(?=\S)/i, "") : "";
+}
 const RE_IMITADORES = /[\u0370-\u03FF\u0400-\u052F\u0530-\u058F\u13A0-\u13FF\u1C80-\u1C8F\u1F00-\u1FFF\u2DE0-\u2DFF\uA640-\uA69F\uAB70-\uABBF]/;
 function nombreTokenSospechoso(nombre, simbolo = "") {
   nombre = typeof nombre === "string" ? nombre : "";

@@ -111,8 +111,8 @@ function excelEtiquetaActivo(activo, cache) {
   const catalogo = pyO(cache, {}).catalogo_propiedades;
   const entrada = pdEsObjeto(catalogo) && fiscTiene(catalogo, activo) ? catalogo[activo] : null;
   if (pdEsObjeto(entrada)) {
-    const nombre = pyO(entrada.nombre_reental, entrada.nombre_etherscan);
-    if (pyVerdad(nombre)) return nombre;
+    const nombre = nombreVisibleInmueble(entrada);
+    if (nombre) return nombre;
   }
   return activo;
 }

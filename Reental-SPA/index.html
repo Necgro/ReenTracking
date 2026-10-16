@@ -239,7 +239,9 @@ main{flex:1;min-width:0;display:flex;flex-direction:column}
 .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:18px;box-shadow:var(--shadow)}
 .card h2{font-size:17px;font-weight:800;letter-spacing:-.01em;margin-bottom:4px}
 /* El título de cada pestaña, más visible. */
-.view>.card:first-of-type>h2:first-child,.view>.card:first-of-type>.arr-cabecera:first-child>h2{font-size:24px;letter-spacing:-.02em;margin-bottom:8px}
+.view>.card:first-of-type>h2:first-child,.view>.card:first-of-type>.arr-cabecera:first-child>h2{font-size:28px;letter-spacing:-.02em;margin-bottom:20px}
+.view>.card:first-of-type>.arr-cabecera:first-child{margin-bottom:20px}
+.view>.card:first-of-type>.arr-cabecera:first-child>h2{margin-bottom:0}
 @media(max-width:760px){.view>.card:first-of-type>h2:first-child,.view>.card:first-of-type>.arr-cabecera:first-child>h2{font-size:21px}}
 .card .sub{font-size:13px;color:var(--muted);margin-bottom:14px}
 .card h3{font-size:14px;font-weight:700}
@@ -373,6 +375,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
 .rv-tabla td,.rv-tabla th{padding:9px 10px;border:0;border-bottom:1px solid color-mix(in srgb,var(--border) 80%,var(--border2));vertical-align:middle;white-space:nowrap}
 .rv-tabla th{background:none;border-bottom:1px solid var(--border2);font-size:12.5px}
 .rv-tabla tbody tr:hover{background:color-mix(in srgb,var(--accent) 7%,var(--tarjeta))}
+.rv-tabla.rv-titulos-centro th{text-align:center}
 .rv-tabla .num{text-align:right;font-variant-numeric:tabular-nums}
 .rv-tabla .rv-acciones{text-align:right}
 .rv-tabla .rv-acciones button{min-height:30px;padding:4px 10px;font-size:12.5px;margin-left:6px}
@@ -504,7 +507,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed}
       <p class="help rv-explica">Los tokens que la app cuenta como inmuebles.</p>
       <!-- Apagado, solo los que tienes (js/11, pnVerTodos) -->
       <label id="rvCatalogoTodosCaja" class="rv-interruptor" hidden><input type="checkbox" role="switch" id="rvCatalogoTodos"><span class="rv-interruptor-pista" aria-hidden="true"></span><span>Ver todos (<span id="rvCatalogoTodosN">0</span>)</span></label>
-      <div class="rv-caja"><table class="rv-tabla"><thead><tr><th>Inmueble</th><th>Símbolo</th><th>1ª aparición</th><th>Contrato</th><th>Estado</th><th></th></tr></thead><tbody id="tablaCatalogo"></tbody></table></div>
+      <div class="rv-caja"><table class="rv-tabla rv-titulos-centro"><thead><tr><th>Inmueble</th><th>Símbolo</th><th>1ª aparición</th><th>Contrato</th><th>Estado</th><th></th></tr></thead><tbody id="tablaCatalogo"></tbody></table></div>
     </details>
     <details id="rvContratos" class="cc-resueltos rv-plegable">
       <summary>🧭 Direcciones que la app reconoce (<span id="nContratosDefi">0</span>)</summary>
