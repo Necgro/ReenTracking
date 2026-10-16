@@ -522,7 +522,7 @@ function cbInyectarEstilos() {
     ".cb-caja{overflow-x:auto}",
     /* Como la tabla de 📒 Transacciones: sin
        cuadrícula, solo una raya fina entre filas, y algo más alta. */
-    ".cb-tabla{width:auto;margin:0 auto;font-size:13.5px}",
+    ".cb-tabla{width:auto;margin:14px auto 0;font-size:13.5px}",
     ".cb-tabla td,.cb-tabla th{padding:11px 14px;border:0;border-bottom:1px solid color-mix(in srgb,var(--border) 80%,var(--border2));vertical-align:middle;white-space:nowrap}",
     ".cb-tabla th,.cb-tabla th.num{border-bottom:1px solid var(--border2);font-size:13.5px;text-align:center}",
     ".cb-tabla tbody td{height:50px;padding-top:6px;padding-bottom:6px}", // la misma altura con casilla o sin ella
