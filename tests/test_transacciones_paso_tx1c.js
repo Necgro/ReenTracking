@@ -87,7 +87,7 @@ assert("A7: el neutro que te llega, con el texto de 🔍 para lo que llega («Ya
   S.txAyudaOperacion(casos[3][0], null, "salida") === AY_NEUTRO);
 assert("filtro «Neutros»: lo neutro no va a la Renta; del gas no lo dice (cuenta en el coste de su compra o venta)",
   vm.runInContext("TX_GRUPOS", S).find(g => g.id === "neutro").ayuda ===
-  "Movimientos neutros (siguen siendo tuyos; no van a la Renta) y comisiones de red (gas).");
+  "Movimientos neutros (siguen siendo tuyos; no se declaran) y comisiones de red (gas).");
 assert("subcategoría desconocida: tal cual (no se inventa)", S.txOperacion(reg("z", "X", "OTRA_COSA")) === "OTRA_COSA");
 
 /* P9: las dos filas de un canje de contrato (quema del viejo + llegada del nuevo, mismo hash). */

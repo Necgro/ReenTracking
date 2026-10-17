@@ -131,7 +131,7 @@ const TX_GRUPOS = [
   { id: "revisar", etiqueta: "Revisar", ayuda: "Se resuelven en 🔍 Revisión." },
   { id: "fiscal", etiqueta: "Con efecto fiscal",
     ayuda: "Rendimientos, recompensas DeFi, compras, ventas, depósitos y retiradas." },
-  { id: "neutro", etiqueta: "Neutros", ayuda: "Movimientos neutros (siguen siendo tuyos; no van a la Renta) y comisiones de red (gas)." },
+  { id: "neutro", etiqueta: "Neutros", ayuda: "Movimientos neutros (siguen siendo tuyos; no se declaran) y comisiones de red (gas)." },
 ];
 
 /* Motivos del spam, en el orden en que se miran: el primero que

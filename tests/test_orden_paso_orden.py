@@ -210,7 +210,7 @@ class TestOrden(unittest.TestCase):
 
     def test_pdf_y_excel_ignorados(self):
         # Con cualquier nombre y en cualquier carpeta.
-        rutas = ["Informe para la Renta 2025.pdf", "Renta 2025.pdf", "Reental-SPA/Renta 2025.PDF",
+        rutas = ["Informe fiscal 2025.pdf", "Renta 2025.pdf", "Reental-SPA/Renta 2025.PDF",
                  "docs/x.pdf", "Reental contabilidad.xlsx"]
         vistos = [r for r in rutas if subprocess.run(["git", "check-ignore", "-q", r], cwd=RAIZ).returncode != 0]
         self.assertEqual(vistos, [], "PDF o Excel que Git no ignora")

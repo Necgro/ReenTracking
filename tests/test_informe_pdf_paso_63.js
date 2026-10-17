@@ -101,7 +101,7 @@ assert("el pie lleva la hora de aquí y «Página n de N»",
   html.includes("Generado el 05/10/2026 09:07") && html.includes('"Página " counter(page) " de " counter(pages)'));
 assert("«Generado el» en la cabecera, con la hora de aquí",
   bloques[1].filas.some(f => f.celdas[0] === "Generado el" && f.celdas[1] === "05/10/2026 09:07"));
-assert("el <title> es el nombre del PDF", html.includes("<title>Informe para la Renta 2025</title>"));
+assert("el <title> es el nombre del PDF", html.includes("<title>Informe fiscal 2025</title>"));
 assert("A4 vertical", html.includes("size:A4 portrait"));
 assert("A5: las cajas de arriba de la hoja, vacías (sin la fecha ni el título de Chrome)",
   ["top-left", "top-center", "top-right"].every(c => html.includes("@" + c + '{content:""}')));

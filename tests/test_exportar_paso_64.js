@@ -51,8 +51,8 @@ console.log("== 1. fiCalcular: lo que necesita el Excel ==");
     r.colas && typeof r.colas.values === "function" && r.resumen && typeof r.resumen === "object");
   assert("los registros son una copia: los que recibe no cambian", r.registros !== regs && JSON.stringify(regs) === antes);
   const libro = sb.excelLibro(r.registros, r.colas, r.resumen, { transacciones: {} }, { wallet: W }, r.informes, AHORA);
-  assert("con ellos sale el libro, con una «Renta» por año", libro.hojas.some(h => h.nombre === "Renta 2025") &&
-    libro.hojas.some(h => h.nombre === "Renta 2026"), libro.hojas.map(h => h.nombre));
+  assert("con ellos sale el libro, con una «Fiscal» por año", libro.hojas.some(h => h.nombre === "Fiscal 2025") &&
+    libro.hojas.some(h => h.nombre === "Fiscal 2026"), libro.hojas.map(h => h.nombre));
 }
 
 console.log("== 2. 6.3 A2: el cálculo guardado y la config ==");
@@ -135,12 +135,12 @@ console.log("== 7. Fase 6 A1: el Excel avisa de la sincronización como el PDF =
     const r = sb.fiCalcular(regs, { transacciones: {} }, { wallet: W }, hasta);
     const libro = sb.excelLibro(r.registros, r.colas, r.resumen, { transacciones: {} }, { wallet: W }, r.informes, AHORA, hasta);
     const pdf = sb.pdfBloques(r.informes[2025], AHORA, hasta).filter(b => b.tipo === "aviso").map(b => b.texto);
-    const renta = libro.hojas.filter(h => /^Renta /.test(h.nombre));
+    const renta = libro.hojas.filter(h => /^Fiscal /.test(h.nombre));
     const enHojas = renta.map(h => textos(h).filter(c => pdf.includes(c.valor)));
     return { pdf, enHojas, hojas: renta.length };
   };
   const sinFecha = avisoExcel(sb.fiHastaCuando({ transacciones: {} }, "2026-10-07"));
-  assert("sin fecha: cada «Renta AAAA» lleva el aviso del PDF, en rojo y en negrita",
+  assert("sin fecha: cada «Fiscal AAAA» lleva el aviso del PDF, en rojo y en negrita",
     sinFecha.pdf.length === 1 && sinFecha.hojas === 2 &&
     sinFecha.enHojas.every(cs => cs.length === 1 && cs[0].estilo.negrita && cs[0].estilo.color === vm.runInContext("EXCEL_COLOR.ROJO", sb)), sinFecha);
   const fallo = avisoExcel(sb.fiHastaCuando({ ultima_sincronizacion: { fecha: "2026-05-20", etherscan_fallo: true } }, "2026-10-07"));
@@ -153,12 +153,12 @@ console.log("== 7. Fase 6 A1: el Excel avisa de la sincronización como el PDF =
     bien.pdf.length === 0 && !sinHasta.hojas.some(h => textos(h).some(c => /sincroniz/.test(c.valor))));
 }
 
-console.log("== 8. Fase 6 A5: el titular, el NIF y la wallet, tal cual en la hoja Renta ==");
+console.log("== 8. Fase 6 A5: el titular, el NIF y la wallet, tal cual en la hoja Fiscal ==");
 {
   const config = { wallet: W, inversor: { nombre: "Calle 2024-01-05 vuelve a ejecutar el programa", nif: "X-2024-01-05" } };
   const r = sb.fiCalcular(registros(), { transacciones: {} }, config, { hoy: "2026-10-07" });
   const libro = sb.excelLibro(r.registros, r.colas, r.resumen, { transacciones: {} }, config, r.informes, AHORA);
-  const hoja = libro.hojas.find(h => h.nombre === "Renta 2025");
+  const hoja = libro.hojas.find(h => h.nombre === "Fiscal 2025");
   const valor = etiqueta => {
     for (const f of hoja.filas.values()) if (f.get(1) && f.get(1).valor === etiqueta) return f.get(2).valor;
     return null;
@@ -174,7 +174,7 @@ console.log("== 9. Fase 6 A4: los avisos del Excel, con mayúscula como en el PD
   const hasta = sb.fiHastaCuando({ ultima_sincronizacion: { fecha: null, etherscan_fallo: true } }, "2026-10-07");
   const r = sb.fiCalcular(registros(), { transacciones: {} }, { wallet: W }, hasta);
   const libro = sb.excelLibro(r.registros, r.colas, r.resumen, { transacciones: {} }, { wallet: W }, r.informes, AHORA, hasta);
-  const hoja = libro.hojas.find(h => h.nombre === "Renta 2026");
+  const hoja = libro.hojas.find(h => h.nombre === "Fiscal 2026");
   const enExcel = [...hoja.filas.values()].map(f => f.get(4) && f.get(4).valor).filter(v => typeof v === "string" && /descargar/.test(v));
   const enPdf = sb.pdfBloques(r.informes[2026], AHORA, hasta).filter(b => b.tipo === "tabla" && b.clase === "pdf-avisos")
     .flatMap(b => b.filas.map(f => f.celdas[3])).filter(v => /descargar/.test(v));

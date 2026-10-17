@@ -131,11 +131,11 @@ print(json.dumps(todos))`;
   assert("S1 -> se abre el diálogo de imprimir una vez, de un marco oculto", s1.vistos.length === 1 && s1.vistos[0].oculto === true &&
     s1.marco && s1.ariaHidden === "true", s1.vistos);
   assert("S1 -> mientras, la ventana se llama como el PDF; después, como antes",
-    s1.vistos[0]?.titulo === "Informe para la Renta 2025" && s1.tituloDespues === s1.titulo, [s1.vistos[0]?.titulo, s1.tituloDespues]);
+    s1.vistos[0]?.titulo === "Informe fiscal 2025" && s1.tituloDespues === s1.titulo, [s1.vistos[0]?.titulo, s1.tituloDespues]);
   assert("S1 -> A9: mientras se imprime el foco está en el marco y después vuelve al botón que lo tenía",
     s1.vistos[0]?.focoEnMarco === true && s1.focoVuelve === true, [s1.vistos[0]?.focoEnMarco, s1.focoVuelve]);
   assert("S1 -> el marco lleva el informe de 2025, con su título",
-    /<title>Informe para la Renta 2025<\/title>/.test(s1.html) && /Informe para la Renta · Ejercicio 2025/.test(s1.html));
+    /<title>Informe fiscal 2025<\/title>/.test(s1.html) && /Informe fiscal · Ejercicio 2025/.test(s1.html));
   assert("S1 -> la pestaña abierta no cambia (sigue 🧾, en oscuro, lo plegado plegado) y no se imprime la ventana",
     s1.hashDespues === s1.hash && s1.oscuro && s1.plegados === s1.plegadosDespues && s1.avisos.length === 0,
     [s1.hashDespues, s1.oscuro, s1.plegados, s1.plegadosDespues, s1.avisos]);

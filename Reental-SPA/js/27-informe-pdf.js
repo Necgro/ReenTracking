@@ -275,7 +275,7 @@ function pdfTextos(informe) {
    sincronización). Solo lee. */
 function pdfBloques(informe, ahora = new Date(), hasta = null) {
   const aviso = fiAvisoSincronizacion(hasta);
-  return [{ tipo: "titulo", texto: "Informe para la Renta · Ejercicio " + informe.ejercicio },
+  return [{ tipo: "titulo", texto: "Informe fiscal · Ejercicio " + informe.ejercicio },
     pdfCabecera(informe, ahora),
     ...(aviso ? [{ tipo: "aviso", texto: aviso }] : []),
     { tipo: "seccion", texto: "I. Resumen del ejercicio" },
@@ -377,7 +377,7 @@ function pdfHtml(informe, ahora = new Date(), hasta = null) {
     ccEsc(pdfTitulo(informe)) + "</title><style>" + pdfEstilos(informe, ahora) + "</style></head><body>" +
     pdfBloques(informe, ahora, hasta).map(pdfHtmlBloque).join("\n") + "</body></html>";
 }
-function pdfTitulo(informe) { return "Informe para la Renta " + informe.ejercicio; }
+function pdfTitulo(informe) { return "Informe fiscal " + informe.ejercicio; }
 
 /* Imprime el informe (el navegador ofrece «Guardar como PDF»): lo pinta
    en un marco oculto y abre el diálogo de imprimir de ese marco. La

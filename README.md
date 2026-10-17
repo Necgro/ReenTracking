@@ -35,7 +35,7 @@ precios) y añade el último archivo de rendimientos de Reental.
 | 📒 Transacciones | Todos tus movimientos, con filtros y notas |
 | 💰 Rendimientos | Cada reparto de Reental: lo cobrado, lo retenido y lo pendiente |
 | 🧾 Fiscal | Lo que va en tu declaración de la Renta, por ejercicio |
-| 📤 Exportar | El Excel con todos tus años, el informe para la Renta en PDF e imprimir |
+| 📤 Exportar | El Excel con todos tus años, el informe fiscal en PDF e imprimir |
 | 🚀 Puesta en marcha | Tus datos, el archivo de Reental y tus copias |
 | 🔍 Revisión | Lo que la app no puede decidir sola |
 
