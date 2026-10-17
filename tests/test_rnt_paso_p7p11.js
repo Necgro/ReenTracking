@@ -255,7 +255,7 @@ assert("A9: 1 € por 100.000 RNT → 0,00001000 €/RNT (y 💶 igual)",
   S.ccTextoPrecioRnt(1, 100000) === "1,00 € ÷ 100.000 RNT = 0,00001000 €/RNT" && S.cbTextoPorToken(1, 100000) === "0,00001000 €" &&
   S.cbTextoPorToken(37, 1000) === "0,0370 €" && S.cbTextoPorToken(300, 3) === "100,00 €", [S.ccTextoPrecioRnt(1, 100000), S.cbTextoPorToken(1, 100000)]);
 
-assert("A12: «Qué es cada cosa» cuenta el RNT comprado en € como compra", S.ccHtmlQueEs().includes("tokens de inmuebles (y el RNT que compraste en €)."));
+assert("A12: «Qué es cada cosa» cuenta el RNT comprado como compra", S.ccHtmlDialogoQueEs().includes("tokens de inmuebles que compras o vendes, y RNT que compras."));
 
 console.log("== 6. Huecos de la auditoría ==");
 {

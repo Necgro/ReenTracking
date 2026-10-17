@@ -200,11 +200,13 @@ assert("HTML: el texto va en el title de su botón, y no en los demás",
   !/data-opcion="dinero"[^>]*title=/.test(htmlAy), htmlAy);
 
 console.log("== P3. «ⓘ Qué es cada cosa» en 🔍 y 📒 ==");
-const queEs = S.ccHtmlQueEs();
-const nombresQueEs = (queEs.match(/<div><b>[^<]+<\/b>/g) || []).map(x => x.slice(8, -4));
-assert("10 líneas, con compra bancaria, canje y gas", nombresQueEs.length === 10 &&
-  ["Compra bancaria", "Canje de contrato", "Comisión de red (gas)", "Movimiento neutro", "Spam"].every(n => nombresQueEs.includes(n)), nombresQueEs);
-assert("con teclado (tabindex) y el texto entero en el aria-label", /^<span class="cc-que-es" tabindex="0" aria-label="Qué es cada cosa\. Compra \/ Venta: /.test(queEs));
+const queEs = S.ccHtmlDialogoQueEs();
+const nombresQueEs = (queEs.match(/<p><b>[^<]+<\/b>/g) || []).map(x => x.slice(6, -4));
+assert("11 líneas en la ventana, con permuta, compra bancaria, canje y gas", nombresQueEs.length === 11 &&
+  ["Permuta", "Compra bancaria", "Canje de contrato", "Comisión de red (gas)", "Movimiento neutro", "Spam"].every(n => nombresQueEs.includes(n)), nombresQueEs);
+assert("sin «Renta»: dice «efecto fiscal»", !/Renta/.test(queEs) && /Tiene efecto fiscal/.test(queEs) && /sin efecto fiscal/.test(queEs));
+assert("un botón (teclado) que abre la ventana, sin burbuja",
+  /^<button type="button" class="cc-que-es">/.test(S.ccHtmlQueEs()) && !/cc-burbuja/.test(S.ccHtmlQueEs()));
 const indexHtml = fs.readFileSync(path.join(__dirname, "..", "Reental-SPA", "index.html"), "utf8");
 assert("un hueco en cada pestaña, bajo su título (🔍 y 📒)",
   /<h2>🔍 Revisión<\/h2>\s*<span data-que-es><\/span>/.test(indexHtml) && /<h2>📒 Transacciones<\/h2>\s*<span data-que-es><\/span>/.test(indexHtml) &&

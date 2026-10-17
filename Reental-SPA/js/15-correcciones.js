@@ -678,26 +678,41 @@ const CC_AYUDA_REGALO = "Llega sin comprarlo (p. ej. un airdrop).";
 const CC_AYUDA_RECOMPENSA = "Premio del staking o farming de RNT.";
 const CC_AYUDA_COMPRA_RNT = "RNT que pagaste en € (p. ej. una preventa): cada entrega es una compra.";
 
-/* «ⓘ Qué es cada cosa», arriba en 🔍 y 📒 (en su hueco [data-que-es]): una
-   línea por tipo de movimiento, de lo que hace la app. */
+/* «ⓘ Qué es cada cosa», arriba en 🔍 y 📒 (en su hueco [data-que-es]): al
+   pulsarlo, una ventana con una línea por tipo de movimiento, de lo que hace
+   la app, para quien sabe poco de impuestos y de cripto. */
 const CC_QUE_ES_CADA_COSA = [
-  ["Compra / Venta", "tokens de inmuebles (y el RNT que compraste en €)."],
-  ["Compra bancaria", "tokens que pagaste a Reental por transferencia: en la blockchain solo se ve que te llegan."],
-  ["Canje de contrato", "el token de un inmueble cambia por el de su contrato nuevo. No es una venta."],
-  ["Rendimiento", "repartos de Reental."],
-  ["Recompensa DeFi", "premio del staking o farming de RNT. Va a la Renta."],
-  ["Movimiento neutro", "sigue siendo tuyo: meter o sacar del staking, farming o pool, otra wallet o un exchange. No va a la Renta."],
-  ["Ingreso / Salida de dinero", "USDT o USDC."],
-  ["Regalo recibido", "llega sin comprarlo (p. ej. un airdrop)."],
-  ["Comisión de red (gas)", "lo que cuesta cada movimiento, en POL."],
-  ["Spam", "no es tuyo, no cuenta."],
+  ["Compra / Venta", "tokens de inmuebles que compras o vendes, y RNT que compras. La venta tiene efecto fiscal."],
+  ["Permuta", "el token que das al cambiarlo por otro (p. ej. das USDT y recibes RNT). Cuenta como una venta."],
+  ["Compra bancaria", "tokens que pagaste por transferencia o desde otra wallet. En la blockchain solo se ve que los tokens llegan a tu wallet, no el pago."],
+  ["Canje de contrato", "Reental cambia el token de un inmueble por otro nuevo del mismo inmueble. No es una venta: sin efecto fiscal."],
+  ["Rendimiento", "lo que te reparte Reental de los inmuebles (alquileres u otros beneficios). Tiene efecto fiscal."],
+  ["Recompensa DeFi", "tokens extra por tener tus RNT en staking o farming (como los intereses de una cuenta de ahorro). Tiene efecto fiscal."],
+  ["Movimiento neutro", "tokens que pasan entre tus propias cuentas (otra wallet tuya o un exchange) o que metes o sacas del staking, el farming o un pool. Siguen siendo tuyos: sin efecto fiscal."],
+  ["Ingreso / Salida de dinero", "dólares digitales (USDT o USDC) que entran a tu wallet o salen de ella. La salida tiene efecto fiscal."],
+  ["Regalo recibido", "tokens que te llegan sin pagarlos, p. ej. un reparto gratis (airdrop) o una promoción. Tiene efecto fiscal."],
+  ["Comisión de red (gas)", "lo que pagas en POL (la moneda de la red Polygon) por cada operación que haces tú; lo que te llega no paga. En una compra o una venta, cuenta en su coste."],
+  ["Spam", "tokens falsos o sin valor que te envían para engañarte (p. ej. imitan a uno real o a tu dirección). La app no los cuenta: sin efecto fiscal."],
 ];
 function ccHtmlQueEs() {
-  const lineas = CC_QUE_ES_CADA_COSA.map(([n, t]) => "<div><b>" + ccEsc(n) + "</b>: " + ccEsc(t) + "</div>").join("");
-  const plano = CC_QUE_ES_CADA_COSA.map(([n, t]) => n + ": " + t).join(" ");
-  return '<span class="cc-que-es" tabindex="0" aria-label="Qué es cada cosa. ' + ccEsc(plano) +
-    '"><span class="cc-info" aria-hidden="true">ⓘ</span>Qué es cada cosa<span class="cc-burbuja" aria-hidden="true">' +
-    lineas + "</span></span>";
+  return '<button type="button" class="cc-que-es"><span class="cc-info" aria-hidden="true">ⓘ</span>Qué es cada cosa</button>';
+}
+/* La ventana, en el <body> con el aspecto de la de 📊 (`dash-dlg`, que
+   js/16 cierra al cambiar de pestaña); al cerrarla, el foco vuelve al botón. */
+function ccHtmlDialogoQueEs() {
+  return '<div class="dash-dlg-cab"><h3 id="ccDlgQueEsTit">ⓘ Qué es cada cosa</h3>' +
+    '<button type="button" class="dash-dlg-x" aria-label="Cerrar">✕</button></div>' +
+    CC_QUE_ES_CADA_COSA.map(([n, t]) => "<p><b>" + ccEsc(n) + "</b>: " + ccEsc(t) + "</p>").join("");
+}
+function ccAbrirQueEs(boton) {
+  const dlg = document.createElement("dialog");
+  dlg.className = "arr-dlg dash-dlg cc-que-es-dlg";
+  dlg.setAttribute("aria-labelledby", "ccDlgQueEsTit");
+  dlg.innerHTML = ccHtmlDialogoQueEs();
+  document.body.appendChild(dlg);
+  dlg.querySelector(".dash-dlg-x").addEventListener("click", () => dlg.close());
+  dlg.addEventListener("close", () => { dlg.remove(); boton.focus(); });
+  dlg.showModal();
 }
 
 /* Lo que dice «✔ …» (dejarlo como está): el nombre de la operación en 📒
@@ -3145,14 +3160,13 @@ function ccInyectarEstilos() {
     ".cc-info:focus{outline:2px solid var(--accent);outline-offset:1px}",
     ".cc-info .cc-burbuja{display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);width:max-content;max-width:min(340px,72vw);background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow);padding:8px 11px;font-size:12.5px;font-weight:400;line-height:1.55;z-index:400;text-align:left;white-space:normal;cursor:auto}",
     ".cc-info:hover .cc-burbuja,.cc-info:focus .cc-burbuja,.cc-info:focus-within .cc-burbuja{display:block}",
-    /* «ⓘ Qué es cada cosa»: arriba a la derecha de la tarjeta; la burbuja se abre hacia abajo. */
+    /* «ⓘ Qué es cada cosa»: arriba a la derecha de la tarjeta; abre su ventana. */
     ".card:has(>.cc-que-es){position:relative}",
-    ".card>.cc-que-es{position:absolute;top:30px;right:22px;display:inline-flex;align-items:center;gap:5px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:help}",
-    ".cc-que-es .cc-info{margin:0}",
-    ".cc-que-es:hover,.cc-que-es:focus{color:var(--accent)}",
-    ".cc-que-es:focus{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}",
-    ".cc-que-es .cc-burbuja{display:none;position:absolute;top:calc(100% + 8px);right:0;width:max-content;max-width:min(540px,80vw);background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px 18px;font-size:13.5px;font-weight:400;line-height:1.7;z-index:400;text-align:left;white-space:normal;cursor:auto}",
-    ".cc-que-es:hover .cc-burbuja,.cc-que-es:focus .cc-burbuja{display:block}",
+    ".card>.cc-que-es{position:absolute;top:30px;right:22px;display:inline-flex;align-items:center;gap:5px;font:inherit;font-size:13.5px;font-weight:600;color:var(--muted);background:none;border:0;padding:0;min-height:0;box-shadow:none;cursor:pointer}",
+    ".cc-que-es .cc-info{margin:0;cursor:pointer}",
+    ".cc-que-es:hover,.cc-que-es:focus-visible{color:var(--accent)}",
+    ".cc-que-es:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}",
+    ".cc-que-es-dlg p{font-size:14px;line-height:1.55;margin:0 0 10px}",
     "@media print{.card>.cc-que-es{display:none}}",
     "#ccLista .cc-cat{margin-left:auto;display:inline-flex;align-items:center;font-size:13.5px;font-weight:700;color:var(--muted)}",
     /* La ⓘ de la nota va en el borde derecho: su burbuja se abre hacia dentro. */
@@ -3353,5 +3367,6 @@ function ccPulsarIrA(e) {
   const vista = $("view-revision");
   if (vista) vista.addEventListener("click", ccPulsarIrA);
   document.querySelectorAll("[data-que-es]").forEach(e => { e.outerHTML = ccHtmlQueEs(); });
+  document.querySelectorAll(".cc-que-es").forEach(b => b.addEventListener("click", () => ccAbrirQueEs(b)));
   ccRenderSeguro(); // el DOM ya existe: los scripts van al final del <body>
 })();
