@@ -105,6 +105,35 @@ const esperar = ms => new Promise(s => setTimeout(s, ms));
     return t;
   });
   assert("con 3: «⚠ Todavía hay 3 movimientos por decidir.»", plural === "⚠ Todavía hay 3 movimientos por decidir.", plural);
+  /* FOCO-DECIDIR: al repintar, el foco no cae al principio de la página:
+     sigue en su botón, pasa a la tarjeta que ocupa el sitio de la decidida
+     y, sin ninguna, al título de la fila siguiente. */
+  const foco = await page.evaluate(() => {
+    const r0 = state.registros.find(r => r.revisar), regs = state.registros;
+    state.registros = regs.concat([Object.assign({}, r0, { clave: r0.clave + "b" }), Object.assign({}, r0, { clave: r0.clave + "c" })]);
+    renderCorrecciones();
+    const enfocado = () => { const e = document.activeElement, t = e.closest("[data-hash]"); return (t ? t.getAttribute("data-clave").slice(-1) + ":" : "") + (e.getAttribute("data-opcion") || e.id || e.parentElement.id); };
+    const botones = c => document.querySelectorAll('#ccLista [data-hash][data-clave="' + r0.clave + c + '"] [data-accion="decidir"]');
+    const opcion = botones("b")[1].getAttribute("data-opcion");
+    botones("b")[1].focus();
+    renderCorrecciones();
+    const mismo = enfocado();
+    state.registros = state.registros.filter(r => r.clave !== r0.clave + "b");
+    renderCorrecciones();
+    const siguiente = enfocado();
+    state.registros = state.registros.filter(r => r.clave !== r0.clave + "c");
+    renderCorrecciones();
+    const ultimaAntes = enfocado();
+    state.registros = regs.filter(r => !r.revisar);
+    renderCorrecciones();
+    const fuera = enfocado();
+    state.registros = regs;
+    renderCorrecciones();
+    return { mismo, siguiente, ultimaAntes, fuera, opcion };
+  });
+  assert("FOCO-DECIDIR: repintar deja el foco en su botón; decidida la tarjeta, el primer botón de la que ocupa su sitio; " +
+    "la última, la de antes; sin ninguna, el título de «Coste»",
+    foco.mismo === "b:" + foco.opcion && /^c:/.test(foco.siguiente) && /^d:/.test(foco.ultimaAntes) && foco.fuera === "cbCoste", foco);
   /* Sin wallet, la línea gris lo dice (la fila no sale: nada por vincular). */
   const sinWallet = await page.evaluate(() => {
     const antes = state.config;

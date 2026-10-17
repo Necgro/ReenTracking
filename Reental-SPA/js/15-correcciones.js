@@ -2026,6 +2026,7 @@ function renderCorrecciones() {
   }
 
   if (ccDecisionAbierta && !cola.some(r => r.clave === ccDecisionAbierta.clave)) ccDecisionAbierta = null;
+  const foco = ccFocoAntes(lista);
   lista.innerHTML = ccHtmlLista(registros, cola, ctx, ccVentasGuardadas(), {
       ajustes: (state.cache && state.cache.ajustes_usuario) || {},
       tiposBce: (state.cache && state.cache.tipos_bce) || {},
@@ -2033,7 +2034,38 @@ function renderCorrecciones() {
       abierta: ccDecisionAbierta,
       dudas: ctx.dudas.size,
     });
+  ccFocoDespues(lista, foco);
   renderCcResueltos();
+}
+
+/* FOCO-DECIDIR: la lista se rehace entera y el botón con el foco
+   desaparece. Se apunta cuál era (y en qué tarjeta) y, al repintar, vuelve
+   a él; si su tarjeta ya no está (decidida), al primer botón de la que
+   ocupa su lugar (o la última); sin tarjetas, al título de la fila
+   siguiente (Coste). */
+function ccFocoAntes(lista) {
+  const el = document.activeElement;
+  if (!el || el === lista || !lista.contains(el)) return null;
+  const tarjeta = el.closest("[data-hash]");
+  const tarjetas = [...lista.querySelectorAll("[data-hash]")];
+  return {
+    sel: ["data-accion", "data-clave", "data-opcion"].filter(a => el.hasAttribute(a))
+      .map(a => "[" + a + '="' + CSS.escape(el.getAttribute(a)) + '"]').join("") || null,
+    clase: el.classList.contains("cc-dec-valor") ? ".cc-dec-valor" : "",
+    i: tarjeta ? tarjetas.indexOf(tarjeta) : -1,
+  };
+}
+function ccFocoDespues(lista, foco) {
+  if (!foco) return;
+  let el = foco.sel && lista.querySelector(foco.clase + foco.sel);
+  if (!el && foco.i >= 0) {
+    const tarjetas = lista.querySelectorAll("[data-hash]");
+    const t = tarjetas[Math.min(foco.i, tarjetas.length - 1)];
+    el = t && t.querySelector("button, input");
+  }
+  const fila = lista.closest("details");
+  if (!el && fila) el = (fila.hidden ? fila.nextElementSibling : fila)?.querySelector("summary");
+  if (el) el.focus();
 }
 
 function ccRenderSeguro() {
