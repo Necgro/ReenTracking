@@ -82,7 +82,10 @@ async function pasoBce() {
 async function pasoRnt() {
   const fechasRnt = fechasConMovimientoRnt(state.cache);
   const noDisp = state.cache.precios_rnt_no_disponibles || {};
-  const pendientes = fechasRnt.filter(f => !precioValido(state.cache.precios_rnt[f]) && !(f in noDisp)).sort();
+  const sinPedir = f => !precioValido(state.cache.precios_rnt[f]) && !(f in noDisp);
+  const hoyUtc = fechasRnt.filter(f => sinPedir(f) && diaUtcSinEmpezar(f, coingeckoRitmo.ahora()));
+  if (hoyUtc.length) log("Precio RNT de " + hoyUtc.map(f => fechaEs(f)).join(", ") + ": CoinGecko aún no lo tiene; se pedirá en la próxima sincronización.");
+  const pendientes = fechasRnt.filter(f => sinPedir(f) && !hoyUtc.includes(f)).sort();
   if (pendientes.length) log("Descargando " + pendientes.length + " precios históricos de RNT (CoinGecko)...");
   const sinPrecio = [];
   for (const fecha of pendientes) {
@@ -120,7 +123,7 @@ async function pasoPol() {
     ? pnFechasSinPrecioPol(state.cache, state.registros, Date.now()).map(x => x[0]) : [];
   const fechasPol = [...new Set([...fechasConMovimientoPol(state.cache), ...necesita])];
   const precios = bloquePrecios(state.cache, "precios_pol");
-  for (const fecha of fechasPol.filter(f => !precioValido(precios[f])).sort()) {
+  for (const fecha of fechasPol.filter(f => !precioValido(precios[f]) && !diaUtcSinEmpezar(f, coingeckoRitmo.ahora())).sort()) {
     await precioPolHistorico(fecha, state.cache);
   }
   if (fechasPol.length) log("Precios POL: " + Object.keys(precios).length + " en cache para " + fechasPol.length + " fechas con movimiento de POL.");

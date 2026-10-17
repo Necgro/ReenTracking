@@ -108,6 +108,13 @@ function diasDesdeFechaRnt(fecha, ahoraMs) {
   const hoy = Date.UTC(h.getUTCFullYear(), h.getUTCMonth(), h.getUTCDate());
   return Math.floor((hoy - f) / 86400000);
 }
+/* S1: su día UTC aún no ha empezado (un movimiento de las 00:00 a las
+   01:00, o 02:00 en verano, españolas): CoinGecko todavía no lo tiene
+   (responde el error 10014). No se pide ni se avisa: lo coge la siguiente
+   sincronización. */
+function diaUtcSinEmpezar(fecha, ahoraMs) {
+  return fecha > new Date(ahoraMs).toISOString().slice(0, 10);
+}
 function marcarRntNoDisponible(cache, fecha, motivo) {
   cache.precios_rnt_no_disponibles = cache.precios_rnt_no_disponibles || {};
   cache.precios_rnt_no_disponibles[fecha] = motivo;
