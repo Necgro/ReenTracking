@@ -148,6 +148,16 @@ console.log("== 5. Resueltos, resumen, ≈ € y HTML ==");
 const tomadas = S.ccDecisionesTomadas(Object.assign({}, dec, otra, { s: spam }), [rarUsdt, Object.assign({}, rarUsdt, { clave: "s" })]);
 assert("Resueltos: las decisiones con registro (también el spam de Revisión), no los ajustes ajenos",
   tomadas.length === 2 && tomadas.every(t => t.reg), tomadas.map(t => t.clave));
+/* A13 (B21): por el día de la decisión, la más nueva arriba (el mismo día,
+   la última decidida); el spam no va siempre antes. */
+const regsA13 = ["a", "b", "c", "d"].map(c => Object.assign({}, rarUsdt, { clave: c }));
+const ordenA13 = S.ccDecisionesTomadas({
+  a: S.ccAjustesConDecision({}, regsA13[0], "spam", null, "2026-10-01T10:00:00.000Z").a,
+  b: S.ccAjustesConDecision({}, regsA13[1], "dinero", "1", "2026-10-05T10:00:00.000Z").b,
+  c: S.ccAjustesConDecision({}, regsA13[2], "dinero", "1", "2026-10-03T10:00:00.000Z").c,
+  d: S.ccAjustesConDecision({}, regsA13[3], "spam", null, "2026-10-05T12:00:00.000Z").d,
+}, regsA13).map(t => t.clave).join("");
+assert("A13: «Ya decididos» por el día de la decisión, no por el texto (spam incluido)", ordenA13 === "dbca", ordenA13);
 assert("el 🚫 de Transacciones no sale en Resueltos de Revisión",
   S.ccDecisionesTomadas({ r: S.txAjustesConSpam({}, "r", "spam", FECHA).r }, [rarUsdt]).length === 0);
 assert("resumen: «Venta · 1.234,50 USD»", S.ccResumenDecision(venta) === "Venta · 1.234,50 USD", S.ccResumenDecision(venta));

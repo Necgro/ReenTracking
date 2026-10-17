@@ -1756,7 +1756,9 @@ function ccHtmlDecisiones(reg, d) {
     return '<div class="cc-decision help">Ajuste manual: se cambia en «✏️ Ajustes en JSON».</div>';
   }
   if (!(d.opciones || []).length) {
-    return '<div class="cc-decision help">Se cambia desde su vínculo.</div>';
+    // Con vínculo y mandado a revisar por ti: se quita con su ↩ de 📒 (A16).
+    return '<div class="cc-decision help">' + (d.estado === "propio" ? "Mandado a revisar por ti: se quita con ↩ en 📒 Transacciones." :
+      "Se cambia desde su vínculo.") + "</div>";
   }
   const clave = ccEsc(reg.clave);
   const ab = d.abierta || null;
@@ -2873,7 +2875,14 @@ function ccDecisionesTomadas(ajustes, registros) {
   return Object.entries(pdEsObjeto(ajustes) ? ajustes : {})
     .filter(([c, a]) => ccEsAjusteDecision(a) && porClave.has(ccClaveAjuste(c)))
     .map(([c, a]) => ({ clave: c, ajuste: a, reg: porClave.get(ccClaveAjuste(c)) }))
-    .sort((x, y) => String(y.ajuste.nota).localeCompare(String(x.ajuste.nota)));
+    .reverse() // el mismo día, la última decidida arriba (se guardan en orden)
+    .sort((x, y) => ccDiaDeNota(y.ajuste.nota).localeCompare(ccDiaDeNota(x.ajuste.nota)));
+}
+/* El día de la nota «… (AAAA-MM-DD)…» de una decisión o del spam; las
+   antiguas sin él, "" (van al final). */
+function ccDiaDeNota(nota) {
+  const m = /\((\d{4}-\d{2}-\d{2})\)/.exec(nota);
+  return m ? m[1] : "";
 }
 function ccHtmlDecisionTomada(d) {
   return '<div class="cc-vinc cc-decidida" data-clave="' + ccEsc(d.reg.clave) + '"><div class="cc-vinc-cuerpo">' +

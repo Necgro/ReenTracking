@@ -163,6 +163,9 @@ const ctxDe = sb => run(sb, "ccContextoSesion(state.registros)");
       run(sb, "ccOpcionesDecision")(salV, ctxDe(sb)).length === 0);
     const html = run(sb, "ccHtmlDecisiones")(salV, { estado: "libre", opciones: [] });
     assert("…y la tarjeta dice dónde se cambia", html.includes("Se cambia desde su vínculo."), html);
+    const htmlPropio = run(sb, "ccHtmlDecisiones")(salV, { estado: "propio", opciones: [] });
+    assert("A16: mandada a revisar por ti, dice que se quita con ↩ en 📒",
+      htmlPropio.includes("Mandado a revisar por ti: se quita con ↩ en 📒 Transacciones.") && !htmlPropio.includes("vínculo"), htmlPropio);
     assert("un movimiento sin vínculo conserva sus botones",
       run(sb, "ccOpcionesDecision")(porHash(sb, H(4)), ctxDe(sb)).some(o => o.id === "neutro"));
     // «Dejar como Depósito»: el resto es dinero tuyo; deja de pedir revisión
