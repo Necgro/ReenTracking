@@ -441,22 +441,3 @@ function descubrimientoDinamico(cache, filasCsv, indicePorHash, wallet, vault) {
     "Settlements: " + Object.keys(cache.contratos_aprendidos.SETTLEMENT).length + ".", "ok");
   return resumen;
 }
-
-async function ejecutarDescubrimiento() {
-  if (!state.cache) return toast("Sin datos todavía: completa 🚀 Puesta en marcha.", "error");
-  if (!state.csvCargado) return toast("Primero carga tu archivo de rendimientos en 🚀 Puesta en marcha.", "error");
-  leerConfigDesdeFormulario();
-  const wallet = normalizarDireccion(state.config.wallet);
-  const vault = normalizarDireccion(state.config.vault);
-  if (!wallet || !vault) return toast("Falta tu dirección de wallet o la del vault en tus datos de 🚀 Puesta en marcha.", "error");
-  log("--- Descubrimiento de tus inmuebles y de los contratos de Reental ---", "ok");
-  const resumen = descubrimientoDinamico(state.cache, state.filasCsv, state.indicePorHash, wallet, vault);
-  marcarCacheDirty();
-  await autoGuardarCache();
-  renderPanel();
-  actualizarChipEstado();
-  toast("Descubrimiento completado: " + resumen.nuevas.length + " nuevas, " +
-    resumen.confirmadas.length + " confirmadas, " + resumen.candidatas.length + " candidatas por decidir.",
-    resumen.candidatas.length ? "warn" : "ok",
-    resumen.candidatas.length ? { texto: "Revisar candidatas en 🔍 Revisión", fn: () => { location.hash = "#revision"; } } : null, 9000);
-}

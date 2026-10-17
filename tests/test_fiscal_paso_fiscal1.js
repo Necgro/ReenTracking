@@ -159,6 +159,17 @@ console.log("== 1. js/09: la última sincronización en la cache ==");
   const conOps = S.fiCalcular(regs, {}, {}, { hoy: null });
   assert("A10: lo que vale cada operación sale de su registro, con las cuentas del total del informe",
     igual(conOps.operaciones.get("v9"), { transmision: 100, adquisicion: 30, gp: 70 }) && !conOps.operaciones.has("x"));
+  /* El aviso «revisar» que escribe js/22 (rentaAvisos) casa con la clave que
+     apunta fiCalcular: si uno cambia su fecha, concepto o nota y el otro no,
+     el enlace a 🔍 se perdería sin que nada fallara. */
+  const aRevisar = { clave: "r2", fecha: "2025-03-04 10:00:00", contrato: "0xb", categoria: "DEPOSITO", inmueble: "Casa Uno",
+    revisar: true, nota: "Mandado a revisar por ti (2025-03-05)" };
+  S.motorFiscal = () => new Map();
+  S.informesRentaAnuales = rs => ({ 2025: { avisos: S.rentaAvisos(rs, []) } });
+  const conAviso = S.fiCalcular([aRevisar], {}, {}, { hoy: null });
+  const avisoEnlazado = S.fiAvisos(conAviso.informes[2025], conAviso, [aRevisar]);
+  assert("el aviso «revisar» de js/22 lleva el enlace a 🔍 con la clave de fiCalcular",
+    avisoEnlazado.length === 1 && avisoEnlazado[0].revisar && avisoEnlazado[0].enRevision, avisoEnlazado);
   S.motorFiscal = motorOriginal; S.informesRentaAnuales = informesOriginal;
 
   console.log("== 5. Año, ventas, lotes y avisos ==");

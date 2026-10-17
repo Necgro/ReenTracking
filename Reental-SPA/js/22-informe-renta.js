@@ -119,17 +119,15 @@ const ACTIVOS_NO_INMUEBLE = ["RNT", "USDT", "USDC", "POL"];
 const OTROS_CRIPTOACTIVOS = [["USDT", "USDT (wallet)"], ["USDC", "USDC (wallet)"],
   ["RNT", "RNT"], ["POL", "POL"]];
 
-/* round(x, n) de Python: redondea el numero guardado tal cual es, con los
+/* x a n decimales: redondea el numero guardado tal cual es, con los
    empates exactos al par (toFixedPython); sin importe, lo mismo. */
 function pyRedondeo(x, n) {
   if (typeof x !== "number") return x;
   const r = parseFloat(toFixedPython(Math.abs(x), n));
   return x < 0 || Object.is(x, -0) ? -r : r;
 }
-/* «d.get(clave, defecto)» de Python. */
 function pyGet(obj, clave, defecto) { return fiscTiene(obj, clave) ? obj[clave] : defecto; }
-/* str.capitalize() de Python: la primera en mayuscula y el resto en
-   minusculas. */
+/* La primera en mayuscula y el resto en minusculas. */
 function pyCapitalizar(t) { return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase(); }
 /* Un {contrato: nombre} como Map (la pestaña Fiscal puede pasar un objeto). */
 function rentaComoMap(x) {

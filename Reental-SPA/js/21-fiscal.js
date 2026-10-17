@@ -20,14 +20,15 @@
    Ninguna se calcula ni se supone, y nunca se resta la retencion del
    integro: Renta Web ya la descuenta.
 
-   Cifras exactas: las sumas de listas van por pySuma (suma compensada,
-   como sum() de Python 3.12+), min/max por pyMin/pyMax (con NaN no son
-   Math.min/max) y «si tiene valor» por pyVerdad (un NaN cuenta como valor
-   y un {} vacio no). Sin pantalla: lo llama la pestaña Fiscal.
+   Cifras exactas: las sumas de listas van por pySuma (suma compensada),
+   min/max por pyMin/pyMax (con NaN no son Math.min/max) y «si tiene
+   valor» por pyVerdad (un NaN cuenta como valor y un {} vacio no). Los
+   nombres py* vienen de cuando la app copiaba a un programa en Python.
+   Sin pantalla: lo llama la pestaña Fiscal.
    ===================================================================== */
 
-/* sum() de Python 3.12+ con floats: suma compensada (Neumaier), para que
-   las cifras salgan iguales hasta el ultimo decimal. */
+/* Suma compensada (Neumaier): no pierde los decimales que una suma
+   normal va perdiendo, y las cifras salen iguales hasta el ultimo. */
 function pySuma(valores) {
   let total = 0, c = 0, alguno = false;
   for (const x of valores) {
@@ -40,10 +41,9 @@ function pySuma(valores) {
   if (alguno && c && Number.isFinite(c)) total += c;
   return total;
 }
-function pyMin(a, b) { return b < a ? b : a; }   // min(a, b) de Python
-function pyMax(a, b) { return b > a ? b : a; }   // max(a, b) de Python
-/* Verdad de Python: None, 0, "", False, [] y {} no tienen valor; un NaN
-   si. */
+function pyMin(a, b) { return b < a ? b : a; }   // el menor (con un NaN, a)
+function pyMax(a, b) { return b > a ? b : a; }   // el mayor (con un NaN, a)
+/* ¿Tiene valor? null, undefined, 0, "", false, [] y {} no; un NaN si. */
 function pyVerdad(v) {
   if (!fiscHay(v) || v === false || v === 0 || v === "") return false;
   if (typeof v !== "object") return true;
@@ -52,9 +52,9 @@ function pyVerdad(v) {
   if (typeof v === "object") return Object.keys(v).length > 0;
   return true;
 }
-function pyO(v, defecto) { return pyVerdad(v) ? v : defecto; }   // «v or defecto»
-function fiscHay(v) { return v !== null && v !== undefined; }   // «v is not None»
-/* lista de m[clave], creandola si no esta: «m.setdefault(clave, [])». */
+function pyO(v, defecto) { return pyVerdad(v) ? v : defecto; }   // v, o defecto si no tiene valor
+function fiscHay(v) { return v !== null && v !== undefined; }   // ni null ni undefined
+/* lista de m[clave], creandola si no esta. */
 function fiscListaDe(m, clave) {
   if (!m.has(clave)) m.set(clave, []);
   return m.get(clave);

@@ -70,11 +70,13 @@ function imitaDireccionPropia(addr) {
   return false;
 }
 
-/* Interpolacion de numeros en notas al estilo de str() de Python, como en
-   las cifras de referencia: los float siempre con parte decimal ("100.0",
-   "15.0"; JS los concatenaria como enteros "100", "15"). Tambien null ->
-   "None" y true/false -> "True"/"False". Limite: JSON.parse no distingue
-   int de float, asi que un entero "100" del JSON sale "100.0". */
+/* Un valor escrito dentro de una nota, con el formato fijo de las notas
+   (las cifras de referencia lo comparan): los numeros siempre con parte
+   decimal ("100.0", "15.0"; JS los concatenaria como enteros "100", "15"),
+   null -> "None" y true/false -> "True"/"False". Limite: JSON.parse no
+   distingue int de float, asi que un entero "100" del JSON sale "100.0".
+   (Los nombres py* de este archivo y de js/21-22 vienen de cuando la app
+   copiaba a un programa en Python; se dejan.) */
 function pyStr(x) {
   if (x === null || x === undefined) return "None";
   if (typeof x === "boolean") return x ? "True" : "False";
@@ -1336,8 +1338,8 @@ function registrosGas(cache, diario) {
    Los mensajes son literales (las pruebas los comparan con las cifras de
    referencia); el redondeo a 6 decimales es pdRedondear6, que va al par
    en los empates exactos, como numEs con 2 decimales; pdRepr/pdStr
-   escriben los valores al estilo de repr()/str() de Python, también
-   listas, objetos y floats con exponente. No se aceptan version === true
+   escriben los valores con el formato fijo de los mensajes (textos entre
+   comillas, listas, objetos y números con exponente). No se aceptan version === true
    ni enteros con guion bajo ("1_000"); ninguno aparece en datos validos
    del modelo.
    ===================================================================== */
@@ -1358,7 +1360,7 @@ const PD_CATEGORIAS_PAGO_PARCIAL = ["DEPOSITO", "REVISAR"];
 function pdEsObjeto(v) { // objeto plano: ni null ni lista
   return v !== null && typeof v === "object" && !Array.isArray(v);
 }
-function pdStr(v) { // str() de Python para interpolacion en mensajes
+function pdStr(v) { // un valor dentro de un mensaje
   // Los valores del bloque vienen tal cual del JSON: un literal sin punto
   // ('2', '800') es un entero, asi que un numero entero se escribe sin
   // decimales ('2', no '2.0' como haria pyStr). Limitacion: tras
@@ -1369,9 +1371,9 @@ function pdStr(v) { // str() de Python para interpolacion en mensajes
   if (typeof v === "number") return pdFloatPython(v);
   return pyStr(v);
 }
-/* repr() de un float de Python: las mismas cifras que
-   JavaScript, pero con exponente por debajo de 1e-4 o desde 1e16, y de dos
-   cifras como mínimo (1e-07, no 1e-7). */
+/* Un número con decimales en los mensajes: las mismas cifras que
+   JavaScript, pero siempre con «.0» si es entero y con exponente por debajo
+   de 1e-4 o desde 1e16, de dos cifras como mínimo (1e-07, no 1e-7). */
 function pdFloatPython(x) {
   if (!Number.isFinite(x)) return Number.isNaN(x) ? "nan" : (x > 0 ? "inf" : "-inf");
   const [mantisa, e] = x.toExponential().split("e");
@@ -1382,7 +1384,7 @@ function pdFloatPython(x) {
   const s = x.toFixed(Math.max(0, mantisa.replace(/^-?\d\.?/, "").length - exp));
   return s.includes(".") ? s : s + ".0";
 }
-function pdRepr(v) { // repr() de Python para los valores citados en mensajes
+function pdRepr(v) { // un valor citado en un mensaje: los textos, entre comillas
   if (typeof v === "string") {
     let q = "'";
     if (v.includes("'") && !v.includes('"')) q = '"';
@@ -1391,7 +1393,7 @@ function pdRepr(v) { // repr() de Python para los valores citados en mensajes
                .replace(new RegExp(q, "g"), "\\" + q);
     return q + s + q;
   }
-  // Listas y objetos como los escribe Python ([] y {'a': 1}).
+  // Listas y objetos: [] y {'a': 1}.
   if (Array.isArray(v)) return "[" + v.map(pdRepr).join(", ") + "]";
   if (pdEsObjeto(v)) return "{" + Object.entries(v).map(([k, x]) => pdRepr(k) + ": " + pdRepr(x)).join(", ") + "}";
   return pdStr(v);
@@ -1400,12 +1402,12 @@ function pdRepr(v) { // repr() de Python para los valores citados en mensajes
 function pdNumero(x) {
   return typeof x === "number" && Number.isFinite(x) ? x : null;
 }
-function pdRedondear6(x) { // como round(x, 6) de Python: al par en los empates
+function pdRedondear6(x) { // a 6 decimales, al par en los empates
   if (typeof x !== "number" || !Number.isFinite(x)) return x;
   if (Math.abs(x) >= 1e21) return x;
   /* En un empate exacto (el número guardado acaba
      justo en un 5 en el 7.º decimal, p. ej. 12,0078125 = 12 + 1/128),
-     toFixed sube y round de Python va al par: 12,007812. Un empate así es
+     toFixed sube y aquí se va al par: 12,007812. Un empate así es
      siempre un múltiplo impar de 1/128 (multiplicar por 128 es exacto), y
      solo entonces se miran sus decimales exactos con toFixed(30). */
   if ((Math.abs(x) * 128) % 2 === 1) {
