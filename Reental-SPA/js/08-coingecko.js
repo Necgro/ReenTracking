@@ -39,11 +39,12 @@ function fechasConMovimientoRnt(cache) {
 /* Los días (hora española) con movimiento de RNT: Map día -> true si a
    todos sus movimientos ya les vale el precio guardado de su día UTC (de
    antes de la hora española; js/21 lo usa): ese día no hace falta. Solo
-   los de más de 365 días: los otros CoinGecko los da (el de su día manda). */
+   los de más de 365 días: los otros CoinGecko los da (el de su día manda).
+   Una cache a medio escribir (sin alguna serie) cuenta esa serie vacía. */
 function diasConMovimientoRnt(cache) {
   const txs = [];
   for (const nombreSerie of ["wallet_tokens", "vault_tokens"]) {
-    for (const tx of cache.transacciones[nombreSerie]) if (normalizarDireccion(tx.contractAddress) === RNT) txs.push(tx);
+    for (const tx of (cache.transacciones || {})[nombreSerie] || []) if (normalizarDireccion(tx.contractAddress) === RNT) txs.push(tx);
   }
   return diasConMovimiento(txs, preciosLeidos(cache, "precios_rnt"));
 }

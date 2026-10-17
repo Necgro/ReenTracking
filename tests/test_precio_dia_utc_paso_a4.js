@@ -72,6 +72,12 @@ c = cache([tx(antesReciente + "T23:30:00Z")], { [antesReciente]: 0.05 });
 assert("O5: un movimiento de hace 30 días a las 00:30 pide su día aunque el día UTC tenga precio",
   json(S.fechasConMovimientoRnt(c)) === json([reciente]), S.fechasConMovimientoRnt(c));
 
+// CACHE-MEDIAS (B25): una cache a medio escribir no hace fallar el cálculo.
+assert("CACHE-MEDIAS: sin vault_tokens, cuenta la wallet",
+  json(S.fechasConMovimientoRnt({ transacciones: { wallet_tokens: [tx("2025-03-02T11:00:00Z")] }, precios_rnt: {} })) === '["2025-03-02"]');
+assert("CACHE-MEDIAS: sin wallet_tokens ni transacciones, nada que pedir",
+  json(S.fechasConMovimientoRnt({ transacciones: {} })) === "[]" && json(S.fechasConMovimientoRnt({})) === "[]");
+
 const regPol ={ contrato: "pol", fecha: "2025-03-02 00:30:00", categoria: "DEPOSITO", subcategoria: "COSTE_BASE" };
 assert("POL: un depósito sin coste de las 00:30 con el precio de su día UTC no se pide",
   json(S.pnFechasSinPrecioPol({ precios_pol: { "2025-03-01": 0.3 } }, [regPol], lejos)) === "[]");
