@@ -669,14 +669,18 @@ function ccEsNumeroPositivo(x) {
 }
 
 /* Lo que dicen «Movimiento neutro» y «🚫 Es spam» al pasar el ratón (también 📒). */
-const CC_AYUDA_NEUTRO = "Sigue siendo tuyo (otra wallet o un exchange). No va a la Renta.";
-const CC_AYUDA_NEUTRO_ENTRADA = "Ya era tuyo: vuelve de otra wallet tuya o de un exchange. No va a la Renta. " +
-  "Si lo compraste o te lo regalaron, no es esto.";
-const CC_AYUDA_SPAM = "No es tuyo: no cuenta para nada.";
+const CC_MAS_QUE_ES = " Más en ⓘ Qué es cada cosa.";
+const CC_AYUDA_NEUTRO = "Sigue siendo tuyo (otra wallet, un exchange, staking o pool). Sin efecto fiscal." + CC_MAS_QUE_ES;
+const CC_AYUDA_NEUTRO_ENTRADA = "Ya era tuyo: vuelve de otra wallet, un exchange, staking o pool. Sin efecto fiscal. " +
+  "Si llega por primera vez, lo compraste o te lo regalaron, no es esto." + CC_MAS_QUE_ES;
+const CC_AYUDA_SPAM = "Falso o sin valor: la app no lo cuenta.";
 const CC_AYUDA_INMUEBLE = "Lo confirma en el catálogo: cambia todos sus movimientos.";
-const CC_AYUDA_REGALO = "Llega sin comprarlo (p. ej. un airdrop).";
-const CC_AYUDA_RECOMPENSA = "Premio del staking o farming de RNT.";
-const CC_AYUDA_COMPRA_RNT = "RNT que pagaste en € (p. ej. una preventa): cada entrega es una compra.";
+const CC_AYUDA_REGALO = "Te llega gratis (p. ej. un reparto gratis o airdrop). Tiene efecto fiscal." + CC_MAS_QUE_ES;
+const CC_AYUDA_RECOMPENSA = "Premio del staking o farming de RNT." + CC_MAS_QUE_ES;
+const CC_AYUDA_COMPRA_RNT = "RNT que pagaste en € (p. ej. una preventa): cada entrega es una compra. " +
+  "Si pagaste en USD, pásalo antes a €." + CC_MAS_QUE_ES;
+const CC_AYUDA_COMPRA = "Lo pagaste por transferencia o desde otra wallet. Te pide lo que pagaste en € " +
+  "(si fue en USD, ponlo en 💶 Coste con «En USDT…»)." + CC_MAS_QUE_ES;
 
 /* «ⓘ Qué es cada cosa», arriba en 🔍 y 📒 (en su hueco [data-que-es]): al
    pulsarlo, una ventana con una línea por tipo de movimiento, de lo que hace
@@ -688,7 +692,7 @@ const CC_QUE_ES_CADA_COSA = [
   ["Canje de contrato", "Reental cambia el token de un inmueble por otro nuevo del mismo inmueble. No es una venta: sin efecto fiscal."],
   ["Rendimiento", "lo que te reparte Reental de los inmuebles (alquileres u otros beneficios). Tiene efecto fiscal."],
   ["Recompensa DeFi", "tokens extra por tener tus RNT en staking o farming (como los intereses de una cuenta de ahorro). Tiene efecto fiscal."],
-  ["Movimiento neutro", "tokens que pasan entre tus propias cuentas (otra wallet tuya o un exchange) o que metes o sacas del staking, el farming o un pool. Siguen siendo tuyos: sin efecto fiscal."],
+  ["Movimiento neutro", "movimientos entre tus propias cuentas (otra wallet o un exchange) y lo que metes o sacas del staking, el farming o un pool. Siguen siendo tuyos: sin efecto fiscal. El dinero que llega por primera vez de otra wallet tuya es «Ingreso de dinero»."],
   ["Ingreso / Salida de dinero", "dólares digitales (USDT o USDC) que entran a tu wallet o salen de ella. La salida tiene efecto fiscal."],
   ["Regalo recibido", "tokens que te llegan sin pagarlos, p. ej. un reparto gratis (airdrop) o una promoción. Tiene efecto fiscal."],
   ["Comisión de red (gas)", "lo que pagas en POL (la moneda de la red Polygon) por cada operación que haces tú; lo que te llega no paga. En una compra o una venta, cuenta en su coste."],
@@ -761,7 +765,7 @@ function ccOpcionesDecision(reg, ctx) {
     ops.push({ id: "venta", etiqueta: "Es una venta…", sugerida: cat === "VENTA", pide: "usd" });
   }
   if (onchain && sentido === "entrada" && esInmueble && !(dejar && cat === "COMPRA")) {
-    ops.push({ id: "compra", etiqueta: "Compra bancaria…", sugerida: false, pide: "eur" });
+    ops.push({ id: "compra", etiqueta: "Compra bancaria…", sugerida: false, pide: "eur", ayuda: CC_AYUDA_COMPRA });
   }
   if (onchain && sentido === "entrada" && esEstable && !(dejar && cat === "DEPOSITO")) {
     ops.push({ id: "dinero", etiqueta: "Ingreso de dinero…", sugerida: false, pide: "usd" });

@@ -193,7 +193,12 @@ const AY = ["CC_AYUDA_NEUTRO", "CC_AYUDA_NEUTRO_ENTRADA", "CC_AYUDA_SPAM"].map(n
 assert("neutro en lo que llega: «Ya era tuyo…»; en lo que sale: «Sigue siendo tuyo…»",
   ayuda(rarUsdt, "neutro") === AY[1] && /^Ya era tuyo/.test(AY[1]) &&
   ayuda(salidaInm, "neutro") === AY[0] && /^Sigue siendo tuyo/.test(AY[0]), [ayuda(rarUsdt, "neutro"), ayuda(salidaInm, "neutro")]);
-assert("spam: «No es tuyo: no cuenta para nada.»", ayuda(rarUsdt, "spam") === AY[2] && AY[2] === "No es tuyo: no cuenta para nada.");
+assert("spam: «Falso o sin valor: la app no lo cuenta.»", ayuda(rarUsdt, "spam") === AY[2] && AY[2] === "Falso o sin valor: la app no lo cuenta.");
+assert("sin «Renta» y con «Más en ⓘ Qué es cada cosa.» (salvo el spam)",
+  AY.every(t => !/Renta/.test(t)) && /Sin efecto fiscal\. Más en ⓘ Qué es cada cosa\.$/.test(AY[0]) &&
+  /primera vez/.test(AY[1]) && /Más en ⓘ Qué es cada cosa\.$/.test(AY[1]) && !/Más en/.test(AY[2]));
+assert("«Compra bancaria…» de un inmueble con su burbuja (€, y el USD en 💶)",
+  /^Lo pagaste por transferencia o desde otra wallet\. .*En USDT…/.test(vm.runInContext("CC_AYUDA_COMPRA", S)));
 const htmlAy = S.ccHtmlDecisiones(rarUsdt, { estado: "libre", opciones: S.ccOpcionesDecision(rarUsdt, ctx), abierta: null });
 assert("HTML: el texto va en el title de su botón, y no en los demás",
   htmlAy.includes('data-opcion="neutro" title="' + AY[1] + '"') && htmlAy.includes('data-opcion="spam" title="' + AY[2] + '"') &&
