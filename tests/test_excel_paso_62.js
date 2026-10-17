@@ -5,7 +5,7 @@
  * - Un importe sin dato en el informe sale «—», a la derecha.
  * - Una cantidad entera lleva el formato de entero (si no, Excel enseña
  *   «10,»); una con decimales, NaN o un texto, no.
- * - Sin datos: las hojas fijas, sin «Renta AAAA» ni Revisión, y el libro
+ * - Sin datos: las hojas fijas, sin «Fiscal AAAA» ni Revisión, y el libro
  *   se escribe.
  * - Un texto de los datos que empieza por «=» no es una formula.
  * - El Excel no cambia lo que recibe (tampoco las colas, un Map) y dos

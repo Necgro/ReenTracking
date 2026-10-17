@@ -94,7 +94,7 @@ function fiTextoFalloSincronizacion(hasta) {
   return "El último intento de sincronizar falló: datos completos hasta el " + fechaEs(hasta.sincronizada) + ".";
 }
 /* Lo mismo para el papel (el informe imprimible, js/27, y las hojas
-   «Renta AAAA» del Excel, js/26), o "". hasta: el de
+   «Fiscal AAAA» del Excel, js/26), o "". hasta: el de
    fiHastaCuando; sin él, nada. */
 function fiAvisoSincronizacion(hasta) {
   if (!hasta) return "";

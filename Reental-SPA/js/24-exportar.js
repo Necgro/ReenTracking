@@ -212,7 +212,7 @@ function exRender() {
       '<h3 id="exTitInformes">📊 Excel y PDF</h3>' +
       '<p class="help">El Excel, con todos los años. El informe, del año que elijas: al imprimir, «Guardar como PDF».</p>' +
       '<div class="row mt"><button type="button" id="btnExcel"' + (exEstado.guardando ? " disabled" : "") + ">📊 Excel</button>" +
-        '<span class="ex-informe">' + informe.select + '<button type="button" id="btnInforme">📄 Informe para la Renta</button></span></div>' +
+        '<span class="ex-informe">' + informe.select + '<button type="button" id="btnInforme">📄 Informe fiscal</button></span></div>' +
       informe.aviso +
     "</section>";
 }

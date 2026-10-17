@@ -250,7 +250,7 @@ function espiar() {
   await pulsar("btnInforme");
   await esperar(150);
   v = await vistos();
-  assert("S4 -> sin tocarlo, el informe del último terminado (2025)", v.informes.length === 1 && titulo(v.informes[0]) === "Informe para la Renta 2025",
+  assert("S4 -> sin tocarlo, el informe del último terminado (2025)", v.informes.length === 1 && titulo(v.informes[0]) === "Informe fiscal 2025",
     v.informes.map(titulo));
   // Se elige 2024 en el desplegable.
   await page.select("#exAnio", "2024");
@@ -259,7 +259,7 @@ function espiar() {
   await esperar(150);
   v = await vistos();
   assert("S4 -> el informe es el del año elegido en el desplegable (2024)",
-    v.informes.length === 1 && titulo(v.informes[0]) === "Informe para la Renta 2024", v.informes.map(titulo));
+    v.informes.length === 1 && titulo(v.informes[0]) === "Informe fiscal 2024", v.informes.map(titulo));
   // actualizarChipEstado repinta 📤 (renderPanel no: la prueba no probaba nada).
   await page.evaluate(() => actualizarChipEstado());
   await esperar(150);

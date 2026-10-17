@@ -1,7 +1,7 @@
 /* =====================================================================
    REENTAL SPA · js/26-excel.js
    Las hojas del Excel de la app: Resumen, Transacciones, Ingresos,
-   Cartera, una «Renta AAAA» por año, Tipos de cambio BCE, la del cuadre
+   Cartera, una «Fiscal AAAA» por año, Tipos de cambio BCE, la del cuadre
    con la blockchain si se leyeron los saldos al actualizar (js/28) y, si
    hay algo por revisar, Revisión.
    Prueba: tests/paridad_excel_paso_62 (las cifras de referencia, celda a
@@ -47,7 +47,7 @@
 const EXCEL_FMT = {
   EUR: "#,##0.00 €", USD: "#,##0.00 $", TIPO_CAMBIO: "0.0000",
   TOKENS: "#,##0.######", ENTERO: "#,##0", FECHA: "DD/MM/YYYY", FECHA_HORA: "DD/MM/YYYY HH:MM",
-  // Hojas «Renta AAAA»: la moneda va en el título de la columna.
+  // Hojas «Fiscal AAAA»: la moneda va en el título de la columna.
   NUM: "#,##0.00", NUM_SIGNO: "+#,##0.00;-#,##0.00;+0.00", NUM_PARCIAL: '#,##0.00" *"', NUM_SUPUESTO: '#,##0.00" **"',
   PRECIO: "#,##0.0000", POL: '#,##0.0000" POL"',
 };
@@ -57,14 +57,13 @@ const EXCEL_COLOR_CATEGORIA = {
   RENDIMIENTO: "E2EFDA", REWARD: "C6EFCE", COMPRA: "DEEAF1", VENTA: "FFF2CC", DEPOSITO: "FCE4D6",
   RETIRADA: "F4B183", MOVIMIENTO: "F2F2F2", COMISION: "D9D9D9", REVISAR: "FFCCCC",
 };
-// Columnas de las hojas «Renta AAAA» (la tabla más ancha, la de los
+// Columnas de las hojas «Fiscal AAAA» (la tabla más ancha, la de los
 // rendimientos, tiene 11).
 const EXCEL_RENTA_ANCHOS = [46, 30, 16, 20, 16, 16, 16, 16, 16, 16, 16];
 const EXCEL_RENTA_COLUMNAS = EXCEL_RENTA_ANCHOS.length;
 const EXCEL_NOMBRE_RENDIMIENTO = { ...TIPO_RENDIMIENTO, RCM_MIXTO: "Rendimiento mixto (a revisar)" };
 const EXCEL_NO_COTIZA = "No disponible: los tokens no cotizan; cartera valorada a su coste de compra";
-const EXCEL_COMO_DECLARAR = "En Renta Web, el íntegro va en «Ingresos íntegros» y la retención, aparte, " +
-  "en «Retenciones». No restes una del otro: Hacienda ya descuenta la retención al calcular.";
+const EXCEL_COMO_DECLARAR = "El íntegro y la retención se declaran por separado, sin restar una del otro.";
 
 function excelColorCategoria(categoria) {
   return fiscTiene(EXCEL_COLOR_CATEGORIA, categoria) ? EXCEL_COLOR_CATEGORIA[categoria] : null;
@@ -463,7 +462,7 @@ function excelHojaCartera(libro, registros, ordenados, colas, cache) {
   }
 }
 
-/* ---------- Renta AAAA: el informe para la Renta de cada año ---------- */
+/* ---------- Fiscal AAAA: el informe fiscal de cada año ---------- */
 
 /* Una fila del informe desde la columna A; devuelve la siguiente. Un
    valor null sin formato deja la celda vacía; con formato (un importe
@@ -502,10 +501,10 @@ function excelSeccionRenta(hoja, fila, titulo) {
 function excelHojasRenta(libro, informes, ahora, hasta) {
   for (const anio of Object.keys(informes).map(Number).sort((a, b) => a - b)) {
     const informe = informes[anio];
-    const hoja = xlsxHoja(libro, "Renta " + anio);
+    const hoja = xlsxHoja(libro, "Fiscal " + anio);
     hoja.anchos = [...EXCEL_RENTA_ANCHOS];
     xlsxCongelar(hoja, 2, 1);
-    excelCelda(hoja, 1, 1, "Informe para la Renta · Ejercicio " + anio, { negrita: true });
+    excelCelda(hoja, 1, 1, "Informe fiscal · Ejercicio " + anio, { negrita: true });
     let fila = excelRentaCabecera(hoja, 3, informe, ahora, hasta);
     fila = excelRentaResumen(hoja, fila + 1, informe);
     fila = excelRentaInversiones(hoja, fila + 1, informe);
@@ -845,7 +844,7 @@ function excelHojaRevision(libro, ordenados) {
    una pasada de motorFiscal y resumenFiscalAnual; informes, los de
    informesRentaAnuales (sin ellos se montan aquí); ahora: la hora de
    «Generado el»; hasta: el de fiHastaCuando (js/23), para avisar en cada
-   «Renta AAAA» como el informe imprimible (sin él, nada);
+   «Fiscal AAAA» como el informe imprimible (sin él, nada);
    cuadre: el de fiResultado (js/23; sin él, no hay hoja del cuadre). */
 function excelLibro(registros, colas, resumen, cache, config, informes = null, ahora = new Date(), hasta = null, cuadre = null) {
   if (!fiscHay(informes)) informes = informesRentaAnuales(registros, resumen, config, { cache });

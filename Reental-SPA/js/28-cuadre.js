@@ -21,7 +21,7 @@
    wallet y el vault con que se leyeron.
 
    Dónde se ve: una línea en el resumen de 🚀, los avisos del informe del
-   año de la lectura (🧾 Fiscal, el informe imprimible y las hojas «Renta
+   año de la lectura (🧾 Fiscal, el informe imprimible y las hojas «Fiscal
    AAAA» del Excel) y la hoja «Cuadre con la blockchain» del Excel (js/26).
    Los textos son de la app; con las de referencia solo se comparan cifras.
    Prueba: tests/test_cuadre_paso_cuadre3.js y paridad_cuadre_paso_cuadre3.
