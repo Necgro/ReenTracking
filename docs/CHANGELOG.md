@@ -2,6 +2,16 @@
 
 Lo más reciente, arriba. Una fila por versión o paso.
 
+## Nombre ReenTracking (19/10/2026)
+
+- **Nombre:** la app pasa de llamarse ReenTrack a ReenTracking: título de la
+  pestaña, logo («Reen» y «Tracking» en verde), textos de la app y README.
+- **Logo:** la tipografía del nombre (Titillium Web SemiBold) lleva ahora
+  las letras de «ReenTracking».
+- **Descarga y web:** el archivo único pasa a llamarse `ReenTracking.zip`
+  (y `ReenTracking.html`), y la web, a `https://necgro.github.io/ReenTracking/`.
+- **Cálculo:** no cambia.
+
 ## 🔍 Revisión como lista de tareas (16/10/2026)
 
 - **🔍 Revisión:** una sola caja centrada con una fila por bloque, en el
