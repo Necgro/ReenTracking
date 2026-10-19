@@ -1,9 +1,9 @@
-# ReenTrack
+# ReenTracking
 
 > **App no oficial, sin relación con Reental.** No es asesoramiento fiscal:
 > facilita los datos para la declaración; confírmalos con un asesor.
 
-ReenTrack lee tus transacciones de Reental en Polygon y el
+ReenTracking lee tus transacciones de Reental en Polygon y el
 archivo de rendimientos que te da Reental, y los ordena: lo que has invertido,
 lo que has cobrado y lo que va en la Renta (IRPF, España).
 
@@ -14,10 +14,10 @@ lo que has cobrado y lo que va en la Renta (IRPF, España).
 
 ## Cómo se usa
 
-**Abrir la app:** <https://zinc-lab.github.io/ReenTrack/>
+**Abrir la app:** <https://necgro.github.io/ReenTracking/>
 
 **O descargarla** en un solo archivo para abrirla con doble clic, sin internet para
-abrirla (sí para actualizar): [ReenTrack.zip](https://zinc-lab.github.io/ReenTrack/ReenTrack.zip).
+abrirla (sí para actualizar): [ReenTracking.zip](https://necgro.github.io/ReenTracking/ReenTrackinging.zip).
 Cada versión nueva hay que descargarla otra vez.
 
 1. **🚀 Puesta en marcha:** pon tu wallet y tu API key de Etherscan (es gratis);
@@ -63,7 +63,7 @@ Etherscan) y las consultas de tipos de cambio (al BCE) y de precios (a CoinGecko
 ### Carpetas
 
 ```
-ReenTrack/
+ReenTracking/
 ├── README.md               ← estás aquí
 ├── LICENSE                 ← MIT
 ├── CLAUDE.md               ← para Claude Code: «lee el README»
